@@ -244,10 +244,10 @@ test('configuration rejects stale revisions and read-only writes; OBS permits co
   const path='/v1/channels/test-channel/config/overlay-layout';
   const document={schemaVersion:1,boardThemeId:'lime-clover',width:1920,height:1080,aspectRatio:'16:9',background:'transparent',widgets:[{id:'board',bounds:{x:0,y:0,width:1,height:1},z:0}]};
   const beforeTheme=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
-  assert.equal(beforeTheme.boardThemeId,'classic-party');
+  assert.equal(beforeTheme.boardThemeId,'lime-clover');
   assert.equal((await viewer.post(path,{document})).status,403);
   assert.equal((await viewer.post('/v1/channels/test-channel/obs-tokens',{label:'forbidden'})).status,403);
-  for(const boardThemeId of ['unknown-theme',null,42]){
+  for(const boardThemeId of ['classic-party','unknown-theme',null,42]){
     let invalid=await http.post(path,{document:{...document,boardThemeId}});assert.equal(invalid.status,201);const invalidVersion=await invalid.json() as any;
     invalid=await http.post(`${path}/${invalidVersion.id}/validate`,{expectedRevision:invalidVersion.revision});assert.equal(invalid.status,201);
     const invalidBody=await invalid.json() as any;assert.equal(invalidBody.status,'draft');assert.match(invalidBody.validationErrors[0],/boardThemeId/);
@@ -268,6 +268,14 @@ test('configuration rejects stale revisions and read-only writes; OBS permits co
   const readers=await Promise.all(Array.from({length:4},()=>fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})));
   assert.deepEqual(readers.map(x=>x.status),[200,200,200,200]);
   for(const reader of readers){const state=await reader.json() as any;assert.deepEqual(state.layout,document);assert.equal(state.latestCommand?.operatorId,undefined);}
+  const legacyClient=new pg.Client({connectionString:databaseUrl});await legacyClient.connect();
+  try {
+    await legacyClient.query(`UPDATE channel_config_versions SET document=jsonb_set(document,'{boardThemeId}','"classic-party"') WHERE channel_id=$1 AND kind='overlay-layout' AND status='published'`,['test-channel']);
+    const legacyOperator=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
+    assert.equal(legacyOperator.boardThemeId,'lime-clover');assert.deepEqual(legacyOperator.session,afterTheme.session);
+    const legacyOverlay=await (await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})).json() as any;
+    assert.deepEqual(legacyOverlay.layout,document);
+  } finally {await legacyClient.end();}
   assert.equal((await http.del(`/v1/channels/test-channel/obs-tokens/${issued.id}`)).status,204);
   const first=await (await http.get('/v1/channels/test-channel/operations?limit=1')).json() as any;assert.equal(first.items.length,1);assert.ok(first.nextCursor);
   const second=await (await http.get(`/v1/channels/test-channel/operations?limit=1&cursor=${encodeURIComponent(first.nextCursor)}`)).json() as any;assert.equal(second.items.length,1);assert.notEqual(first.items[0].id,second.items[0].id);

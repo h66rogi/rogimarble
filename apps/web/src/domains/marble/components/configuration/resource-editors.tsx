@@ -119,7 +119,7 @@ export function LayoutEditor({
   }, []);
   return (
     <div className="mx-auto max-w-4xl space-y-5">
-      <BoardThemePicker board={board} selected={value.boardThemeId ?? "classic-party"} change={boardThemeId => change({ ...value, boardThemeId })} />
+      <BoardThemePicker board={board} selected={value.boardThemeId ?? "lime-clover"} change={boardThemeId => change({ ...value, boardThemeId })} />
       <p className="text-xs text-muted-foreground">{boardSource} · 저장 전 미리보기</p>
       <OverlayLayoutPreview value={value} board={board} />
       <p className="text-xs leading-relaxed text-muted-foreground">

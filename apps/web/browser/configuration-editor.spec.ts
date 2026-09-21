@@ -16,7 +16,7 @@ const rules = JSON.parse(
 
 async function fixture(
   page: Page,
-  options: { conflict?: boolean; loadError?: boolean } = {},
+  options: { conflict?: boolean; loadError?: boolean; legacyTheme?: boolean } = {},
 ) {
   const writes: { kind: string; verb: string; body: any }[] = [];
   const documents: Record<string, any> = {
@@ -32,7 +32,10 @@ async function fixture(
       widgets: [],
     },
   };
-  const drafts: Record<string, any> = {};
+  if (options.legacyTheme) documents["overlay-layout"].boardThemeId = "classic-party";
+  const drafts: Record<string, any> = options.legacyTheme ? {
+    "overlay-layout": { id: "fixture-legacy-layout", kind: "overlay-layout", revision: 1, status: "validated", document: structuredClone(documents["overlay-layout"]), validationErrors: [] },
+  } : {};
   const published = (kind: string) => ({
     id: `fixture-published-${kind}`,
     kind,
@@ -361,8 +364,9 @@ test("failed configuration loads require retry and never expose a blank writable
 test("board themes preview without game writes and publish only the selected visual setting", async ({ page }) => {
   const state = await fixture(page);
   await page.getByRole("tab", { name: "방송 테마·배치", exact: true }).click();
+  await expect(page.getByRole("button", { name: /클래식 파티/ })).toHaveCount(0);
   const region = page.getByRole("region", { name: "방송 테마·배치 설정", exact: true });
-  await expect(region.getByRole("button", { name: "클래식 파티 선택됨", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(region.getByRole("button", { name: "라임 클로버 선택됨", exact: true })).toHaveAttribute("aria-pressed", "true");
   await region.getByRole("button", { name: "핑크 버니 선택", exact: true }).click();
   await expect(region.getByRole("button", { name: "핑크 버니 선택됨", exact: true })).toHaveAttribute("aria-pressed", "true");
   expect(state.writes).toEqual([]);
@@ -377,5 +381,19 @@ test("board themes preview without game writes and publish only the selected vis
   expect(state.writes.map(w => [w.kind, w.verb])).toEqual([
     ["overlay-layout", "POST"], ["overlay-layout", "validate"], ["overlay-layout", "publish"],
   ]);
+  expect(state.errors).toEqual([]);
+});
+
+
+test("retired theme drafts load as lime and are rewritten before publishing", async ({ page }) => {
+  const state = await fixture(page, { legacyTheme: true });
+  await page.getByRole("tab", { name: "방송 테마·배치", exact: true }).click();
+  const region = page.getByRole("region", { name: "방송 테마·배치 설정", exact: true });
+  await expect(region.getByRole("button", { name: "라임 클로버 선택됨", exact: true })).toBeVisible();
+  await expect(region.getByRole("button", { name: /클래식 파티/ })).toHaveCount(0);
+  await region.getByRole("button", { name: "검사하고 게시", exact: true }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  expect(state.writes.map(write => write.verb)).toEqual(["PUT", "validate"]);
+  expect(state.writes[0].body.document).toEqual({ ...state.documents["overlay-layout"], boardThemeId: "lime-clover" });
   expect(state.errors).toEqual([]);
 });

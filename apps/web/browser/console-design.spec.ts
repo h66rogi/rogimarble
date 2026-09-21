@@ -166,9 +166,10 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   await expect
     .poll(async () => (await page.locator("header").boundingBox())?.y)
     .toBe(0);
-  await expect(
-    page.getByRole("link", { name: "방송·수집 관리", exact: true }),
-  ).toHaveAttribute("href", "/collector");
+  const collectorLink = page
+    .locator("footer")
+    .getByRole("link", { name: "방송·수집 관리", exact: true });
+  await expect(collectorLink).toHaveAttribute("href", "/collector");
   const homeTab = nav.getByRole("tab", { name: "홈", exact: true });
   await expect(homeTab).toHaveAttribute("data-console-tab", "home");
   await expect(homeTab).not.toHaveAttribute("data-slot", "tabs-trigger");
@@ -193,6 +194,7 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   await expect(filter).toContainText("전체 결과");
   for (const name of ["OBS 설정", "운영 기록", "홈"]) {
     await nav.getByRole("tab", { name, exact: true }).click();
+    await expect(collectorLink).toBeInViewport();
     await expect
       .poll(
         () =>

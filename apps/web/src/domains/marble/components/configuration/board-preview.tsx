@@ -367,7 +367,7 @@ export function OverlayLayoutPreview({ value, board }: { value: OverlayLayoutDto
             zIndex: w.z,
           }}
         >
-          {w.id === "board" && board ? <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "classic-party"} fit reducedMotion /> : labels[w.id]}
+          {w.id === "board" && board ? <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "lime-clover"} fit reducedMotion /> : labels[w.id]}
         </div>
       ))}
     </div>

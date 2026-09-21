@@ -17,7 +17,7 @@ export function BoardThemePicker({ board, selected, change }: {
       <h3 className="text-sm font-semibold">방송 게임판 테마</h3>
       <p className="text-xs leading-relaxed text-muted-foreground">칸의 내용과 게임 규칙은 그대로 두고 판의 모습을 바꿔요. 선택 후 저장·검증·게시하면 운영 화면과 OBS에 함께 반영돼요.</p>
     </div>
-    <div className="grid gap-3 lg:grid-cols-3">
+    <div className="grid gap-3 lg:grid-cols-2">
       {BOARD_THEMES.map(theme => <Card key={theme.id}>
         <CardContent className="space-y-3">
           <div className="pointer-events-none aspect-video overflow-hidden bg-muted" aria-hidden="true">

@@ -11,7 +11,7 @@ test("OBS updates a theme at the same game revision, keeps the camera space open
     session: { id: "synthetic-session", channelId: "synthetic-channel", status: "running", sessionEpoch: 1, revision: 0, presentationEpoch: 0, currentCellId: board.startCellId, direction: "forward", boardVersionId: "synthetic-board", previewOnly: false },
     boardDefinition: board, inventory: [], missions: [], latestCommand: null,
     pawnAppearance: { revision: 0, image: null },
-    layout: { schemaVersion: 1, boardThemeId: "lime-clover", width: 1920, height: 1080, aspectRatio: "16:9", background: "transparent", widgets: [{ id: "board", bounds: { x: 0, y: 0, width: 1, height: 1 }, z: 0 }] },
+    layout: { schemaVersion: 1, boardThemeId: "classic-party", width: 1920, height: 1080, aspectRatio: "16:9", background: "transparent", widgets: [{ id: "board", bounds: { x: 0, y: 0, width: 1, height: 1 }, z: 0 }] },
   };
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
@@ -23,6 +23,7 @@ test("OBS updates a theme at the same game revision, keeps the camera space open
   const surface = page.locator('.marble-board');
   await expect(surface).toHaveAttribute("data-board-theme", "lime-clover");
   await expect(page.locator(".board-cell")).toHaveCount(26);
+  await expect(page.locator(".board-title, .center-art, .board-party-accent")).toHaveCount(0);
   await expect(page.locator(".theme-corner")).toHaveCount(4);
   await expect(page.locator(".center-widget")).toHaveCount(0);
   const geometry = await page.locator(".board-stage").boundingBox();

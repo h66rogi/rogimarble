@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Board } from '@rogimarble/overlay-ui';
 import type { BoardDefinition } from '@rogimarble/game-core/board';
-import { validateOverlayLayout, type BoardThemeId, type OverlayLayoutDto, type OverlayStateDto } from '@rogimarble/contracts';
+import { upgradeLegacyOverlayLayout, validateOverlayLayout, type BoardThemeId, type OverlayLayoutDto, type OverlayStateDto } from '@rogimarble/contracts';
 import { CanvasSizeNotice } from '@/integrated-overlay/domains/overlay/components/shared/CanvasSizeNotice';
 import { rollPlayback } from '@/integrated-overlay/roll-playback';
 import { useRollPresentation } from '@/lib/use-roll-presentation';
@@ -14,7 +14,7 @@ type LayoutWidget = { id: WidgetId; enabled: boolean; x: number; y: number; w: n
 type TotalLayout = { boardThemeId: BoardThemeId; version: number; aspect: string; width: number; height: number; background: string; widgets: readonly LayoutWidget[] };
 
 const DEFAULT_TOTAL_OVERLAY_LAYOUT: TotalLayout = {
-  boardThemeId: 'classic-party',
+  boardThemeId: 'lime-clover',
   version: 1,
   aspect: '16:9',
   width: 1920,
@@ -35,14 +35,15 @@ const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 /** Original total-overlay merge contract, narrowed to Rogimarble widgets. */
 function mergeLayout(layout?: Record<string, unknown> | null): TotalLayout {
   if (!layout) return DEFAULT_TOTAL_OVERLAY_LAYOUT;
-  try { validateOverlayLayout(layout); } catch { return DEFAULT_TOTAL_OVERLAY_LAYOUT; }
-  const parsed: OverlayLayoutDto = layout;
+  const compatible = upgradeLegacyOverlayLayout(layout);
+  try { validateOverlayLayout(compatible); } catch { return DEFAULT_TOTAL_OVERLAY_LAYOUT; }
+  const parsed: OverlayLayoutDto = compatible;
   const declaredRatio = parsed.aspectRatio === '16:9' ? 16 / 9 : parsed.aspectRatio === '9:16' ? 9 / 16 : parsed.aspectRatio === '4:3' ? 4 / 3 : parsed.width / parsed.height;
   if (Math.abs(parsed.width / parsed.height - declaredRatio) > 0.01) return DEFAULT_TOTAL_OVERLAY_LAYOUT;
   const widgetMap = new Map(parsed.widgets.map((widget) => [widget.id, widget]));
   return {
     ...DEFAULT_TOTAL_OVERLAY_LAYOUT,
-    boardThemeId: parsed.boardThemeId ?? 'classic-party',
+    boardThemeId: parsed.boardThemeId ?? 'lime-clover',
     version: parsed.schemaVersion,
     aspect: parsed.aspectRatio,
     width: parsed.width,

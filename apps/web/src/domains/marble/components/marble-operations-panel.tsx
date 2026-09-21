@@ -349,11 +349,6 @@ export function MarbleOperationsPanel({
       <ConsolePanel
         title="방송 조작"
         description="서버가 결과와 위치를 확정합니다."
-        actions={
-          <Button asChild variant="outline" size="sm">
-            <a href="/collector">방송·수집 관리</a>
-          </Button>
-        }
       >
         <Badge
           variant={
@@ -780,7 +775,7 @@ export function MarbleOperationsPanel({
       )}
       <Board
         board={liveBoard}
-        themeId={state?.boardThemeId ?? "classic-party"}
+        themeId={state?.boardThemeId ?? "lime-clover"}
         tokenCellId={presentation.cellId}
         moving={presentation.moving}
         dice={presentation.dice}

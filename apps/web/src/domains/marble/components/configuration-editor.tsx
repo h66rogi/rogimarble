@@ -5,6 +5,7 @@ import { Disclosure } from "./configuration/editor-fields";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, CheckCircle2, Download, Loader2, Save } from "lucide-react";
+import { upgradeLegacyOverlayLayout } from "@rogimarble/contracts";
 import type {
   ChannelConfigKind,
   ChannelConfigVersionDto,
@@ -119,7 +120,7 @@ export function ConfigurationEditor({
       }
       setVersion(state.draft);
       setPublished(state.published);
-      setRawDocument(next);
+      setRawDocument(kind === "overlay-layout" ? upgradeLegacyOverlayLayout(next) : next);
       setSaved(JSON.stringify(next));
       setReady(true);
     } catch (e) {

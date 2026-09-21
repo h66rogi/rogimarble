@@ -5975,9 +5975,9 @@ export function LiveConsoleContent({
 
       {/* 고정 푸터 - 상태 표시 */}
       <footer className="sticky bottom-0 z-50 bg-muted/95 backdrop-blur-sm border-t">
-        <div className="flex items-center justify-between px-4 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
           {/* 연결 상태 */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {isLive && (
               <>
                 <WebSocketIndicator
@@ -5999,8 +5999,11 @@ export function LiveConsoleContent({
             </span>
           </div>
 
-          {/* 신청곡 상태 */}
+          {/* 게임 상태와 방송·수집 관리 */}
           <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <a href="/collector">방송·수집 관리</a>
+            </Button>
             {marbleState?.session?.status === 'running' ? (
               <Badge className="h-5 px-2 text-[10px]">
                 게임 진행 중

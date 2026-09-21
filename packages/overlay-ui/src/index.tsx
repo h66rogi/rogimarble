@@ -3,30 +3,26 @@
 import { DiceLottie, LandingLottie, TokenLottie } from '@rogimarble/animation';
 import type { BoardThemeId } from '@rogimarble/contracts';
 import { getCellRect, type BoardDefinition, type BoardEffect } from '@rogimarble/game-core/board';
-import { useId, type CSSProperties, type ReactNode } from 'react';
+import { type CSSProperties, type ReactNode } from 'react';
 export { BOARD_THEMES, type BoardThemeMetadata } from './themes';
 
-export function Board({ board, tokenCellId, moving = false, dice, interactive = false, selectedCellId, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, themeId = 'classic-party' }: {
+export function Board({ board, tokenCellId, moving = false, dice, interactive = false, selectedCellId, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, themeId = 'lime-clover' }: {
   board: BoardDefinition; tokenCellId: string; moving?: boolean; dice?: readonly number[]; interactive?: boolean; selectedCellId?: string; onCellSelect?: (id: string) => void; fit?: boolean;
   effectPhase?: 'idle' | 'anticipation' | 'reveal' | 'stepping' | 'landing'; trailCellIds?: readonly string[]; landingPulseKey?: string | number; reducedMotion?: boolean; pawnImageUrl?: string | null;
   themeId?: BoardThemeId;
 }) {
   const displayBoard = board;
-  const shadowId = useId().replaceAll(':', '');
   const tokenCell = displayBoard.cells.find(c => c.id === tokenCellId) ?? displayBoard.cells[0];
   const tokenRect = getCellRect(displayBoard, tokenCell.id);
   const presentationPhase = effectPhase === 'anticipation' ? 'rolling' : effectPhase === 'stepping' ? 'moving' : effectPhase;
   const rollingDiceCount = Math.max(1, dice?.length || displayBoard.dice.count);
 
-  const showThemeDecorations = themeId !== 'classic-party' && displayBoard.layout.type === 'perimeter_grid';
+  const showThemeDecorations = displayBoard.layout.type === 'perimeter_grid';
 
   return <div className={`board-scroll marble-board ${fit ? 'is-fitted' : ''}`} data-board-theme={themeId} data-presentation-phase={presentationPhase} style={{ '--board-aspect': displayBoard.canvas.width / displayBoard.canvas.height } as CSSProperties}>
     <span className="board-scroll-hint">전체 {displayBoard.path.length}칸 보드</span>
-    <div className="board-stage" style={{ aspectRatio: `${displayBoard.canvas.width}/${displayBoard.canvas.height}`, backgroundColor: themeId === 'classic-party' ? displayBoard.canvas.backgroundColor : 'transparent' }}>
-      <div className="board-party-accent board-party-accent-left" aria-hidden="true" />
-      <div className="board-party-accent board-party-accent-right" aria-hidden="true" />
+    <div className="board-stage" style={{ aspectRatio: `${displayBoard.canvas.width}/${displayBoard.canvas.height}`, backgroundColor: 'transparent' }}>
       <svg className="board-svg" viewBox={`0 0 ${displayBoard.canvas.width} ${displayBoard.canvas.height}`} role="img" aria-label={`${displayBoard.path.length}칸 주루마블 보드`}>
-        <defs><filter id={shadowId} x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="8" stdDeviation="7" floodColor="#7a284f" floodOpacity=".18" /></filter></defs>
         {showThemeDecorations && <ThemeCorners board={displayBoard} themeId={themeId} />}
         {displayBoard.cells.map((cell) => {
           const r = getCellRect(displayBoard, cell.id);
@@ -37,16 +33,12 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
           const round = corner ? Math.min(r.width, r.height) / 2 : Math.min(r.width, r.height) * .13;
           return <g key={cell.id} className={`board-cell ${corner ? 'is-corner' : ''} ${spatialCorner ? 'is-spatial-corner' : ''} ${selectedCellId === cell.id ? 'selected' : ''} ${trailCellIds.includes(cell.id) ? 'is-trail' : ''}`} onClick={() => interactive && onCellSelect?.(cell.id)} onKeyDown={event => { if (interactive && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onCellSelect?.(cell.id); } }} role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined}>
             <rect className="cell-shadow" x={r.x} y={r.y + 8} width={r.width} height={r.height - 3} rx={round} fill="#d96a97" opacity=".32" />
-            <rect className="cell-face" x={r.x} y={r.y} width={r.width} height={r.height - 7} rx={round} fill={cell.appearance.fill} stroke={selectedCellId === cell.id ? '#6b2450' : cell.appearance.borderColor} strokeWidth={selectedCellId === cell.id ? 6 : 3} filter={`url(#${shadowId})`} />
+            <rect className="cell-face" x={r.x} y={r.y} width={r.width} height={r.height - 7} rx={round} fill={cell.appearance.fill} stroke={selectedCellId === cell.id ? '#6b2450' : cell.appearance.borderColor} strokeWidth={selectedCellId === cell.id ? 6 : 3} />
             <foreignObject x={r.x + 10} y={r.y + 8} width={r.width - 20} height={r.height - 22}><div className="cell-content" style={{ color: cell.appearance.textColor }}><span className="cell-number">{displayBoard.path.indexOf(cell.id) + 1}</span><span className="cell-icon" aria-hidden="true"><ArtworkIcon assetId={cell.appearance.artwork?.type === 'image' ? cell.appearance.artwork.assetId : null} fallback={cell.onLand[0]} isStart={cell.id === displayBoard.startCellId} /></span><span className="cell-label" data-long={cell.label.length > 8 || undefined}>{cell.label}</span></div></foreignObject>
           </g>;
         })}
       </svg>
-      {displayBoard.layout.type === 'perimeter_grid' && (themeId === 'classic-party' || effectPhase !== 'idle') && <div className="center-widget">
-        <span className="center-art center-art-toast" aria-hidden="true" />
-        <span className="center-art center-art-heart" aria-hidden="true" />
-        <span className="board-kicker">ROGI&apos;S PARTY BOARD</span>
-        <strong className="board-title"><span>주루</span><span>마블</span></strong>
+      {displayBoard.layout.type === 'perimeter_grid' && effectPhase !== 'idle' && <div className="center-widget">
         <div className="dice-tray" aria-label={effectPhase === 'anticipation' ? `주사위 ${rollingDiceCount}개 굴리는 중` : dice?.length ? `주사위 ${dice.join(', ')}` : '주사위 대기 중'}>
           <DiceLottie active={effectPhase === 'anticipation'} reducedMotion={reducedMotion} count={rollingDiceCount} />
           {effectPhase === 'anticipation' ? <span className="dice-idle dice-rolling-label">주사위 굴리는 중</span> : dice?.length ? dice.map((value, index) => <Die key={`${index}-${value}`} value={value} />) : <><span className="die die-number idle-die" aria-hidden="true">?</span><span className="dice-idle">주사위를 굴려 주세요</span></>}
