@@ -1,7 +1,7 @@
 # EC2 배포 준비 상태
 
 기준일: 2026-09-21. 로컬 피드백 버전은 사용자 요청으로 종료했으며 두 제품의 DB volume을 보존했다.
-이 문서는 외부 배포 준비와 실제 배포 완료를 구분한다. 현재 사용자에게 안내할 외부 접속 URL은 아직 없다.
+이 문서는 외부 배포 기반의 실제 검증과 제품 기능 완료를 구분한다. 운영 health 경로는 열렸지만 사용자 피드백 출시 완료를 뜻하지 않는다.
 
 ## 확인한 배포 환경
 
@@ -63,10 +63,10 @@ issuer의 account partition 생성 키/정책이 바뀌면 기존 binding을 확
 1. network → marble → collector 인프라와 두 호스트, data EBS mount, SSM/Docker 준비를 완료했다.
 2. 검토한 source commit에서 private GHCR 이미지 6개와 checksummed public metadata release bundle을 발행했다.
 3. exact immutable OIDC subject의 제한된 AWS role, job token의 임시 Secrets Manager 전달, 고정 SSM document와 실제 private digest pull을 확인했다.
-4. 첫 production Compose에서 flow-style tmpfs option이 별도 mount로 파싱되는 문제를 확인해 항목을 quote했고, parsed Compose의 모든 tmpfs target이 절대 경로인지 검사하는 CI 회귀를 추가했다. 이 수정이 포함된 최신 release의 실제 기동 확인은 대기 중이다.
-5. rogichat DNS 변경 PR은 merge됐지만 현재 Atlantis는 version-only 상태이고 별도 운영 PR은 draft다. 따라서 canonical DNS/TLS 경로는 아직 준비 완료로 표시하지 않는다.
-6. DNS/TLS 뒤 공유 issuer cookie 발급, operator binding, 서버 저장을 실제 브라우저에서 검증해야 한다.
-7. 실제 재부팅·기동 실패·배포 실패·백업/복구를 검증한 뒤 사용자 피드백 URL을 안내한다.
+4. 첫 production Compose의 tmpfs 파싱과 API file credential 문제를 수정했다. 최신 release에서 Marble 5개 container와 Collector 6개 container가 healthy다.
+5. 기존 rogichat production Terraform과 동일 state를 사용해 검토된 변경으로 DNS-only A record 2개만 적용했다. Google·Cloudflare resolver와 외부 HTTPS에서 `https://marble.rogi.chat/healthz`, `https://marble-api.rogi.chat/ready`의 HTTP 200을 확인했다. 기존 Atlantis는 version-only 상태 그대로이며 IAM 확장은 적용하지 않았다.
+6. 두 제품의 암호화된 S3 logical backup과 `pg_restore --list` 검증을 확인했다. 최종 CI와 재부팅 후 복구 검증은 진행 중이다.
+7. 공유 issuer cookie 발급, operator binding과 실제 사용자 로그인을 검증한 뒤 사용자 피드백 URL로 안내한다.
 
 주기 updater는 public Release metadata와 배포 receipt의 health/no-op 상태를 자격 없이 확인한다. 새 private image 배포는
 job token이 살아 있는 `private-deploy` 실행이 담당한다. 실패 시 timer가 익명 pull로 우회하지 않으며 현재 release를
@@ -85,4 +85,4 @@ job token이 살아 있는 `private-deploy` 실행이 담당한다. 실패 시 t
 - API 인증 테스트 5개와 API TypeScript 빌드, 웹 명령/인증 테스트 7개와 typecheck 통과.
 - Collector의 manifest 변조·누락 SQL·runtime 입력, 배포 순서, 마이그레이션 트랜잭션·실패 전파를 가짜 명령 실행으로 검증했다.
 - public source audit와 CI가 통과했으며 private 원본 전체와 원본 이력을 반입하지 않았다. 발행된 6개 application image는 private GHCR에 있다.
-- 두 EC2의 cloud-init/SSM/Docker, EBS mount, OIDC role assume와 private pull은 실제 확인했다. tmpfs 수정 release의 application 기동, canonical TLS, 공유 로그인/operator binding, PostgreSQL·systemd 재부팅 및 복구 검증은 아직 남아 있다.
+- 두 EC2의 cloud-init/SSM/Docker, EBS mount, OIDC role assume/private pull, 최신 application 기동, canonical DNS/TLS와 외부 health, 암호화 S3 logical backup 및 archive 목록 검증을 실제 확인했다. 공유 로그인/operator binding과 최종 CI·재부팅 복구 검증은 아직 남아 있다.

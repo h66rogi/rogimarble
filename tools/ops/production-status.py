@@ -2,24 +2,11 @@
 import json, shutil, subprocess, time
 from pathlib import Path
 
-EXPECTED_SERVICES = {'postgres', 'redis', 'api', 'web', 'edge'}
+from release import EXPECTED_SERVICES, containers_healthy
 
 def command(argv):
     result = subprocess.run(argv, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return {'ok': result.returncode == 0, 'output': result.stdout.strip()}
-
-def containers_healthy(result):
-    if not result['ok']:
-        return False
-    try:
-        output = result['output']
-        rows = json.loads(output) if output.lstrip().startswith('[') else [json.loads(line) for line in output.splitlines() if line.strip()]
-        by_service = {row['Service']: row for row in rows}
-        return EXPECTED_SERVICES.issubset(by_service) and all(
-            by_service[name].get('State') == 'running' and by_service[name].get('Health') == 'healthy'
-            for name in EXPECTED_SERVICES)
-    except (ValueError, KeyError, TypeError):
-        return False
 
 def receipt_matches(manifest, receipt):
     return bool(isinstance(manifest, dict) and isinstance(receipt, dict)

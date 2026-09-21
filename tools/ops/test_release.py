@@ -21,6 +21,9 @@ class FakeRunner:
 
     def run(self, argv: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
         self.commands.append(argv)
+        if argv[-3:] == ["ps", "--format", "json"]:
+            rows=[{"Service":name,"State":"running","Health":"healthy"} for name in ("postgres","redis","api","web","edge")]
+            return subprocess.CompletedProcess(argv,0,json.dumps(rows),"")
         if argv[0] == "findmnt":
             return subprocess.CompletedProcess(argv, 0, f"{argv[-1]} {self.uuid}\n", "")
         if argv[0] == "git":
@@ -121,6 +124,23 @@ class ReleaseTest(unittest.TestCase):
         self.assertEqual(digest(run/"lib/supervise.sh"),json.loads(manifest_path.read_text())["runtimeFiles"]["tools/ops/supervise.sh"])
         (run/"lib/supervise.sh").write_text("tampered\n")
         with self.assertRaisesRegex(ReleaseError,"installed runtime file checksum"):verify_installed_runtime(json.loads(manifest_path.read_text()),run/"lib",run/"units")
+
+    def test_receipt_waits_until_container_starting_health_has_settled(self):
+        temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
+        class StartingRunner(FakeRunner):
+            probes=0
+            def run(self,argv,*,check=True):
+                result=super().run(argv,check=check)
+                if argv[-3:]==["ps","--format","json"]:
+                    self.probes+=1
+                    if self.probes==1:return subprocess.CompletedProcess(argv,0,result.stdout.replace('healthy','starting'),"")
+                return result
+        runner=StartingRunner(uuid);waits=[]
+        def wait(seconds):
+            self.assertFalse((config/"deployed-release.json").exists());waits.append(seconds)
+        deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=wait)
+        self.assertEqual(waits,[1]);self.assertEqual(runner.probes,2)
+        self.assertTrue((config/"deployed-release.json").is_file())
 
     def test_reboot_restores_runtime_without_losing_successful_receipt(self):
         import shutil

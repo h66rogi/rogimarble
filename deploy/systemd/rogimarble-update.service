@@ -5,6 +5,9 @@ Wants=network-online.target
 Requires=docker.service
 
 [Service]
+RuntimeDirectory=rogimarble
+RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=yes
 Type=oneshot
 ExecStartPre=/usr/local/lib/rogimarble/fetch-runtime-secrets.py
 ExecStart=/usr/local/lib/rogimarble/fetch-release.py

@@ -15,6 +15,21 @@ import sys
 import time
 from typing import Any, Callable
 
+EXPECTED_SERVICES = {'postgres', 'redis', 'api', 'web', 'edge'}
+
+def containers_healthy(result):
+    if not result['ok']:
+        return False
+    try:
+        output = result['output']
+        rows = json.loads(output) if output.lstrip().startswith('[') else [json.loads(line) for line in output.splitlines() if line.strip()]
+        by_service = {row['Service']: row for row in rows}
+        return EXPECTED_SERVICES.issubset(by_service) and all(
+            by_service[name].get('State') == 'running' and by_service[name].get('Health') == 'healthy'
+            for name in EXPECTED_SERVICES)
+    except (ValueError, KeyError, TypeError):
+        return False
+
 PRODUCT = "rogimarble"
 APP_ROOT = Path("/opt/rogimarble/app")
 CONFIG_ROOT = Path("/etc/rogimarble")
@@ -273,6 +288,13 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
                 if attempt == 29:
                     raise ReleaseError(f"smoke check failed: {url}")
                 sleep(2)
+        for attempt in range(60):
+            state = runner.run(compose + ["ps", "--format", "json"], check=False)
+            if containers_healthy({"ok": state.returncode == 0, "output": state.stdout}):
+                break
+            if attempt == 59:
+                raise ReleaseError("container health did not settle after activation")
+            sleep(1)
         deployed = config_root / "deployed-release.json"
         receipt={"status":"deployed","deployedAt":time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime()),"releaseId":manifest["releaseId"],"sourceSha":manifest["sourceSha"],"images":manifest["images"]}
         receipt_temp = config_root / f".deployed-release.{os.getpid()}.json"

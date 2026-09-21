@@ -67,7 +67,7 @@ def main():
         candidate=read_json(manifest);receipt_path=active.with_name("deployed-release.json");receipt=read_json(receipt_path) if receipt_path.is_file() else None
         if active_value and active_value.get("sourceSha")==candidate.get("sourceSha"):
             unit=__import__('subprocess').run(["systemctl","is-active","--quiet","rogimarble-app.service"])
-            health=__import__('subprocess').run(["curl","--fail","--silent","--show-error","--max-time","5","https://marble-api.rogi.chat/ready"])
+            health=__import__('subprocess').run(["curl","--fail","--silent","--show-error","--max-time","5","https://marble-api.rogi.chat/ready"],capture_output=True)
             if can_skip(active_value,candidate,receipt,unit.returncode==0,health.returncode==0):return 0
         os.execv("/usr/bin/python3",["python3","/usr/local/lib/rogimarble/release.py","--manifest",str(manifest),"--app-root",str(app)])
     except (FetchError,OSError,ValueError,json.JSONDecodeError) as error:print(f"release fetch failed: {error}",file=__import__('sys').stderr);return 1
