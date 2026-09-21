@@ -27,6 +27,20 @@ class FetchReleaseTest(unittest.TestCase):
     with tarfile.open(archive,"w:gz") as bundle:entry=tarfile.TarInfo("../escape");entry.size=1;bundle.addfile(entry,io.BytesIO(b"x"))
     with self.assertRaises(module.FetchError):module.safe_extract(archive,root/"out")
 
+  def test_candidate_deployer_requires_matching_source_and_file_checksum(self):
+    with tempfile.TemporaryDirectory() as directory:
+      root=Path(directory);app=root/"candidate";deployer=app/"tools/ops/release.py";deployer.parent.mkdir(parents=True)
+      deployer.write_text("# candidate updater\n")
+      marker=app/".release-source-sha";marker.write_text("a"*40+"\n")
+      manifest=root/"release.json";manifest.write_text(json.dumps({"sourceSha":"a"*40,"runtimeFiles":{"tools/ops/release.py":hashlib.sha256(deployer.read_bytes()).hexdigest()}}))
+      self.assertEqual(module.verified_deployer(app,manifest),deployer)
+      marker.write_text("b"*40+"\n")
+      with self.assertRaisesRegex(module.FetchError,"source marker"):module.verified_deployer(app,manifest)
+      marker.write_text("a"*40+"\n");deployer.write_text("# altered\n")
+      with self.assertRaisesRegex(module.FetchError,"checksum"):module.verified_deployer(app,manifest)
+      deployer.unlink();deployer.symlink_to(manifest)
+      with self.assertRaisesRegex(module.FetchError,"checksum"):module.verified_deployer(app,manifest)
+
   def test_failed_activation_never_skips_without_matching_receipt_and_health(self):
     candidate={"sourceSha":"a"*40,"releaseId":"r1","images":{"api":"digest"}};active={"sourceSha":"a"*40};receipt={"status":"deployed","sourceSha":"a"*40,"releaseId":"r1","images":{"api":"digest"}}
     self.assertFalse(module.can_skip(active,candidate,None,True,True));self.assertFalse(module.can_skip(active,candidate,receipt,False,True));self.assertFalse(module.can_skip(active,candidate,receipt,True,False));self.assertTrue(module.can_skip(active,candidate,receipt,True,True))

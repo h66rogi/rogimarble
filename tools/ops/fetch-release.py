@@ -26,6 +26,22 @@ def safe_extract(archive:Path,target:Path)->None:
         bundle.extractall(target,filter="data")
 def can_skip(active, candidate, receipt, unit_ok:bool, health_ok:bool)->bool:
     return bool(isinstance(active,dict) and isinstance(receipt,dict) and active.get("sourceSha")==candidate.get("sourceSha") and receipt.get("status")=="deployed" and receipt.get("sourceSha")==candidate.get("sourceSha") and receipt.get("releaseId")==candidate.get("releaseId") and receipt.get("images")==candidate.get("images") and unit_ok and health_ok)
+def verified_deployer(app:Path,manifest_path:Path)->Path:
+    """Run the source-bound candidate updater so its schema can evolve with the bundle."""
+    manifest=read_json(manifest_path)
+    sha=manifest.get("sourceSha")
+    if not isinstance(sha,str) or not re.fullmatch(r"[0-9a-f]{40}",sha):raise FetchError("invalid deployer source SHA")
+    marker=app/".release-source-sha"
+    if marker.is_symlink() or not marker.is_file() or marker.read_text().strip()!=sha:raise FetchError("deployer source marker mismatch")
+    relative="tools/ops/release.py"
+    expected=manifest.get("runtimeFiles",{}).get(relative)
+    deployer=app/relative
+    if (not isinstance(expected,str) or not re.fullmatch(r"[0-9a-f]{64}",expected)
+            or deployer.is_symlink() or not deployer.is_file()
+            or hashlib.sha256(deployer.read_bytes()).hexdigest()!=expected):
+        raise FetchError("candidate deployer checksum mismatch")
+    return deployer
+
 def stage(source_path:Path,overlay_path:Path,releases_root:Path,run_root:Path,current_sha:str|None=None)->tuple[Path,Path]:
     source=exact(read_json(source_path),{"repository","workflowPath"},"release source");repo=source["repository"]
     if not isinstance(repo,str) or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",repo):raise FetchError("invalid public GitHub repository")
@@ -69,6 +85,6 @@ def main():
             unit=__import__('subprocess').run(["systemctl","is-active","--quiet","rogimarble-app.service"])
             health=__import__('subprocess').run(["curl","--fail","--silent","--show-error","--max-time","5","https://marble-api.rogi.chat/ready"],capture_output=True)
             if can_skip(active_value,candidate,receipt,unit.returncode==0,health.returncode==0):return 0
-        os.execv("/usr/bin/python3",["python3","/usr/local/lib/rogimarble/release.py","--manifest",str(manifest),"--app-root",str(app)])
+        os.execv("/usr/bin/python3",["python3",str(verified_deployer(app,manifest)),"--manifest",str(manifest),"--app-root",str(app)])
     except (FetchError,OSError,ValueError,json.JSONDecodeError) as error:print(f"release fetch failed: {error}",file=__import__('sys').stderr);return 1
 if __name__=="__main__":raise SystemExit(main())
