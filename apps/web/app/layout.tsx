@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { nanumSquareNeo } from './fonts';
 import { QueryProvider } from '@/shared/providers/query-provider';
 import { ThemeProvider } from '@/shared/providers/theme-provider';
 import '../src/app/globals.css';
@@ -12,11 +13,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko" suppressHydrationWarning>
-      <head>
-        <link rel="preload" href="/fonts/NanumSquareNeo-Variable.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
-      </head>
-      <body>
+    <html lang="ko" className={nanumSquareNeo.variable} suppressHydrationWarning>
+      <body className="font-sans">
         <QueryProvider>
           <ThemeProvider
             attribute="class"

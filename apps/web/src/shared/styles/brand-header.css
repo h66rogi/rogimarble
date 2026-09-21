@@ -1,7 +1,7 @@
 /* ===== 웹폰트 (CDN) ===== */
 /* ===== 공유 헤더 (GlobalHeader / UserProfileMenu) ===== */
 .brand-header {
-  font-family: 'NanumSquareNeo', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family: var(--font-sans);
   position: sticky; top: 0; z-index: 50;
   display: flex; align-items: center; justify-content: space-between;
   gap: 18px; min-height: 64px; padding: 0 clamp(16px, 3.4vw, 40px);
@@ -191,7 +191,7 @@ html[data-theme="dark"] .svc-launcher__home-btn.is-open { background: #333; }
 
 /* ===== GlobalColoredHeader ===== */
 .ch {
-  font-family: 'NanumSquareNeo', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family: var(--font-sans);
   position: sticky; top: 0; z-index: 50;
   background: var(--ch-bg, #6366f1); color: var(--ch-fg, #fff);
 }
@@ -242,7 +242,7 @@ html[data-theme="dark"] .svc-launcher__home-btn.is-open { background: #333; }
 .gtf {
   padding: 32px 20px 28px;
   text-align: center;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 .gtf__links {
   display: flex; align-items: center; justify-content: center; gap: 0;
@@ -355,7 +355,7 @@ html[data-theme="dark"] .brand-header .nc-bell--guest:hover { background: #24293
 .gf-footer {
   border-top: 1px solid var(--line, #e7eaee);
   background: var(--card, #ffffff);
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 .gf-inner {
   max-width: 1280px; margin: 0 auto;
