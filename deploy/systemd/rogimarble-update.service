@@ -1,8 +1,8 @@
 [Unit]
 Description=Fetch and deploy the latest trusted Rogimarble production release
-After=network-online.target docker.service
+After=network-online.target docker.service rogimarble-secrets.service
 Wants=network-online.target
-Requires=docker.service
+Requires=docker.service rogimarble-secrets.service
 
 [Service]
 Type=oneshot

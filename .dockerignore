@@ -22,3 +22,15 @@ _references
 .references
 private-imports
 local-audit
+
+# Keep local/private runtime and infrastructure data out of build contexts.
+**/__pycache__
+**/*.pyc
+**/dist-test
+deploy/.preview
+**/.terraform
+**/*.tfstate*
+**/*.tfplan
+**/*.tfvars
+**/*.tfvars.json
+**/backend.hcl

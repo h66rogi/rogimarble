@@ -43,10 +43,13 @@ sudo ./tools/ops/install-host.sh --data-uuid 'EXPECTED-UUID' --initialize-data \
 기존 EBS를 재연결할 때는 `--initialize-data`를 사용하지 않는다. helper와 unit 설치는 mount UUID를 확인하지만
 unit을 자동 enable/start하지 않으며, release checkout·secret·manifest 검증 뒤 운영자가 활성화한다.
 
-첫 bootstrap에서는 example을 복사해 `/etc/rogimarble/release-source.json`과
+첫 bootstrap에서는 example을 복사해 `/etc/rogimarble/release-source.json`,
+`/etc/rogimarble/secrets-manager.json`, `/etc/rogimarble/backup.json`과
 `/etc/rogimarble/runtime-overlay.json`을 root:root 0600으로 만들고 placeholder를 실제 검증된 public repository,
 EBS UUID, channel 및 image UID/GID로 바꾼다. secret 파일도 각각 root:root 0600으로 만든 뒤 첫 release를 수동 실행해
-검증한다. 성공한 뒤에만 다음 timer를 활성화한다.
+검증한다. Secrets Manager runtime container에는 아래 여섯 key의 JSON SecretString을 AWSCURRENT로 먼저 넣는다.
+호스트는 instance role과 boto3로 매 boot/start에 이를 `/run` tmpfs로 가져오며 `/etc`에 값을 저장하지 않는다.
+성공한 뒤에만 다음 timer를 활성화한다.
 
 ```sh
 systemctl enable --now rogimarble-update.timer rogimarble-backup.timer
@@ -55,7 +58,8 @@ systemctl enable --now rogimarble-update.timer rogimarble-backup.timer
 
 ## secret 분리
 
-다음 파일은 저장소와 release manifest에 넣지 않는다. `rogimarble-secrets.service`가 `/etc`의 각 파일을
+다음 key는 저장소와 release manifest에 넣지 않는다. `rogimarble-secrets.service`가 Secrets Manager의 exact-key
+JSON을 `/run/rogimarble/source-secrets.<generation>`에 0400으로 쓰고 symlink를 원자적으로 바꾼 뒤
 `/run/rogimarble/secrets`로 각 container role UID/GID 소유의 0400 파일로 복사한다. `/run`이 비워지는
 재부팅 뒤에도 secrets unit은 활성 manifest의 source SHA와 EBS exact mount UUID를 검증해 다시 생성한다.
 
@@ -106,7 +110,9 @@ shared 인증 응답의 `accountPartition`은 자동 권한이 아니다. 003 mi
     "tools/ops/install-host.sh": "64 lowercase hex",
     "tools/ops/fetch-release.py": "64 lowercase hex",
     "tools/ops/production-status.py": "64 lowercase hex",
-    "tools/ops/backup-postgres.sh": "64 lowercase hex"
+    "tools/ops/backup-postgres.sh": "64 lowercase hex",
+    "tools/ops/fetch-runtime-secrets.py": "64 lowercase hex",
+    "tools/ops/upload-backup.py": "64 lowercase hex"
   },
   "images": {
     "api": "registry/repository@sha256:64hex",
@@ -184,5 +190,7 @@ canonical readiness, data disk 사용량, 최신 backup 나이를 JSON으로 반
 추론하지 않으며 현재 `feedback` profile의 지원 범위만 보여준다.
 
 `rogimarble-backup.timer`는 매일 PostgreSQL custom-format logical dump를 gzip으로 저장하고 7일을 초과한 파일을
-정리한다. 이는 기본 복구용 logical backup이며 restore rehearsal, 원격 복제, WAL archive가 포함된 PITR 구현이 아니다.
+정리한다. dump 명령 성공 뒤 `pg_restore --list`로 archive를 검증하고, instance role로 `backup.json`에 지정된 private
+S3 bucket/prefix에 SSE-S3 upload가 성공해야 service가 성공한다. 이는 기본 복구용 logical backup이며 restore rehearsal,
+WAL archive가 포함된 PITR 구현이 아니다.
 첫 실서비스 전에 별도 보관 위치와 실제 restore 검증을 운영 절차로 추가해야 한다.

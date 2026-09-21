@@ -28,7 +28,7 @@ RUNTIME_FILES = {"deploy/Caddyfile.production", "deploy/postgres/init-roles.sh",
                  "deploy/systemd/rogimarble-backup.service", "deploy/systemd/rogimarble-backup.timer",
                  "tools/ops/release.py", "tools/ops/deploy.sh", "tools/ops/supervise.sh",
                  "tools/ops/prepare-secrets.sh", "tools/ops/install-host.sh", "tools/ops/fetch-release.py",
-                 "tools/ops/production-status.py", "tools/ops/backup-postgres.sh", "tools/ops/fetch-runtime-secrets.py"}
+                 "tools/ops/production-status.py", "tools/ops/backup-postgres.sh", "tools/ops/fetch-runtime-secrets.py", "tools/ops/upload-backup.py"}
 RUNTIME_KEYS = {"webDomain", "apiDomain", "acmeEmail", "channelId", "composeProjectName", "dataRoot",
                 "dataVolumeUuid", "postgresDb", "postgresAdminUser", "migrationDbUser", "appDbUser",
                 "apiUid", "apiGid", "webUid", "webGid", "postgresUid", "postgresGid", "redisUid", "redisGid", "caddyUid", "caddyGid"}
@@ -192,6 +192,7 @@ def installed_runtime_destinations(lib_root:Path,unit_root:Path)->dict[str,Path]
     "tools/ops/prepare-secrets.sh":lib_root/"prepare-secrets.sh","tools/ops/fetch-release.py":lib_root/"fetch-release.py",
     "tools/ops/production-status.py":lib_root/"production-status.py","tools/ops/backup-postgres.sh":lib_root/"backup-postgres.sh",
     "tools/ops/fetch-runtime-secrets.py":lib_root/"fetch-runtime-secrets.py",
+    "tools/ops/upload-backup.py":lib_root/"upload-backup.py",
     "deploy/systemd/rogimarble-app.service":unit_root/"rogimarble-app.service","deploy/systemd/rogimarble-secrets.service":unit_root/"rogimarble-secrets.service",
     "deploy/systemd/rogimarble-update.service":unit_root/"rogimarble-update.service","deploy/systemd/rogimarble-update.timer":unit_root/"rogimarble-update.timer",
     "deploy/systemd/rogimarble-backup.service":unit_root/"rogimarble-backup.service","deploy/systemd/rogimarble-backup.timer":unit_root/"rogimarble-backup.timer"}

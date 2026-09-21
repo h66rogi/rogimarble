@@ -1,0 +1,5 @@
+{
+  "region": "ap-northeast-2",
+  "bucket": "REPLACE_WITH_TERRAFORM_BACKUP_BUCKET",
+  "prefix": "postgres/rogimarble"
+}

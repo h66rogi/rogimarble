@@ -11,4 +11,5 @@ IOSchedulingClass=idle
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
+ReadOnlyPaths=/etc/rogimarble/backup.json
 ReadWritePaths=/srv/rogimarble/backups

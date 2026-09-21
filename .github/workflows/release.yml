@@ -6,6 +6,8 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
+  attestations: write
 concurrency: {group: production-release, cancel-in-progress: false}
 jobs:
   publish:
@@ -24,7 +26,7 @@ jobs:
       - run: pnpm --filter @rogimarble/api test:integration
       - run: pnpm build
         env: {NEXT_PUBLIC_API_BASE_URL: 'https://marble-api.rogi.chat', NEXT_PUBLIC_CHANNEL_ID: preview}
-      - run: python3 tools/ops/test_release.py && python3 tools/ops/test_fetch_release.py
+      - run: python3 tools/ops/test_release.py && python3 tools/ops/test_fetch_release.py && python3 tools/ops/test_runtime_secrets.py && python3 tools/ops/test_backup.py
       - id: release_state
         name: Preserve an existing immutable release
         env: {GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}'}
@@ -88,6 +90,11 @@ jobs:
           IMAGE_POSTGRES: '${{ vars.POSTGRES_IMAGE }}'
           IMAGE_REDIS: '${{ vars.REDIS_IMAGE }}'
         run: python3 tools/release/build-bundle.py
+      - name: Attest release bundle provenance
+        if: steps.release_state.outputs.exists != 'true'
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: dist/release/release-bundle.tar.gz
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: steps.release_state.outputs.exists != 'true'
         with: {name: rogimarble-production-release, path: 'dist/release/*', if-no-files-found: error, retention-days: 30}

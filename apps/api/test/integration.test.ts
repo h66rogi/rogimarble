@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
 import test from 'node:test';
+import pg from 'pg';
 
 const root=new URL('../../../',import.meta.url).pathname;
 const container=`rogimarble-api-test-${randomUUID()}`;
@@ -53,9 +54,9 @@ function client(auth:{csrf:string;cookie:string}){
 
 test.before(async()=>{
   command('docker',['run','--name',container,'-e',`POSTGRES_PASSWORD=${databasePassword}`,'-e','POSTGRES_DB=rogimarble_test','-p','127.0.0.1::5432','-d','postgres:17-alpine']);
-  for(let i=0;i<60;i++){const result=spawnSync('docker',['exec',container,'pg_isready','-U','postgres','-d','rogimarble_test']);if(result.status===0)break;await new Promise(r=>setTimeout(r,500));if(i===59)throw new Error('PostgreSQL did not become ready');}
   const published=command('docker',['port',container,'5432/tcp']).trim(); const port=published.slice(published.lastIndexOf(':')+1);
   databaseUrl=`postgresql://postgres:${databasePassword}@127.0.0.1:${port}/rogimarble_test`;
+  for(let i=0;i<120;i++){const probe=new pg.Client({connectionString:databaseUrl,connectionTimeoutMillis:500});try{await probe.connect();await probe.query('SELECT 1');await probe.end();break;}catch{await probe.end().catch(()=>{});await new Promise(r=>setTimeout(r,500));if(i===119)throw new Error('PostgreSQL TCP endpoint did not become ready');}}
   command(process.execPath,['--experimental-strip-types','packages/database/src/migrate.ts'],{env:{DATABASE_URL:databaseUrl}});
   command(process.execPath,['--experimental-strip-types','packages/database/src/bootstrap-admin.ts'],{env:{DATABASE_URL:databaseUrl,
     BOOTSTRAP_ADMIN_USERNAME:'admin',BOOTSTRAP_ADMIN_PASSWORD:adminPassword,BOOTSTRAP_CHANNEL_ID:'test-channel',BOOTSTRAP_CHANNEL_NAME:'Test Channel'}});

@@ -40,6 +40,7 @@ install -m 0755 "$repo_dir/tools/ops/fetch-release.py" /usr/local/lib/rogimarble
 install -m 0755 "$repo_dir/tools/ops/production-status.py" /usr/local/lib/rogimarble/production-status.py
 install -m 0755 "$repo_dir/tools/ops/backup-postgres.sh" /usr/local/lib/rogimarble/backup-postgres.sh
 install -m 0755 "$repo_dir/tools/ops/fetch-runtime-secrets.py" /usr/local/lib/rogimarble/fetch-runtime-secrets.py
+install -m 0755 "$repo_dir/tools/ops/upload-backup.py" /usr/local/lib/rogimarble/upload-backup.py
 install -m 0644 "$repo_dir/deploy/systemd/rogimarble-secrets.service" /etc/systemd/system/rogimarble-secrets.service
 install -m 0644 "$repo_dir/deploy/systemd/rogimarble-app.service" /etc/systemd/system/rogimarble-app.service
 install -m 0644 "$repo_dir/deploy/systemd/rogimarble-update.service" /etc/systemd/system/rogimarble-update.service
