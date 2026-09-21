@@ -1,7 +1,7 @@
 {
   "webDomain": "marble.rogi.chat",
   "apiDomain": "marble-api.rogi.chat",
-  "acmeEmail": "REPLACE_WITH_OPERATIONAL_EMAIL",
+  "acmeEmail": "",
   "channelId": "REPLACE_WITH_APPROVED_CHANNEL",
   "composeProjectName": "rogimarble-prod",
   "dataRoot": "/srv/rogimarble",

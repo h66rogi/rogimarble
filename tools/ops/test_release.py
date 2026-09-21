@@ -73,6 +73,16 @@ class ReleaseTest(unittest.TestCase):
         (app/"tools/ops/supervise.sh").write_text("tampered\n",encoding="utf-8")
         with self.assertRaisesRegex(ReleaseError,"runtime file checksum"):validate_manifest(manifest_path,app,data)
 
+    def test_acme_email_is_optional_but_nonempty_value_is_validated_and_rendered_as_complete_directive(self):
+        temporary,app,_,run,data,_,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
+        value=json.loads(manifest_path.read_text());value["runtimeNonSecret"]["acmeEmail"]="";manifest_path.write_text(json.dumps(value));manifest=validate_manifest(manifest_path,app,data)
+        from release import release_env
+        self.assertIn("ACME_EMAIL_DIRECTIVE=\n",release_env(manifest,app,run).read_text())
+        value["runtimeNonSecret"]["acmeEmail"]="ops@example.invalid";manifest_path.write_text(json.dumps(value));manifest=validate_manifest(manifest_path,app,data)
+        self.assertIn("ACME_EMAIL_DIRECTIVE=email ops@example.invalid\n",release_env(manifest,app,run).read_text())
+        value["runtimeNonSecret"]["acmeEmail"]="not-an-email";manifest_path.write_text(json.dumps(value))
+        with self.assertRaisesRegex(ReleaseError,"acmeEmail"):validate_manifest(manifest_path,app,data)
+
     def test_migration_failure_never_restarts_app(self):
         temporary, app, config, run, data, uuid, manifest_path = self.fixture();self.addCleanup(temporary.cleanup)
         runner=FakeRunner(uuid,fail_migrate=True)

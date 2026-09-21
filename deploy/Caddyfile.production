@@ -1,6 +1,6 @@
 {
 	admin off
-	email {$ACME_EMAIL}
+	{$ACME_EMAIL_DIRECTIVE}
 }
 
 {$WEB_DOMAIN} {

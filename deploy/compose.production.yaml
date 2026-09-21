@@ -179,7 +179,7 @@ services:
     environment:
       WEB_DOMAIN: ${WEB_DOMAIN:?required}
       API_DOMAIN: ${API_DOMAIN:?required}
-      ACME_EMAIL: ${ACME_EMAIL:?required}
+      ACME_EMAIL_DIRECTIVE: ${ACME_EMAIL_DIRECTIVE-}
     ports: ["80:80", "443:443", "443:443/udp"]
     depends_on:
       api: {condition: service_healthy}

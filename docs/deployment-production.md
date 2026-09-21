@@ -125,7 +125,7 @@ shared 인증 응답의 `accountPartition`은 자동 권한이 아니다. 003 mi
   "runtimeNonSecret": {
     "webDomain": "marble.rogi.chat",
     "apiDomain": "marble-api.rogi.chat",
-    "acmeEmail": "operator supplied email",
+    "acmeEmail": "",
     "channelId": "approved channel id",
     "composeProjectName": "rogimarble-prod",
     "dataRoot": "/srv/rogimarble",
@@ -145,6 +145,8 @@ shared 인증 응답의 `accountPartition`은 자동 권한이 아니다. 003 mi
 
 validator는 필드 추가/누락, mutable image tag, compose/migration/runtime helper checksum 불일치, 승인되지 않은 도메인,
 data mount UUID 불일치를 거부한다. `runtimeNonSecret`에는 secret 값이나 실제 사용자 데이터를 넣지 않는다.
+`acmeEmail`은 빈 문자열일 수 있다. 연락처가 제공된 경우에만 이메일 형식을 검증해 Caddy의 완전한 `email <주소>`
+directive로 만들며, 빈 값이면 directive 전체를 생략한다.
 
 ## 배포 순서
 

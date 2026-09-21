@@ -109,7 +109,7 @@ def validate_manifest(path: Path, app_root: Path = APP_ROOT, expected_data_root:
         raise ReleaseError("production domains do not match the approved marble domains")
     if any(not isinstance(runtime[key], str) or not DOMAIN.fullmatch(runtime[key]) for key in ("webDomain", "apiDomain")):
         raise ReleaseError("invalid domain")
-    if not isinstance(runtime["acmeEmail"], str) or not re.fullmatch(r"[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,190}",runtime["acmeEmail"]):
+    if not isinstance(runtime["acmeEmail"], str) or (runtime["acmeEmail"]!="" and not re.fullmatch(r"[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,190}",runtime["acmeEmail"])):
         raise ReleaseError("acmeEmail is invalid")
     for key in ("channelId", "composeProjectName", "postgresDb", "postgresAdminUser", "migrationDbUser", "appDbUser"):
         if not isinstance(runtime[key], str) or not SAFE.fullmatch(runtime[key]):
@@ -140,7 +140,7 @@ def release_env(manifest: dict[str, Any], app_root: Path, run_root: Path, name: 
     values = {
         "COMPOSE_PROJECT_NAME": runtime["composeProjectName"], "APP_ROOT": str(app_root),
         "DATA_ROOT": runtime["dataRoot"], "RUNTIME_SECRET_ROOT": str(run_root / "secrets"),
-        "WEB_DOMAIN": runtime["webDomain"], "API_DOMAIN": runtime["apiDomain"], "ACME_EMAIL": runtime["acmeEmail"],
+        "WEB_DOMAIN": runtime["webDomain"], "API_DOMAIN": runtime["apiDomain"], "ACME_EMAIL_DIRECTIVE": f"email {runtime['acmeEmail']}" if runtime["acmeEmail"] else "",
         "POSTGRES_DB": runtime["postgresDb"], "POSTGRES_ADMIN_USER": runtime["postgresAdminUser"],
         "MIGRATION_DB_USER": runtime["migrationDbUser"], "APP_DB_USER": runtime["appDbUser"],
         "CHANNEL_ID": runtime["channelId"],
