@@ -24,7 +24,9 @@ def safe_extract(archive:Path,target:Path)->None:
             path=PurePosixPath(member.name)
             if path.is_absolute() or ".." in path.parts or member.issym() or member.islnk() or not(member.isdir() or member.isfile()):raise FetchError("unsafe release archive entry")
         bundle.extractall(target,filter="data")
-def stage(source_path:Path,overlay_path:Path,releases_root:Path,run_root:Path)->tuple[Path,Path]:
+def can_skip(active, candidate, receipt, unit_ok:bool, health_ok:bool)->bool:
+    return bool(isinstance(active,dict) and isinstance(receipt,dict) and active.get("sourceSha")==candidate.get("sourceSha") and receipt.get("status")=="deployed" and receipt.get("sourceSha")==candidate.get("sourceSha") and receipt.get("releaseId")==candidate.get("releaseId") and receipt.get("images")==candidate.get("images") and unit_ok and health_ok)
+def stage(source_path:Path,overlay_path:Path,releases_root:Path,run_root:Path,current_sha:str|None=None)->tuple[Path,Path]:
     source=exact(read_json(source_path),{"repository","workflowPath"},"release source");repo=source["repository"]
     if not isinstance(repo,str) or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",repo):raise FetchError("invalid public GitHub repository")
     release=download(f"{API}/repos/{repo}/releases/latest",1024*1024);metadata=json.loads(release)
@@ -43,6 +45,9 @@ def stage(source_path:Path,overlay_path:Path,releases_root:Path,run_root:Path)->
         runs=json.loads(download(f"{API}/repos/{repo}/actions/runs?head_sha={build['sourceSha']}&per_page=100",4*1024*1024))
         if not any(item.get("path")==workflow_path and item.get("conclusion")=="success" and item.get("head_sha")==build["sourceSha"] and item.get("head_branch")=="main" and item.get("event")=="push" for item in runs.get("workflow_runs",[]) if isinstance(item,dict)):
             raise FetchError("required successful main release workflow run is absent")
+        if current_sha and current_sha!=build["sourceSha"]:
+            comparison=json.loads(download(f"{API}/repos/{repo}/compare/{current_sha}...{build['sourceSha']}",4*1024*1024))
+            if comparison.get("status")!="ahead":raise FetchError("automatic release must be a descendant of the active source; use explicit manual rollback")
         runtime=read_json(overlay_path);manifest={**build,"runtimeNonSecret":runtime}
         release_id=build.get("releaseId");
         if not isinstance(release_id,str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,128}",release_id):raise FetchError("invalid release id")
@@ -56,9 +61,14 @@ def stage(source_path:Path,overlay_path:Path,releases_root:Path,run_root:Path)->
 def main():
     parser=argparse.ArgumentParser();parser.add_argument("--source",type=Path,default=Path("/etc/rogimarble/release-source.json"));parser.add_argument("--overlay",type=Path,default=Path("/etc/rogimarble/runtime-overlay.json"));parser.add_argument("--releases-root",type=Path,default=Path("/opt/rogimarble/releases"));parser.add_argument("--run-root",type=Path,default=Path("/run/rogimarble"));args=parser.parse_args()
     try:
-        app,manifest=stage(args.source,args.overlay,args.releases_root,args.run_root)
         active=Path("/etc/rogimarble/release.json")
-        if active.is_file() and read_json(active).get("sourceSha")==read_json(manifest).get("sourceSha"):return 0
+        active_value=read_json(active) if active.is_file() else None
+        app,manifest=stage(args.source,args.overlay,args.releases_root,args.run_root,active_value.get("sourceSha") if active_value else None)
+        candidate=read_json(manifest);receipt_path=args.run_root/"deployed-release.json";receipt=read_json(receipt_path) if receipt_path.is_file() else None
+        if active_value and active_value.get("sourceSha")==candidate.get("sourceSha"):
+            unit=__import__('subprocess').run(["systemctl","is-active","--quiet","rogimarble-app.service"])
+            health=__import__('subprocess').run(["curl","--fail","--silent","--show-error","--max-time","5","https://marble-api.rogi.chat/ready"])
+            if can_skip(active_value,candidate,receipt,unit.returncode==0,health.returncode==0):return 0
         os.execv("/usr/bin/python3",["python3","/usr/local/lib/rogimarble/release.py","--manifest",str(manifest),"--app-root",str(app)])
     except (FetchError,OSError,ValueError,json.JSONDecodeError) as error:print(f"release fetch failed: {error}",file=__import__('sys').stderr);return 1
 if __name__=="__main__":raise SystemExit(main())

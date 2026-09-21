@@ -28,7 +28,7 @@ RUNTIME_FILES = {"deploy/Caddyfile.production", "deploy/postgres/init-roles.sh",
                  "deploy/systemd/rogimarble-backup.service", "deploy/systemd/rogimarble-backup.timer",
                  "tools/ops/release.py", "tools/ops/deploy.sh", "tools/ops/supervise.sh",
                  "tools/ops/prepare-secrets.sh", "tools/ops/install-host.sh", "tools/ops/fetch-release.py",
-                 "tools/ops/production-status.py", "tools/ops/backup-postgres.sh"}
+                 "tools/ops/production-status.py", "tools/ops/backup-postgres.sh", "tools/ops/fetch-runtime-secrets.py"}
 RUNTIME_KEYS = {"webDomain", "apiDomain", "acmeEmail", "channelId", "composeProjectName", "dataRoot",
                 "dataVolumeUuid", "postgresDb", "postgresAdminUser", "migrationDbUser", "appDbUser",
                 "apiUid", "apiGid", "webUid", "webGid", "postgresUid", "postgresGid", "redisUid", "redisGid", "caddyUid", "caddyGid"}
@@ -156,7 +156,7 @@ def release_env(manifest: dict[str, Any], app_root: Path, run_root: Path, name: 
     return target
 
 def prepare_runtime(manifest:dict[str,Any],app_root:Path,config_root:Path,run_root:Path,env_name:str)->Path:
-    runtime=manifest["runtimeNonSecret"];source_root=config_root/"secrets";target_root=run_root/"secrets"
+    runtime=manifest["runtimeNonSecret"];source_root=run_root/"source-secrets" if (run_root/"source-secrets").is_dir() else config_root/"secrets";target_root=run_root/"secrets"
     ownership={"postgres_admin_password":(runtime["postgresUid"],runtime["postgresGid"]),"postgres_migration_password":(runtime["postgresUid"],runtime["postgresGid"]),
       "postgres_app_password":(runtime["postgresUid"],runtime["postgresGid"]),"migration_database_url":(runtime["apiUid"],runtime["apiGid"]),
       "api_database_url":(runtime["apiUid"],runtime["apiGid"]),"session_secret":(runtime["apiUid"],runtime["apiGid"])}
@@ -181,7 +181,8 @@ def preflight(manifest_path: Path, runner: Runner, app_root: Path, config_root:P
     for directory in (data_root / "postgres", data_root / "redis", data_root / "caddy-data", data_root / "caddy-config"):
         if not directory.is_dir():
             raise ReleaseError(f"required bind directory missing: {directory}")
-    for name in SECRET_FILES:check_secret(config_root/"secrets"/name)
+    source_root=run_root/"source-secrets" if (run_root/"source-secrets").is_dir() else config_root/"secrets"
+    for name in SECRET_FILES:check_secret(source_root/name)
     env_file = release_env(manifest, app_root, run_root,"candidate-release.env")
     runner.run(["docker", "compose", "--env-file", str(env_file), "-f", str(app_root / COMPOSE_PATH), "config", "--quiet"])
     return manifest, env_file
@@ -190,6 +191,7 @@ def installed_runtime_destinations(lib_root:Path,unit_root:Path)->dict[str,Path]
     "tools/ops/release.py":lib_root/"release.py","tools/ops/supervise.sh":lib_root/"supervise.sh",
     "tools/ops/prepare-secrets.sh":lib_root/"prepare-secrets.sh","tools/ops/fetch-release.py":lib_root/"fetch-release.py",
     "tools/ops/production-status.py":lib_root/"production-status.py","tools/ops/backup-postgres.sh":lib_root/"backup-postgres.sh",
+    "tools/ops/fetch-runtime-secrets.py":lib_root/"fetch-runtime-secrets.py",
     "deploy/systemd/rogimarble-app.service":unit_root/"rogimarble-app.service","deploy/systemd/rogimarble-secrets.service":unit_root/"rogimarble-secrets.service",
     "deploy/systemd/rogimarble-update.service":unit_root/"rogimarble-update.service","deploy/systemd/rogimarble-update.timer":unit_root/"rogimarble-update.timer",
     "deploy/systemd/rogimarble-backup.service":unit_root/"rogimarble-backup.service","deploy/systemd/rogimarble-backup.timer":unit_root/"rogimarble-backup.timer"}

@@ -63,7 +63,7 @@ test.before(async()=>{
     BOARD_CHANNEL_ID:'test-channel',BOARD_OPERATOR_USERNAME:'admin'}});
   command(process.execPath,['--experimental-strip-types','packages/database/src/import-items.ts','presets/streamer-initial.json'],{env:{DATABASE_URL:databaseUrl,
     ITEM_CHANNEL_ID:'test-channel'}});
-  command(process.execPath,['node_modules/.pnpm/node_modules/typescript/bin/tsc','-p','apps/api/tsconfig.json','--pretty','false']);
+  command('tsc',['-p','apps/api/tsconfig.json','--pretty','false']);
   await startApi();
 });
 test.after(async()=>{await stopApi();spawnSync('docker',['rm','-f',container],{stdio:'ignore'});});
