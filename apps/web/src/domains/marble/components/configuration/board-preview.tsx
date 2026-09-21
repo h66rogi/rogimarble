@@ -1,5 +1,6 @@
 "use client";
 
+import { Board } from "@rogimarble/overlay-ui";
 import type { CSSProperties } from "react";
 import {
   ArrowDown,
@@ -341,7 +342,7 @@ export function ResizePreview({
     </div>
   );
 }
-export function OverlayLayoutPreview({ value }: { value: OverlayLayoutDto }) {
+export function OverlayLayoutPreview({ value, board }: { value: OverlayLayoutDto; board?: BoardDefinition }) {
   const labels = {
     board: "게임판",
     dice: "주사위",
@@ -352,12 +353,12 @@ export function OverlayLayoutPreview({ value }: { value: OverlayLayoutDto }) {
   return (
     <div
       className="relative overflow-hidden rounded-lg border bg-muted"
-      style={{ aspectRatio: `${value.width || 1}/${value.height || 1}` }}
+      style={{ aspectRatio: `${value.width || 1}/${value.height || 1}`, backgroundColor: value.background }}
     >
       {value.widgets.map((w) => (
         <div
           key={w.id}
-          className="absolute flex items-center justify-center rounded border border-primary/30 bg-primary/10 text-sm text-foreground"
+          className={w.id === "board" && board ? "absolute" : "absolute flex items-center justify-center rounded border border-primary/30 bg-primary/10 text-sm text-foreground"}
           style={{
             left: `${w.bounds.x * 100}%`,
             top: `${w.bounds.y * 100}%`,
@@ -366,7 +367,7 @@ export function OverlayLayoutPreview({ value }: { value: OverlayLayoutDto }) {
             zIndex: w.z,
           }}
         >
-          {labels[w.id]}
+          {w.id === "board" && board ? <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "classic-party"} fit reducedMotion /> : labels[w.id]}
         </div>
       ))}
     </div>

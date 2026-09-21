@@ -449,6 +449,9 @@ importers:
       '@rogimarble/animation':
         specifier: workspace:*
         version: link:../animation
+      '@rogimarble/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@rogimarble/game-core':
         specifier: workspace:*
         version: link:../game-core

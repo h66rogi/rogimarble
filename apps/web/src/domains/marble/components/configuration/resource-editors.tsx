@@ -2,6 +2,11 @@
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Disclosure } from "./editor-fields";
 
+import { useEffect, useState } from "react";
+import { validateBoardDefinition, type BoardDefinition } from "@rogimarble/game-core/board";
+import initialBoard from "../../../../../../../presets/streamer-board.json";
+import { api } from "@/lib/api";
+import { BoardThemePicker } from "./board-theme-picker";
 import { Plus, Trash2 } from "lucide-react";
 import type { OverlayLayoutDto } from "@rogimarble/contracts";
 import { Button } from "@/shared/components/ui/button";
@@ -100,8 +105,23 @@ export function LayoutEditor({
   value: OverlayLayoutDto;
   change: (layout: OverlayLayoutDto) => void;
 }) {
+  const [board, setBoard] = useState<BoardDefinition>(initialBoard as BoardDefinition);
+  const [boardSource, setBoardSource] = useState("기본 게임판 예시");
+  useEffect(() => {
+    let active = true;
+    void api.snapshot().then(snapshot => {
+      if (!active || !snapshot.boardDefinition) return;
+      validateBoardDefinition(snapshot.boardDefinition);
+      setBoard(snapshot.boardDefinition);
+      setBoardSource("현재 게임판");
+    }).catch(() => { /* A sample remains explicitly labelled when live state is unavailable. */ });
+    return () => { active = false; };
+  }, []);
   return (
     <div className="mx-auto max-w-4xl space-y-5">
+      <BoardThemePicker board={board} selected={value.boardThemeId ?? "classic-party"} change={boardThemeId => change({ ...value, boardThemeId })} />
+      <p className="text-xs text-muted-foreground">{boardSource} · 저장 전 미리보기</p>
+      <OverlayLayoutPreview value={value} board={board} />
       <p className="text-xs leading-relaxed text-muted-foreground">
         OBS 방송 화면에서 각 영역을 표시할 위치와 크기를 정해요. 게임판의 칸
         수는 바뀌지 않아요.
@@ -154,7 +174,6 @@ export function LayoutEditor({
           onChange={(e) => change({ ...value, background: e.target.value })}
         />
       </Field>
-      <OverlayLayoutPreview value={value} />
       {(Object.keys(widgetNames) as (keyof typeof widgetNames)[]).map((id) => {
         const current = value.widgets.find((w) => w.id === id);
         return (

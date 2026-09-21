@@ -1,12 +1,15 @@
 'use client';
 
 import { DiceLottie, LandingLottie, TokenLottie } from '@rogimarble/animation';
+import type { BoardThemeId } from '@rogimarble/contracts';
 import { getCellRect, type BoardDefinition, type BoardEffect } from '@rogimarble/game-core/board';
 import { useId, type CSSProperties, type ReactNode } from 'react';
+export { BOARD_THEMES, type BoardThemeMetadata } from './themes';
 
-export function Board({ board, tokenCellId, moving = false, dice, interactive = false, selectedCellId, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl }: {
+export function Board({ board, tokenCellId, moving = false, dice, interactive = false, selectedCellId, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, themeId = 'classic-party' }: {
   board: BoardDefinition; tokenCellId: string; moving?: boolean; dice?: readonly number[]; interactive?: boolean; selectedCellId?: string; onCellSelect?: (id: string) => void; fit?: boolean;
   effectPhase?: 'idle' | 'anticipation' | 'reveal' | 'stepping' | 'landing'; trailCellIds?: readonly string[]; landingPulseKey?: string | number; reducedMotion?: boolean; pawnImageUrl?: string | null;
+  themeId?: BoardThemeId;
 }) {
   const displayBoard = board;
   const shadowId = useId().replaceAll(':', '');
@@ -15,25 +18,31 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
   const presentationPhase = effectPhase === 'anticipation' ? 'rolling' : effectPhase === 'stepping' ? 'moving' : effectPhase;
   const rollingDiceCount = Math.max(1, dice?.length || displayBoard.dice.count);
 
-  return <div className={`board-scroll marble-board ${fit ? 'is-fitted' : ''}`} data-presentation-phase={presentationPhase} style={{ '--board-aspect': displayBoard.canvas.width / displayBoard.canvas.height } as CSSProperties}>
+  const showThemeDecorations = themeId !== 'classic-party' && displayBoard.layout.type === 'perimeter_grid';
+
+  return <div className={`board-scroll marble-board ${fit ? 'is-fitted' : ''}`} data-board-theme={themeId} data-presentation-phase={presentationPhase} style={{ '--board-aspect': displayBoard.canvas.width / displayBoard.canvas.height } as CSSProperties}>
     <span className="board-scroll-hint">전체 {displayBoard.path.length}칸 보드</span>
-    <div className="board-stage" style={{ aspectRatio: `${displayBoard.canvas.width}/${displayBoard.canvas.height}`, backgroundColor: displayBoard.canvas.backgroundColor }}>
+    <div className="board-stage" style={{ aspectRatio: `${displayBoard.canvas.width}/${displayBoard.canvas.height}`, backgroundColor: themeId === 'classic-party' ? displayBoard.canvas.backgroundColor : 'transparent' }}>
       <div className="board-party-accent board-party-accent-left" aria-hidden="true" />
       <div className="board-party-accent board-party-accent-right" aria-hidden="true" />
       <svg className="board-svg" viewBox={`0 0 ${displayBoard.canvas.width} ${displayBoard.canvas.height}`} role="img" aria-label={`${displayBoard.path.length}칸 주루마블 보드`}>
         <defs><filter id={shadowId} x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="8" stdDeviation="7" floodColor="#7a284f" floodOpacity=".18" /></filter></defs>
+        {showThemeDecorations && <ThemeCorners board={displayBoard} themeId={themeId} />}
         {displayBoard.cells.map((cell) => {
           const r = getCellRect(displayBoard, cell.id);
           const corner = cell.appearance.shape === 'circle';
+          const spatialCorner = displayBoard.layout.type === 'perimeter_grid' && cell.position.type === 'grid' &&
+            (cell.position.row === 0 || cell.position.row === displayBoard.layout.rows - 1) &&
+            (cell.position.column === 0 || cell.position.column === displayBoard.layout.columns - 1);
           const round = corner ? Math.min(r.width, r.height) / 2 : Math.min(r.width, r.height) * .13;
-          return <g key={cell.id} className={`board-cell ${corner ? 'is-corner' : ''} ${selectedCellId === cell.id ? 'selected' : ''} ${trailCellIds.includes(cell.id) ? 'is-trail' : ''}`} onClick={() => interactive && onCellSelect?.(cell.id)} onKeyDown={event => { if (interactive && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onCellSelect?.(cell.id); } }} role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined}>
+          return <g key={cell.id} className={`board-cell ${corner ? 'is-corner' : ''} ${spatialCorner ? 'is-spatial-corner' : ''} ${selectedCellId === cell.id ? 'selected' : ''} ${trailCellIds.includes(cell.id) ? 'is-trail' : ''}`} onClick={() => interactive && onCellSelect?.(cell.id)} onKeyDown={event => { if (interactive && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onCellSelect?.(cell.id); } }} role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined}>
             <rect className="cell-shadow" x={r.x} y={r.y + 8} width={r.width} height={r.height - 3} rx={round} fill="#d96a97" opacity=".32" />
             <rect className="cell-face" x={r.x} y={r.y} width={r.width} height={r.height - 7} rx={round} fill={cell.appearance.fill} stroke={selectedCellId === cell.id ? '#6b2450' : cell.appearance.borderColor} strokeWidth={selectedCellId === cell.id ? 6 : 3} filter={`url(#${shadowId})`} />
-            <foreignObject x={r.x + 10} y={r.y + 8} width={r.width - 20} height={r.height - 22}><div className="cell-content" style={{ color: cell.appearance.textColor }}><span className="cell-number">{displayBoard.path.indexOf(cell.id) + 1}</span><span className="cell-icon" aria-hidden="true"><ArtworkIcon assetId={cell.appearance.artwork?.type === 'image' ? cell.appearance.artwork.assetId : null} fallback={cell.onLand[0]} isStart={cell.id === displayBoard.startCellId} /></span><span className="cell-label">{cell.label}</span></div></foreignObject>
+            <foreignObject x={r.x + 10} y={r.y + 8} width={r.width - 20} height={r.height - 22}><div className="cell-content" style={{ color: cell.appearance.textColor }}><span className="cell-number">{displayBoard.path.indexOf(cell.id) + 1}</span><span className="cell-icon" aria-hidden="true"><ArtworkIcon assetId={cell.appearance.artwork?.type === 'image' ? cell.appearance.artwork.assetId : null} fallback={cell.onLand[0]} isStart={cell.id === displayBoard.startCellId} /></span><span className="cell-label" data-long={cell.label.length > 8 || undefined}>{cell.label}</span></div></foreignObject>
           </g>;
         })}
       </svg>
-      {displayBoard.layout.type === 'perimeter_grid' && <div className="center-widget">
+      {displayBoard.layout.type === 'perimeter_grid' && (themeId === 'classic-party' || effectPhase !== 'idle') && <div className="center-widget">
         <span className="center-art center-art-toast" aria-hidden="true" />
         <span className="center-art center-art-heart" aria-hidden="true" />
         <span className="board-kicker">ROGI&apos;S PARTY BOARD</span>
@@ -52,6 +61,23 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
       </div>
     </div>
   </div>;
+}
+
+function ThemeCorners({ board, themeId }: { board: BoardDefinition; themeId: 'lime-clover' | 'pink-bunny' }) {
+  if (board.layout.type !== 'perimeter_grid') return null;
+  const layout = board.layout;
+  const cornerCells = board.cells.filter(cell => cell.position.type === 'grid' &&
+    (cell.position.row === 0 || cell.position.row === layout.rows - 1) &&
+    (cell.position.column === 0 || cell.position.column === layout.columns - 1));
+  return <g className="theme-corners" aria-hidden="true">{cornerCells.map(cell => {
+    const rect = getCellRect(board, cell.id);
+    const cx = rect.x + rect.width / 2;
+    const cy = rect.y + rect.height / 2;
+    const size = Math.min(rect.width, rect.height) * .82;
+    return themeId === 'lime-clover'
+      ? <g key={cell.id} className="theme-corner theme-clover" transform={`translate(${cx} ${cy}) scale(${size / 100})`}><path d="M0-34C-32-70-70-32-34 0C-70 32-32 70 0 34C32 70 70 32 34 0C70-32 32-70 0-34Z"/></g>
+      : <g key={cell.id} className="theme-corner theme-bunny" transform={`translate(${cx} ${cy}) scale(${size / 100})`}><path d="M-35-10C-43-35-39-57-27-59C-16-61-10-39-8-23C-3-25 3-25 8-23C10-39 16-61 27-59C39-57 43-35 35-10C62 21 38 54 0 54C-38 54-62 21-35-10Z"/><path className="bunny-ear" d="M-28-49c-3 10-2 21 1 30M28-49c3 10 2 21-1 30"/><circle className="bunny-eye" cx="-15" cy="13" r="3"/><circle className="bunny-eye" cx="15" cy="13" r="3"/><path className="bunny-face" d="M-5 24Q0 29 5 24"/></g>;
+  })}</g>;
 }
 
 const artworkClasses: Record<string, string> = {

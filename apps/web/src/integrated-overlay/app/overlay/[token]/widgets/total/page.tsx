@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Board } from '@rogimarble/overlay-ui';
 import type { BoardDefinition } from '@rogimarble/game-core/board';
-import { validateOverlayLayout, type OverlayLayoutDto, type OverlayStateDto } from '@rogimarble/contracts';
+import { validateOverlayLayout, type BoardThemeId, type OverlayLayoutDto, type OverlayStateDto } from '@rogimarble/contracts';
 import { CanvasSizeNotice } from '@/integrated-overlay/domains/overlay/components/shared/CanvasSizeNotice';
 import { rollPlayback } from '@/integrated-overlay/roll-playback';
 import { useRollPresentation } from '@/lib/use-roll-presentation';
@@ -11,9 +11,10 @@ import { apiAssetUrl } from '@/lib/api';
 
 type WidgetId = 'board' | 'dice' | 'current_mission' | 'inventory' | 'direction';
 type LayoutWidget = { id: WidgetId; enabled: boolean; x: number; y: number; w: number; h: number; z: number };
-type TotalLayout = { version: number; aspect: string; width: number; height: number; background: string; widgets: readonly LayoutWidget[] };
+type TotalLayout = { boardThemeId: BoardThemeId; version: number; aspect: string; width: number; height: number; background: string; widgets: readonly LayoutWidget[] };
 
 const DEFAULT_TOTAL_OVERLAY_LAYOUT: TotalLayout = {
+  boardThemeId: 'classic-party',
   version: 1,
   aspect: '16:9',
   width: 1920,
@@ -41,6 +42,7 @@ function mergeLayout(layout?: Record<string, unknown> | null): TotalLayout {
   const widgetMap = new Map(parsed.widgets.map((widget) => [widget.id, widget]));
   return {
     ...DEFAULT_TOTAL_OVERLAY_LAYOUT,
+    boardThemeId: parsed.boardThemeId ?? 'classic-party',
     version: parsed.schemaVersion,
     aspect: parsed.aspectRatio,
     width: parsed.width,
@@ -132,11 +134,11 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
         const left = fittedWidth * clamp01(widget.x);
         const top = fittedHeight * clamp01(widget.y);
         return <div key={widget.id} data-overlay-widget={widget.id} data-overlay-version="1" className="absolute" style={{ left, top, width, height, zIndex: widget.z ?? 1 }}>
-          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} tokenCellId={tokenCellId} moving={presentation.moving} dice={presentation.dice.length?presentation.dice:playback?.dice} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} pawnImageUrl={state?.pawnAppearance?.image ? apiAssetUrl(state.pawnAppearance.image.url) : null} /></div>}
-          {widget.id === 'dice' && <OverlayCard eyebrow="이번 주사위" value={presentation.effectPhase==='anticipation'?'굴리는 중…':(presentation.dice.length?presentation.dice:playback?.dice)?.join(' + ')||'대기 중'} />}
-          {widget.id === 'current_mission' && <OverlayCard eyebrow="현재 미션" value={currentMission ? `${currentMission.message} × ${currentMission.quantity}` : '진행 중인 미션 없음'} />}
-          {widget.id === 'inventory' && <OverlayCard eyebrow="보유 아이템" value={state?.inventory.length ? state.inventory.map((item) => `${item.name} ${item.quantity}`).join(' · ') : '없음'} align="left" />}
-          {widget.id === 'direction' && <OverlayCard eyebrow="이동 방향" value={session?.direction === 'reverse' ? '역방향' : '정방향'} />}
+          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} themeId={totalLayout.boardThemeId} tokenCellId={tokenCellId} moving={presentation.moving} dice={presentation.dice.length?presentation.dice:playback?.dice} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} pawnImageUrl={state?.pawnAppearance?.image ? apiAssetUrl(state.pawnAppearance.image.url) : null} /></div>}
+          {widget.id === 'dice' && <OverlayCard themeId={totalLayout.boardThemeId} eyebrow="이번 주사위" value={presentation.effectPhase==='anticipation'?'굴리는 중…':(presentation.dice.length?presentation.dice:playback?.dice)?.join(' + ')||'대기 중'} />}
+          {widget.id === 'current_mission' && <OverlayCard themeId={totalLayout.boardThemeId} eyebrow="현재 미션" value={currentMission ? `${currentMission.message} × ${currentMission.quantity}` : '진행 중인 미션 없음'} />}
+          {widget.id === 'inventory' && <OverlayCard themeId={totalLayout.boardThemeId} eyebrow="보유 아이템" value={state?.inventory.length ? state.inventory.map((item) => `${item.name} ${item.quantity}`).join(' · ') : '없음'} align="left" />}
+          {widget.id === 'direction' && <OverlayCard themeId={totalLayout.boardThemeId} eyebrow="이동 방향" value={session?.direction === 'reverse' ? '역방향' : '정방향'} />}
         </div>;
       })}
       {shouldRenderWidgets && displayStatus !== 'live' && <div className="pointer-events-none absolute left-1/2 top-3 z-[101] -translate-x-1/2 rounded-full bg-black/70 px-4 py-2 text-center text-xs font-semibold text-white backdrop-blur">{label}</div>}
@@ -147,8 +149,8 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
   );
 }
 
-function OverlayCard({ eyebrow, value, align = 'center' }: { eyebrow: string; value: string; align?: 'left' | 'center' }) {
-  return <div className={`broadcast-hud-card ${align === 'left' ? 'is-left' : ''}`}>
+function OverlayCard({ eyebrow, value, themeId, align = 'center' }: { themeId: BoardThemeId; eyebrow: string; value: string; align?: 'left' | 'center' }) {
+  return <div className={`broadcast-hud-card theme-${themeId} ${align === 'left' ? 'is-left' : ''}`}>
     <div className="broadcast-hud-eyebrow">{eyebrow}</div>
     <div className="broadcast-hud-value">{value}</div>
   </div>;

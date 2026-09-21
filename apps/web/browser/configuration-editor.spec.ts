@@ -357,3 +357,25 @@ test("failed configuration loads require retry and never expose a blank writable
   expect(state.writes).toEqual([]);
   expect(state.errors).toEqual([]);
 });
+
+test("board themes preview without game writes and publish only the selected visual setting", async ({ page }) => {
+  const state = await fixture(page);
+  await page.getByRole("tab", { name: "방송 테마·배치", exact: true }).click();
+  const region = page.getByRole("region", { name: "방송 테마·배치 설정", exact: true });
+  await expect(region.getByRole("button", { name: "클래식 파티 선택됨", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await region.getByRole("button", { name: "핑크 버니 선택", exact: true }).click();
+  await expect(region.getByRole("button", { name: "핑크 버니 선택됨", exact: true })).toHaveAttribute("aria-pressed", "true");
+  expect(state.writes).toEqual([]);
+  await page.getByRole("tab", { name: "홈", exact: true }).click();
+  await page.getByRole("tab", { name: "규칙·보드", exact: true }).click();
+  await expect(region.getByRole("button", { name: "핑크 버니 선택됨", exact: true })).toBeVisible();
+  await region.getByRole("button", { name: "검사하고 게시", exact: true }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  expect(state.writes[0].body.document).toEqual({ ...state.documents["overlay-layout"], boardThemeId: "pink-bunny" });
+  await page.getByRole("dialog").getByRole("button", { name: "게시하기", exact: true }).click();
+  await expect(region.getByRole("button", { name: "게시됨", exact: true })).toBeDisabled();
+  expect(state.writes.map(w => [w.kind, w.verb])).toEqual([
+    ["overlay-layout", "POST"], ["overlay-layout", "validate"], ["overlay-layout", "publish"],
+  ]);
+  expect(state.errors).toEqual([]);
+});

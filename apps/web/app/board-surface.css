@@ -130,6 +130,10 @@ html:has([data-total-overlay-source]),body:has([data-total-overlay-source]) { ba
 .broadcast-hud-eyebrow { font-size:.75cqw;line-height:1.1;font-weight:800;letter-spacing:.1em;color:#a6597a; }
 .broadcast-hud-value { max-width:100%;font-size:1.3cqw;line-height:1.25;font-weight:850;word-break:keep-all;overflow-wrap:anywhere;text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
 .broadcast-hud-card.is-left .broadcast-hud-value { text-align:left; }
+.broadcast-hud-card.theme-lime-clover { border-color:#b4d25b;background:rgba(251,255,239,.96);color:#59720e;box-shadow:0 .25cqw 0 #dcebac; }
+.broadcast-hud-card.theme-lime-clover .broadcast-hud-eyebrow { color:#789722; }
+.broadcast-hud-card.theme-pink-bunny { border-color:#f1a0c2;background:rgba(255,248,251,.96);color:#a83f70;box-shadow:0 .25cqw 0 #f7cddd; }
+.broadcast-hud-card.theme-pink-bunny .broadcast-hud-eyebrow { color:#d45d91; }
 
 /* DOM decoration scales with the board container, while SVG labels use logical units. */
 .marble-board .board-title { font-size:6.56cqw;gap:.94cqw;margin-top:.26cqw;text-shadow:0 .42cqw 0 #f0bfd2; }
@@ -141,3 +145,112 @@ html:has([data-total-overlay-source]),body:has([data-total-overlay-source]) { ba
 .marble-board .dice-idle,.marble-board .board-status { font-size:1.1cqw; }
 .marble-board .photo-pawn { border-width:.31cqw;box-shadow:0 0 0 .21cqw #76284e,0 .36cqw 0 #d57ca1; }
 .marble-board .token-base { border-width:.21cqw; }
+
+/* Reference-inspired broadcast themes keep the middle open for camera and HUD layers. */
+.marble-board[data-board-theme="lime-clover"] .board-stage,
+.marble-board[data-board-theme="pink-bunny"] .board-stage {
+  overflow: visible;
+  background-image: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.marble-board[data-board-theme="lime-clover"] .board-stage::before,
+.marble-board[data-board-theme="pink-bunny"] .board-stage::before,
+.marble-board[data-board-theme="lime-clover"] .board-party-accent,
+.marble-board[data-board-theme="pink-bunny"] .board-party-accent,
+.marble-board[data-board-theme="lime-clover"] .board-kicker,
+.marble-board[data-board-theme="pink-bunny"] .board-kicker,
+.marble-board[data-board-theme="lime-clover"] .board-title,
+.marble-board[data-board-theme="pink-bunny"] .board-title,
+.marble-board[data-board-theme="lime-clover"] .center-art,
+.marble-board[data-board-theme="pink-bunny"] .center-art,
+.marble-board[data-board-theme="lime-clover"] .board-status,
+.marble-board[data-board-theme="pink-bunny"] .board-status,
+.marble-board[data-board-theme="lime-clover"] .cell-number,
+.marble-board[data-board-theme="pink-bunny"] .cell-number { display: none; }
+.marble-board[data-board-theme="lime-clover"] .cell-shadow,
+.marble-board[data-board-theme="pink-bunny"] .cell-shadow { opacity: .16; transform: translateY(-1px); }
+.marble-board[data-board-theme="lime-clover"] .cell-face,
+.marble-board[data-board-theme="pink-bunny"] .cell-face {
+  fill: rgba(255,255,255,.91);
+  stroke-width: 3px;
+  filter: none;
+}
+.marble-board[data-board-theme="lime-clover"] .cell-content,
+.marble-board[data-board-theme="pink-bunny"] .cell-content { gap: 0; padding: 4% 7%; }
+.marble-board[data-board-theme="lime-clover"] .cell-label,
+.marble-board[data-board-theme="pink-bunny"] .cell-label {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  font-size: 38px;
+  line-height: 1.03;
+  text-wrap: balance;
+  font-weight: 900;
+  letter-spacing: -.08em;
+  color: #fff;
+  paint-order: stroke fill;
+  text-shadow: 0 2px 2px rgba(48,63,21,.14);
+}
+.marble-board[data-board-theme="lime-clover"] .cell-label[data-long],
+.marble-board[data-board-theme="pink-bunny"] .cell-label[data-long] { font-size: 30px; line-height: 1.12; }
+.marble-board[data-board-theme="lime-clover"] .cell-label { -webkit-text-stroke: 5px #8fab32; }
+.marble-board[data-board-theme="pink-bunny"] .cell-label { -webkit-text-stroke: 5px #ef76a9; }
+.marble-board[data-board-theme="lime-clover"] .cell-icon { display: none; }
+.marble-board[data-board-theme="pink-bunny"] .cell-icon {
+  position: absolute;
+  right: 2%;
+  bottom: 0;
+  width: 34%;
+  height: 42%;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,215,231,.58);
+  color: #ed72a7;
+  opacity: .58;
+}
+.marble-board[data-board-theme="pink-bunny"] .cell-icon svg { width: 64%; height: 64%; stroke-width: 2.4; }
+.marble-board[data-board-theme="lime-clover"] .board-cell.is-spatial-corner .cell-content,
+.marble-board[data-board-theme="pink-bunny"] .board-cell.is-spatial-corner .cell-content { padding: 9%; }
+.marble-board[data-board-theme="lime-clover"] .board-cell.is-spatial-corner .cell-face,
+.marble-board[data-board-theme="pink-bunny"] .board-cell.is-spatial-corner .cell-face {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: all;
+}
+.marble-board[data-board-theme="lime-clover"] .board-cell.is-spatial-corner .cell-shadow,
+.marble-board[data-board-theme="pink-bunny"] .board-cell.is-spatial-corner .cell-shadow { display: none; }
+.marble-board[data-board-theme="lime-clover"] .board-cell.is-spatial-corner .cell-label,
+.marble-board[data-board-theme="pink-bunny"] .board-cell.is-spatial-corner .cell-label { font-size: 38px; }
+.marble-board[data-board-theme="lime-clover"] .cell-face { stroke: #a8c84d; }
+.marble-board[data-board-theme="lime-clover"] .cell-shadow { fill: #86a82d; }
+.marble-board[data-board-theme="pink-bunny"] .cell-face { stroke: #f19abd; }
+.marble-board[data-board-theme="pink-bunny"] .cell-shadow { fill: #d85c91; }
+.marble-board[data-board-theme="lime-clover"] .board-cell.is-spatial-corner .cell-face,
+.marble-board[data-board-theme="pink-bunny"] .board-cell.is-spatial-corner .cell-face { stroke: transparent; }
+.marble-board[data-board-theme="lime-clover"] .board-cell.selected .cell-face { stroke: #58730b; stroke-width: 6px; }
+.marble-board[data-board-theme="pink-bunny"] .board-cell.selected .cell-face { stroke: #a93d6e; stroke-width: 6px; }
+.marble-board[data-board-theme="lime-clover"] .board-cell.is-spatial-corner.is-trail .cell-face,
+.marble-board[data-board-theme="pink-bunny"] .board-cell.is-spatial-corner.is-trail .cell-face { stroke: currentColor; stroke-width: 5px; }
+.marble-board[data-board-theme="lime-clover"] .theme-clover { fill: #dfff7e; stroke: #a7c84c; stroke-width: 3; stroke-linejoin: round; filter: drop-shadow(0 6px 5px rgba(92,116,31,.18)); }
+.marble-board[data-board-theme="pink-bunny"] .theme-bunny { fill: #fff8fb; stroke: #ef93b9; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 6px 5px rgba(173,58,106,.16)); }
+.marble-board[data-board-theme="pink-bunny"] .theme-bunny .bunny-ear { fill: none; stroke: #ffc2d9; stroke-width: 8; }
+.marble-board[data-board-theme="pink-bunny"] .theme-bunny .bunny-eye { fill: #df5b94; stroke: none; }
+.marble-board[data-board-theme="pink-bunny"] .theme-bunny .bunny-face { fill: none; stroke: #df5b94; stroke-width: 3; }
+.marble-board[data-board-theme="lime-clover"] .center-widget,
+.marble-board[data-board-theme="pink-bunny"] .center-widget { inset: 35% 38%; justify-content: center; }
+.marble-board[data-board-theme="lime-clover"] .dice-tray,
+.marble-board[data-board-theme="pink-bunny"] .dice-tray { min-height: 4cqw; margin: 0; gap: .5cqw; }
+.marble-board[data-board-theme="lime-clover"] .die,
+.marble-board[data-board-theme="pink-bunny"] .die { width: 4cqw; padding: .55cqw; border-width: .12cqw; border-radius: .7cqw; }
+.marble-board[data-board-theme="lime-clover"] .die { border-color: #a5c54a; box-shadow: 0 .3cqw 0 #cfe878,0 .5cqw .8cqw rgba(72,92,19,.15); }
+.marble-board[data-board-theme="pink-bunny"] .die { border-color: #ee8cb5; box-shadow: 0 .3cqw 0 #f7bdd4,0 .5cqw .8cqw rgba(133,41,80,.14); }
+.marble-board[data-board-theme="lime-clover"] .die i.is-pip { background: #789523; }
+.marble-board[data-board-theme="pink-bunny"] .die i.is-pip { background: #d34f88; }
+.marble-board[data-board-theme="lime-clover"] .dice-idle,
+.marble-board[data-board-theme="pink-bunny"] .dice-idle { font-size: .8cqw; }
+.marble-board[data-board-theme="lime-clover"] .dice-total,
+.marble-board[data-board-theme="pink-bunny"] .dice-total { margin-top: .45cqw; font-size: .9cqw; }
+.marble-board[data-board-theme="lime-clover"] .landing-status,
+.marble-board[data-board-theme="pink-bunny"] .landing-status { margin-top: .35cqw; padding: .3cqw .75cqw; font-size: .9cqw; }

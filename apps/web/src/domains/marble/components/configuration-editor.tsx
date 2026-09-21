@@ -53,7 +53,7 @@ export const configLabels: Record<ChannelConfigKind, string> = {
   board: "게임판",
   rules: "후원 규칙",
   items: "아이템",
-  "overlay-layout": "방송 화면 배치",
+  "overlay-layout": "방송 테마·배치",
 };
 
 export function ConfigurationEditor({
@@ -395,7 +395,7 @@ export function ConfigurationEditor({
                   ? "게시 후 새로 수락하는 후원에 적용해요. 이미 대기 중인 요청은 이전 규칙을 유지해요."
                   : kind === "items"
                     ? "게시하면 후원 규칙과 칸 동작에서 이 아이템을 선택할 수 있어요."
-                    : "방송 화면 배치가 새 게시본으로 바뀌어요."}
+                    : "방송 테마와 배치가 운영 화면·OBS에 반영돼요. 게임 진행 상태는 유지돼요."}
             </p>
           </div>
           {error && (

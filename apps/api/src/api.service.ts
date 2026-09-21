@@ -1,6 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { createHash, randomInt, randomUUID } from 'node:crypto';
-import type { CreateSessionRequest, GameSessionDto, InventoryItemDto, InventoryLedgerDto, MissionDto, OperatorStateDto, RunnableBoardVersionDto, SessionCommandDto, SessionCommandRequest } from '../../../packages/contracts/src/index.ts';
+import type { CreateSessionRequest, GameSessionDto, InventoryItemDto, InventoryLedgerDto, MissionDto, OperatorStateDto, OverlayLayoutDto, RunnableBoardVersionDto, SessionCommandDto, SessionCommandRequest } from '../../../packages/contracts/src/index.ts';
 import type { BoardDefinition } from '../../../packages/game-core/src/board-definition.ts';
 import { transaction, pool } from '../../../packages/database/src/index.ts';
 import type pg from 'pg';
@@ -52,9 +52,10 @@ export class ApiService {
       const rollModifiers=session?await rollModifierState(client,session.id):[];
       const latest=session?await client.query('SELECT * FROM game_commands WHERE session_id=$1 AND status=\'completed\' AND result ? \'dice\' AND result ? \'path\' ORDER BY after_revision DESC,created_at DESC,command_id DESC LIMIT 1',[session.id]):{rows:[]};
       const collectorEnabled=await client.query('SELECT 1 FROM collector_consumer_cursors WHERE channel_id=$1 LIMIT 1',[channelId]);
+      const overlayLayout=await client.query<{document:OverlayLayoutDto}>(`SELECT document FROM channel_config_versions WHERE channel_id=$1 AND kind='overlay-layout' AND status='published' LIMIT 1`,[channelId]);
       const pawn=await pawnAppearance(client,channelId);
       const canOperate=operator.role!=='viewer'&&access.rows[0].permission!=='view';
-      return { session,boardDefinition:result.rows[0]?.board_definition??null,latestCommand:latest.rows[0]?commandDto(latest.rows[0]):null,inventory,missions,counters,effectTasks,movementLock,rollModifiers,pawnAppearance:pawn,capabilities:{ manualRoll:canOperate,setDirection:canOperate,setPosition:canOperate,
+      return { boardThemeId:overlayLayout.rows[0]?.document.boardThemeId??'classic-party',session,boardDefinition:result.rows[0]?.board_definition??null,latestCommand:latest.rows[0]?commandDto(latest.rows[0]):null,inventory,missions,counters,effectTasks,movementLock,rollModifiers,pawnAppearance:pawn,capabilities:{ manualRoll:canOperate,setDirection:canOperate,setPosition:canOperate,
         arrivalEffects:canOperate&&!!session&&isBoardSupportedForLive(result.rows[0]!.board_definition!),donations:canOperate&&!!collectorEnabled.rowCount,inventory:canOperate,missions:canOperate,sessionLifecycle:canOperate } };
     });
   }

@@ -162,6 +162,13 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   await arrival.check();
   await expect(arrival).toBeChecked();
   const nav = page.getByRole("tablist", { name: "운영 콘솔 메뉴" });
+  // The inherited header starts the console; no product banner may precede it.
+  await expect
+    .poll(async () => (await page.locator("header").boundingBox())?.y)
+    .toBe(0);
+  await expect(
+    page.getByRole("link", { name: "방송·수집 관리", exact: true }),
+  ).toHaveAttribute("href", "/collector");
   const homeTab = nav.getByRole("tab", { name: "홈", exact: true });
   await expect(homeTab).toHaveAttribute("data-console-tab", "home");
   await expect(homeTab).not.toHaveAttribute("data-slot", "tabs-trigger");

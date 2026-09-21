@@ -242,13 +242,24 @@ test('versioned configuration, honest donation feed and revocable OBS snapshot a
 test('configuration rejects stale revisions and read-only writes; OBS permits concurrent readers',async()=>{
   const http=client(await login()),viewer=client(await login('viewer'));
   const path='/v1/channels/test-channel/config/overlay-layout';
-  const document={schemaVersion:1,width:1920,height:1080,aspectRatio:'16:9',background:'transparent',widgets:[{id:'board',bounds:{x:0,y:0,width:1,height:1},z:0}]};
+  const document={schemaVersion:1,boardThemeId:'lime-clover',width:1920,height:1080,aspectRatio:'16:9',background:'transparent',widgets:[{id:'board',bounds:{x:0,y:0,width:1,height:1},z:0}]};
+  const beforeTheme=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
+  assert.equal(beforeTheme.boardThemeId,'classic-party');
   assert.equal((await viewer.post(path,{document})).status,403);
   assert.equal((await viewer.post('/v1/channels/test-channel/obs-tokens',{label:'forbidden'})).status,403);
+  for(const boardThemeId of ['unknown-theme',null,42]){
+    let invalid=await http.post(path,{document:{...document,boardThemeId}});assert.equal(invalid.status,201);const invalidVersion=await invalid.json() as any;
+    invalid=await http.post(`${path}/${invalidVersion.id}/validate`,{expectedRevision:invalidVersion.revision});assert.equal(invalid.status,201);
+    const invalidBody=await invalid.json() as any;assert.equal(invalidBody.status,'draft');assert.match(invalidBody.validationErrors[0],/boardThemeId/);
+  }
   let response=await http.post(path,{document});assert.equal(response.status,201);let version=await response.json() as any;
   assert.equal((await http.put(`${path}/${version.id}`,{expectedRevision:version.revision+1,document})).status,409);
   response=await http.post(`${path}/${version.id}/validate`,{expectedRevision:version.revision});version=await response.json();assert.equal(version.status,'validated');
   response=await http.post(`${path}/${version.id}/publish`,{expectedRevision:version.revision});assert.equal(response.status,201);version=await response.json();
+  const afterTheme=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
+  assert.equal(afterTheme.boardThemeId,'lime-clover');
+  assert.deepEqual({revision:afterTheme.session?.revision,currentCellId:afterTheme.session?.currentCellId,inventory:afterTheme.inventory,missions:afterTheme.missions},
+    {revision:beforeTheme.session?.revision,currentCellId:beforeTheme.session?.currentCellId,inventory:beforeTheme.inventory,missions:beforeTheme.missions});
   assert.equal((await http.put(`${path}/${version.id}`,{expectedRevision:version.revision,document})).status,409);
   response=await http.post(path,{document:{...document,widgets:[{id:'board',bounds:{x:0.8,y:0,width:1,height:1},z:0}]}});version=await response.json();
   response=await http.post(`${path}/${version.id}/validate`,{expectedRevision:version.revision});version=await response.json();assert.equal(version.status,'draft');assert.ok(version.validationErrors.length);
