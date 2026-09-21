@@ -90,6 +90,25 @@ class ReleaseTest(unittest.TestCase):
         self.assertFalse(any(command[:2]==["systemctl","restart"] for command in runner.commands))
         self.assertFalse(any("down" in command or "-v" in command for command in runner.commands))
 
+    def test_existing_supervisor_is_stopped_before_storage_and_restored_on_failed_migration(self):
+        temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
+        previous=b'{"sourceSha":"previous"}';(config/"release.json").write_bytes(previous)
+        class ActiveRunner(FakeRunner):
+            def run(self,argv,*,check=True):
+                if argv[:2]==["systemctl","is-active"]:
+                    self.commands.append(argv);return subprocess.CompletedProcess(argv,0,"activating\n","")
+                return super().run(argv,check=check)
+        runner=ActiveRunner(uuid,fail_migrate=True)
+        with self.assertRaises(subprocess.CalledProcessError):
+            deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None)
+        commands=runner.commands
+        stop=commands.index(["systemctl","stop","rogimarble-app.service"])
+        storage=next(i for i,c in enumerate(commands) if "up" in c)
+        self.assertLess(stop,storage)
+        self.assertIn(["systemctl","start","rogimarble-app.service"],commands)
+        self.assertEqual((config/"release.json").read_bytes(),previous)
+        self.assertFalse((config/"deployed-release.json").exists())
+
     def test_success_order_is_pull_storage_migrate_supervisor_smoke(self):
         temporary, app, config, run, data, uuid, manifest_path = self.fixture();self.addCleanup(temporary.cleanup)
         runner=FakeRunner(uuid);deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None)
@@ -97,11 +116,22 @@ class ReleaseTest(unittest.TestCase):
         pull=next(i for i,v in enumerate(rendered) if v.endswith(" pull"));storage=next(i for i,v in enumerate(rendered) if " up -d --no-build --wait postgres redis" in v)
         migrate=next(i for i,v in enumerate(rendered) if " run --rm --no-deps migrate" in v);supervisor=next(i for i,v in enumerate(rendered) if v=="systemctl restart rogimarble-app.service")
         self.assertLess(pull,storage);self.assertLess(storage,migrate);self.assertLess(migrate,supervisor)
-        self.assertTrue((run/"deployed-release.json").is_file())
+        self.assertTrue((config/"deployed-release.json").is_file())
         self.assertFalse((run/"docker-auth").exists())
         self.assertEqual(digest(run/"lib/supervise.sh"),json.loads(manifest_path.read_text())["runtimeFiles"]["tools/ops/supervise.sh"])
         (run/"lib/supervise.sh").write_text("tampered\n")
         with self.assertRaisesRegex(ReleaseError,"installed runtime file checksum"):verify_installed_runtime(json.loads(manifest_path.read_text()),run/"lib",run/"units")
+
+    def test_reboot_restores_runtime_without_losing_successful_receipt(self):
+        import shutil
+        temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
+        runner=FakeRunner(uuid)
+        deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None)
+        receipt=(config/"deployed-release.json").read_bytes()
+        shutil.rmtree(run)
+        prepare_active(config/"release.json",runner,app_root=app,config_root=config,run_root=run,data_root=data)
+        self.assertEqual((config/"deployed-release.json").read_bytes(),receipt)
+        self.assertTrue((run/"release.env").is_file())
 
     def test_supervisor_allows_compose_to_recreate_changed_release(self):
         temporary,app,_,run,_,_,_=self.fixture();self.addCleanup(temporary.cleanup)

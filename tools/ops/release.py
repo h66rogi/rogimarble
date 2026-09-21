@@ -240,8 +240,20 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
             runner.run(["python3",str(app_root/"tools/ops/load-registry-auth.py"),"--metadata",str(config_root/"registry.json"),"--output",str(registry)])
             runner.run(["docker","--config",str(registry),"compose","--env-file",str(env_file),"-f",str(app_root/COMPOSE_PATH),"pull"])
         finally:shutil.rmtree(registry,ignore_errors=True)
-        runner.run(compose + ["up", "-d", "--no-build", "--wait", "postgres", "redis"])
-        runner.run(compose + ["run", "--rm", "--no-deps", "migrate"])
+        # An attached old Compose supervisor must not race candidate storage recreation.
+        restore_previous = False
+        if (config_root / "release.json").is_file():
+            prior_state = runner.run(["systemctl", "is-active", "rogimarble-app.service"], check=False).stdout.strip()
+            restore_previous = prior_state in ("active", "activating", "reloading")
+            runner.run(["systemctl", "stop", "rogimarble-app.service"])
+        try:
+            runner.run(compose + ["up", "-d", "--no-build", "--wait", "postgres", "redis"])
+            runner.run(compose + ["run", "--rm", "--no-deps", "migrate"])
+        except Exception:
+            # No active source, manifest or runtime promotion has occurred yet.
+            if restore_previous:
+                runner.run(["systemctl", "start", "rogimarble-app.service"], check=False)
+            raise
         # Only after a successful forward migration may systemd replace the application set.
         if active_link is not None:
             temporary=active_link.with_name(f".{active_link.name}.{os.getpid()}")
@@ -261,10 +273,12 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
                 if attempt == 29:
                     raise ReleaseError(f"smoke check failed: {url}")
                 sleep(2)
-        deployed = run_root / "deployed-release.json"
+        deployed = config_root / "deployed-release.json"
         receipt={"status":"deployed","deployedAt":time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime()),"releaseId":manifest["releaseId"],"sourceSha":manifest["sourceSha"],"images":manifest["images"]}
-        deployed.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8")
-        deployed.chmod(0o600)
+        receipt_temp = config_root / f".deployed-release.{os.getpid()}.json"
+        receipt_temp.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+        receipt_temp.chmod(0o600)
+        receipt_temp.replace(deployed)
 
 def main() -> int:
     parser = argparse.ArgumentParser()

@@ -64,7 +64,7 @@ def main():
         active=Path("/etc/rogimarble/release.json")
         active_value=read_json(active) if active.is_file() else None
         app,manifest=stage(args.source,args.overlay,args.releases_root,args.run_root,active_value.get("sourceSha") if active_value else None)
-        candidate=read_json(manifest);receipt_path=args.run_root/"deployed-release.json";receipt=read_json(receipt_path) if receipt_path.is_file() else None
+        candidate=read_json(manifest);receipt_path=active.with_name("deployed-release.json");receipt=read_json(receipt_path) if receipt_path.is_file() else None
         if active_value and active_value.get("sourceSha")==candidate.get("sourceSha"):
             unit=__import__('subprocess').run(["systemctl","is-active","--quiet","rogimarble-app.service"])
             health=__import__('subprocess').run(["curl","--fail","--silent","--show-error","--max-time","5","https://marble-api.rogi.chat/ready"])

@@ -29,7 +29,7 @@ def receipt_matches(manifest, receipt):
 
 def main():
     manifest = Path('/etc/rogimarble/release.json')
-    receipt = Path('/run/rogimarble/deployed-release.json')
+    receipt = Path('/etc/rogimarble/deployed-release.json')
     backup_root = Path('/srv/rogimarble/backups')
     latest = max(backup_root.glob('*.dump.gz'), key=lambda p: p.stat().st_mtime, default=None)
     status = {

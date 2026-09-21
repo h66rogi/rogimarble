@@ -13,7 +13,7 @@ target=$backup_root/postgres-$stamp.dump.gz
 trap 'rm -f "$raw" "$temporary"' EXIT HUP INT TERM
 docker compose --env-file "$env_file" -f "$compose_file" exec -T postgres sh -eu -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom' > "$raw"
 test -s "$raw"
-docker compose --env-file "$env_file" -f "$compose_file" exec -T postgres pg_restore --list - < "$raw" > /dev/null
+docker compose --env-file "$env_file" -f "$compose_file" exec -T postgres pg_restore --list < "$raw" > /dev/null
 gzip -9 -c "$raw" > "$temporary"
 test -s "$temporary"
 mv "$temporary" "$target"
