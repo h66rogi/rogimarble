@@ -98,7 +98,7 @@ export function AdminDashboard() {
               className={tab === id ? "active" : ""}
               onClick={() => setTab(id)}
             >
-              <span>{icon}</span>
+              <span aria-hidden="true">{icon}</span>
               {label}
             </button>
           ))}

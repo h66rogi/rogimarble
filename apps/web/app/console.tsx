@@ -104,11 +104,11 @@ export function Console({ board }: { board: BoardDefinition }) {
     <aside className="manage-sidebar" aria-label="운영 메뉴">
       <div className="manage-brand"><span className="manage-brand-mark">R</span><div><strong>주루마블</strong><small>방송 운영 센터</small></div></div>
       <nav className="manage-nav">
-        <a className="active" href="#game-board"><span>◆</span>게임 운영</a>
-        <a href="#donations"><span>♡</span>후원 내역</a>
-        <a href="#missions"><span>✓</span>미션 관리</a>
-        <Link href="/overlay"><span>□</span>OBS 화면</Link>
-        <Link href="/admin"><span>⚙</span>서비스 관리</Link>
+        <a className="active" href="#game-board"><span aria-hidden="true">◆</span>게임 운영</a>
+        <a href="#donations"><span aria-hidden="true">♡</span>후원 내역</a>
+        <a href="#missions"><span aria-hidden="true">✓</span>미션 관리</a>
+        <Link href="/overlay"><span aria-hidden="true">□</span>OBS 화면</Link>
+        <Link href="/admin"><span aria-hidden="true">⚙</span>서비스 관리</Link>
       </nav>
       <div className="manage-sidebar-note"><strong>수집기 상태</strong><span>후원 수집 연결 전</span></div>
     </aside>
