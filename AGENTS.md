@@ -26,3 +26,12 @@
 - 현재 `npm test`는 외부 연결과 빌드가 없는 코어 테스트다. 참고 레포의 빌드/개발 서버를 실행하지 않는다.
 - 로컬 테스트 통과를 앱 빌드, 통합 동작, 실방송 검증의 성공으로 표현하지 않는다.
 - JSON 프리셋과 코어만 있는 상태를 웹 관리 화면/영속 저장/효과 실행까지 구현한 것으로 표현하지 않는다.
+
+## 콘솔 원본 틀 보존과 신규 UI 디자인 시스템 (필수)
+
+- 일반 콘솔은 `docs/console-design-system.md`와 `apps/web/components.json`을 따른다. 기존 meloming-front 리모컨의 틀은 그대로 보존한다. 상단 native 탭과 이동 밑줄을 Shadcn Tabs로 교체하거나 헤더·푸터·레이아웃을 획일화하지 않는다.
+- 새로 만드는 버튼·입력·선택·탭·체크박스·카드·알림은 Shadcn 공유 UI/조합을 쓴다. 신규 UI에서 native control, 직접 만든 클릭 div, 화면 전용 CSS, 고정 색상, inline chrome style, 자손 selector/important override를 금지한다. 기존 틀의 구현을 신규 UI의 예외 근거로 복제하지 않는다.
+- 공유 컴포넌트 외형은 variant/size로 고른다. 공유 UI에 전달하는 className은 배치용이다. 일반 설명 텍스트는 표준 typography 척도와 의미 토큰을 쓴다. 색상·글꼴·radius는 단일 전역 테마에서만 관리하며 기능별 덮어쓰기를 금지한다.
+- 보드 데이터 렌더링 예외는 `configuration/board-preview.tsx`의 승인된 좌표·자산·사용자 색상 속성에 한정한다. 일반 편집 폼까지 예외로 확장하지 않는다.
+- 기존 반입 UI는 `apps/web/scripts/console-legacy-baseline.json`의 경로·해시로 보존을 확인한다. 신규 제품 UI는 이 기준선에 추가하지 않는다. 기존 파일 수정은 원래 외형 보존 여부와 기준선 diff를 함께 검토한다.
+- `pnpm --filter @rogimarble/web lint:design`과 웹 test/typecheck/build를 통과해야 한다. 검사 실패를 무시하거나 기능 디렉터리를 통째로 제외하여 통과시키지 않는다.

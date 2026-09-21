@@ -1,70 +1,605 @@
-'use client';
+"use client";
+import { Alert, AlertDescription } from "@/shared/components/ui/alert";
+import { Badge } from "@/shared/components/ui/badge";
+import { Disclosure } from "./configuration/editor-fields";
 
-import { useEffect, useState } from 'react';
-import type { ChannelConfigKind, ChannelConfigVersionDto, OverlayLayoutDto } from '@rogimarble/contracts';
-import type { BoardDefinition, BoardEffect } from '@rogimarble/game-core/board';
-import type { DonationAction, DonationTriggerConfig } from '@rogimarble/game-core';
-import initialRules from '../../../../../../presets/streamer-initial.json';
-import initialBoard from '../../../../../../presets/streamer-board.json';
-import { api } from '../../../../lib/api';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, CheckCircle2, Download, Loader2, Save } from "lucide-react";
+import type {
+  ChannelConfigKind,
+  ChannelConfigVersionDto,
+  OverlayLayoutDto,
+} from "@rogimarble/contracts";
+import {
+  validateBoardDefinition,
+  type BoardDefinition,
+} from "@rogimarble/game-core/board";
+import {
+  validateDonationTriggerConfig,
+  type DonationTriggerConfig,
+} from "@rogimarble/game-core";
+import initialRules from "../../../../../../presets/streamer-initial.json";
+import initialBoard from "../../../../../../presets/streamer-board.json";
+import { api, ApiError } from "../../../../lib/api";
+import { Button } from "@/shared/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog";
+import { BoardEditor } from "./configuration/board-editor";
+import { RulesEditor } from "./configuration/rules-editor";
+import { ItemsEditor, LayoutEditor } from "./configuration/resource-editors";
+import type { NamedItem } from "./configuration/editor-model";
 
-type ItemDoc={id:string;label:string;maxQuantity?:number};
-const blankLayout:OverlayLayoutDto={schemaVersion:1,width:1920,height:1080,aspectRatio:'16:9',background:'transparent',widgets:[{id:'board',bounds:{x:0,y:0,width:1,height:1},z:0}]};
-const blank:{[K in ChannelConfigKind]:unknown}={rules:{schemaVersion:1,multiRollEnabled:false,items:[],rules:[]},items:[],board:initialBoard,'overlay-layout':blankLayout};
+const blankLayout: OverlayLayoutDto = {
+  schemaVersion: 1,
+  width: 1920,
+  height: 1080,
+  aspectRatio: "16:9",
+  background: "transparent",
+  widgets: [{ id: "board", bounds: { x: 0, y: 0, width: 1, height: 1 }, z: 0 }],
+};
+const blank: Record<ChannelConfigKind, unknown> = {
+  rules: { schemaVersion: 1, multiRollEnabled: false, items: [], rules: [] },
+  items: [],
+  board: initialBoard,
+  "overlay-layout": blankLayout,
+};
+export const configLabels: Record<ChannelConfigKind, string> = {
+  board: "게임판",
+  rules: "후원 규칙",
+  items: "아이템",
+  "overlay-layout": "방송 화면 배치",
+};
 
-export function ConfigurationEditor({kind}:{kind:ChannelConfigKind}){
-  const [version,setVersion]=useState<ChannelConfigVersionDto|null>(null),[published,setPublished]=useState<ChannelConfigVersionDto|null>(null);
-  const [document,setRawDocument]=useState<any>(structuredClone(blank[kind])),[dirty,setDirty]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
-  const setDocument=(next:any)=>{setRawDocument(next);setDirty(true);};
-  const load=async()=>{setBusy(true);try{const state=await api.config(kind);setVersion(state.draft);setPublished(state.published);setRawDocument(structuredClone(state.draft?.document??state.published?.document??blank[kind]));setDirty(false);setMessage('');}catch(e){setMessage(textError(e));}finally{setBusy(false);}};
-  useEffect(()=>{void load();},[kind]);
-  const run=async(task:()=>Promise<ChannelConfigVersionDto>)=>{setBusy(true);try{const next=await task();setVersion(next.status==='published'?null:next);if(next.status==='published')setPublished(next);setRawDocument(structuredClone(next.document));setDirty(false);setMessage(next.validationErrors.length?next.validationErrors.join(' · '):'저장했습니다.');}catch(e){setMessage(textError(e));}finally{setBusy(false);}};
-  const save=()=>run(()=>version?api.updateConfigDraft(kind,version.id,version.revision,document):api.createConfigDraft(kind,document));
-  const validate=()=>version&&run(()=>api.validateConfig(kind,version.id,version.revision) as unknown as Promise<ChannelConfigVersionDto>);
-  const publish=()=>version&&run(()=>api.publishConfig(kind,version.id,version.revision));
-  const importPreset=()=>{if(kind==='rules')setDocument(structuredClone(initialRules));else if(kind==='board')setDocument(structuredClone(initialBoard));setMessage('프리셋을 편집기에 불러왔습니다. 저장·검증·게시 전에는 서버 설정을 바꾸지 않습니다.');};
-  const validShape=isShape(kind,document);
-  return <section className="space-y-4 rounded-lg border p-4"><header className="flex flex-wrap items-center gap-2"><div className="mr-auto"><h3 className="font-semibold">{labels[kind]}</h3><p className="text-xs text-muted-foreground">초안 revision {version?.revision??'없음'} · 게시 {published?.revision??'없음'}{dirty?' · 저장하지 않은 변경':''}</p></div>{(kind==='rules'||kind==='board')&&<Button type="button" variant="outline" disabled={busy} onClick={importPreset}>초기 프리셋 명시적으로 가져오기</Button>}</header>
-    {!validShape?<div className="rounded border border-destructive/50 p-3 text-sm"><p>저장된 초안 형식을 편집할 수 없습니다. 서버 원본은 자동 변경하지 않습니다.</p><Button className="mt-2" variant="outline" disabled={busy} onClick={()=>setDocument(structuredClone(blank[kind]))}>빈 안전 초안으로 복구</Button></div>:<fieldset disabled={busy} className="space-y-3 disabled:opacity-60">{kind==='rules'?<RulesEditor value={document} change={setDocument}/>:kind==='items'?<ItemsEditor value={document} change={setDocument}/>:kind==='board'?<BoardEditor value={document} change={setDocument}/>:<LayoutEditor value={document} change={setDocument}/>}</fieldset>}
-    {version?.validationErrors.length?<ul className="list-disc pl-5 text-sm text-destructive">{version.validationErrors.map((x,i)=><li key={i}>{x}</li>)}</ul>:null}
-    {kind==='board'&&<p className="rounded border border-amber-500/40 p-2 text-xs">게시한 보드는 검증된 버전으로 보관됩니다. 현재 방송에 적용하려면 실행 가능 버전 등록과 세션의 보드 적용 절차를 별도로 완료하세요.</p>}
-    {message&&<p className="text-sm text-muted-foreground">{message}</p>}<div className="flex gap-2"><Button disabled={busy||!validShape} onClick={save}>초안 저장</Button><Button variant="outline" disabled={busy||dirty||!version} onClick={validate}>서버 검증</Button><Button disabled={busy||dirty||version?.status!=='validated'} onClick={publish}>검증본 게시</Button></div>
-  </section>;
+export function ConfigurationEditor({
+  kind,
+  items = [],
+  onDirty,
+  onItemsPublished,
+}: {
+  kind: ChannelConfigKind;
+  items?: readonly NamedItem[];
+  onDirty?: (kind: ChannelConfigKind, dirty: boolean) => void;
+  onItemsPublished?: (items: NamedItem[]) => void;
+}) {
+  const [version, setVersion] = useState<ChannelConfigVersionDto | null>(null);
+  const [published, setPublished] = useState<ChannelConfigVersionDto | null>(
+    null,
+  );
+  const [document, setRawDocument] = useState<unknown>(
+    structuredClone(blank[kind]),
+  );
+  const [saved, setSaved] = useState(JSON.stringify(blank[kind]));
+  const [ready, setReady] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [review, setReview] = useState(false);
+  const [presetReview, setPresetReview] = useState(false);
+  const request = useRef(0);
+  const itemsChanged = useRef(onItemsPublished);
+  itemsChanged.current = onItemsPublished;
+  const locked = useRef(false);
+  const dirty = JSON.stringify(document) !== saved;
+  useEffect(() => {
+    onDirty?.(kind, dirty);
+  }, [dirty, kind, onDirty]);
+  useEffect(() => {
+    if (!dirty) return;
+    const prevent = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", prevent);
+    return () => window.removeEventListener("beforeunload", prevent);
+  }, [dirty]);
+  const load = useCallback(async () => {
+    const seq = ++request.current;
+    setBusy(true);
+    setError("");
+    try {
+      const state = await api.config(kind);
+      if (seq !== request.current) return;
+      const next = structuredClone(
+        state.draft?.document ??
+          state.published?.document ??
+          state.effectiveDocument ??
+          blank[kind],
+      );
+      if (kind === "items") {
+        const activeItems =
+          state.effectiveDocument ?? state.published?.document;
+        if (Array.isArray(activeItems))
+          itemsChanged.current?.(activeItems as NamedItem[]);
+      }
+      setVersion(state.draft);
+      setPublished(state.published);
+      setRawDocument(next);
+      setSaved(JSON.stringify(next));
+      setReady(true);
+    } catch (e) {
+      if (seq === request.current) setError(textError(e));
+    } finally {
+      if (seq === request.current) setBusy(false);
+    }
+  }, [kind]);
+  useEffect(() => {
+    void load();
+    return () => {
+      request.current++;
+    };
+  }, [load]);
+  const setDocument = (next: unknown) => {
+    setRawDocument(next);
+    setMessage("");
+    setError("");
+    setReview(false);
+  };
+  const accept = (next: ChannelConfigVersionDto) => {
+    setVersion(next.status === "published" ? null : next);
+    if (next.status === "published") {
+      setPublished(next);
+      if (kind === "items") onItemsPublished?.(next.document as NamedItem[]);
+    }
+    setRawDocument(structuredClone(next.document));
+    setSaved(JSON.stringify(next.document));
+  };
+  const save = async (validate: boolean) => {
+    if (locked.current) return;
+    locked.current = true;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      let next = version;
+      if (dirty || !next) {
+        next = next
+          ? await api.updateConfigDraft(kind, next.id, next.revision, document)
+          : await api.createConfigDraft(kind, document);
+        accept(next);
+      }
+      if (validate && next.status !== "validated") {
+        next = await api.validateConfig(kind, next.id, next.revision);
+        accept(next);
+      }
+      if (next.validationErrors.length)
+        setError(
+          "게시하기 전에 아래 항목을 확인해주세요. 초안은 저장되어 있어요.",
+        );
+      else if (validate) setReview(true);
+      else
+        setMessage("초안을 저장했어요. 게시하기 전까지 현재 설정은 유지돼요.");
+    } catch (e) {
+      setError(textError(e));
+    } finally {
+      locked.current = false;
+      setBusy(false);
+    }
+  };
+  const publish = async () => {
+    if (!version || version.status !== "validated" || dirty || locked.current)
+      return;
+    locked.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const next = await api.publishConfig(kind, version.id, version.revision);
+      accept(next);
+      setReview(false);
+      setMessage(
+        kind === "board"
+          ? "게임판을 게시했어요. 새 게임을 시작할 때 선택할 수 있어요."
+          : "게시했어요. 새로 수락하는 요청부터 사용해요.",
+      );
+    } catch (e) {
+      setError(textError(e));
+    } finally {
+      locked.current = false;
+      setBusy(false);
+    }
+  };
+  const shape = isEditable(kind, document);
+  const hasChanges = dirty || !!version || !published;
+  const errors = dirty ? [] : (version?.validationErrors ?? []);
+  return (
+    <section
+      className="space-y-5 min-w-0"
+      aria-label={`${configLabels[kind]} 설정`}
+    >
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold">
+            {kind === "board"
+              ? "내 게임판 만들기"
+              : kind === "rules"
+                ? "후원과 동작 연결하기"
+                : configLabels[kind]}
+          </h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {kind === "board"
+              ? "칸을 고르고, 동작을 정하고, 나만의 판을 완성하세요."
+              : kind === "rules"
+                ? "후원 개수와 동작을 한눈에 확인하고 편집하세요."
+                : kind === "items"
+                  ? "방송에서 사용할 보상과 실드를 관리하세요."
+                  : "방송 화면에 표시할 영역을 배치하세요."}
+          </p>
+        </div>
+        {(kind === "rules" || kind === "board" || kind === "items") && (
+          <Button
+            variant="outline"
+            disabled={!ready || busy}
+            onClick={() => setPresetReview(true)}
+          >
+            <Download />
+            기본 구성 가져오기
+          </Button>
+        )}
+      </header>
+      {!ready ? (
+        <div
+          className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center text-sm text-muted-foreground"
+          role="status"
+        >
+          {busy ? (
+            <>
+              <Loader2 className="animate-spin" />
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                저장된 설정을 불러오고 있어요.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-destructive">{error}</p>
+              <Button variant="outline" onClick={() => void load()}>
+                다시 불러오기
+              </Button>
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          {!shape ? (
+            <div className="text-sm text-destructive" role="alert">
+              저장된 데이터에 지원하지 않는 형식이 있어 편집기를 열 수 없어요.
+              기본 구성 가져오기에서 새 초안을 시작할 수 있어요.
+              <Disclosure title={<>저장 데이터 확인</>}>
+                <pre>{JSON.stringify(document, null, 2)}</pre>
+              </Disclosure>
+            </div>
+          ) : (
+            <fieldset disabled={busy} className="min-w-0 disabled:opacity-60">
+              {kind === "board" ? (
+                <BoardEditor
+                  value={document as BoardDefinition}
+                  items={items}
+                  change={setDocument}
+                />
+              ) : kind === "rules" ? (
+                <RulesEditor
+                  value={document as DonationTriggerConfig}
+                  items={items}
+                  change={setDocument}
+                />
+              ) : kind === "items" ? (
+                <ItemsEditor
+                  value={document as NamedItem[]}
+                  change={setDocument}
+                />
+              ) : (
+                <LayoutEditor
+                  value={document as OverlayLayoutDto}
+                  change={setDocument}
+                />
+              )}
+            </fieldset>
+          )}
+          {(error || errors.length > 0) && (
+            <Alert role="alert">
+              <AlertDescription className="space-y-2">
+                <strong className="font-semibold">
+                  {error || "입력을 확인해주세요."}
+                </strong>
+                {errors.map((e, i) => (
+                  <p
+                    className="text-sm leading-relaxed text-muted-foreground"
+                    key={i}
+                  >
+                    {friendlyValidation(e)}
+                  </p>
+                ))}
+                {errors.length > 0 && (
+                  <Disclosure title={<>검사 상세</>}>
+                    {errors.map((e, i) => (
+                      <code key={i}>{e}</code>
+                    ))}
+                  </Disclosure>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+          <footer className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-4 border-t bg-background/95 px-4 py-3 backdrop-blur">
+            <div>
+              <Badge variant="secondary">
+                {dirty
+                  ? "저장하지 않은 변경"
+                  : version?.status === "validated"
+                    ? "검사 완료 · 게시 가능"
+                    : version
+                      ? "초안 저장됨"
+                      : published
+                        ? "게시된 설정"
+                        : "새 초안"}
+              </Badge>
+              <p
+                className="text-sm leading-relaxed text-muted-foreground"
+                role="status"
+              >
+                {message ||
+                  (kind === "board"
+                    ? "게시한 판은 새 게임에서 선택할 수 있어요. 현재 게임은 유지돼요."
+                    : "게시한 뒤 새로 들어오는 요청부터 반영돼요.")}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                disabled={busy || !shape || (!dirty && !!version)}
+                onClick={() => void save(false)}
+              >
+                <Save />
+                초안 저장
+              </Button>
+              <Button
+                disabled={busy || !shape || !hasChanges}
+                onClick={() => void save(true)}
+              >
+                {busy ? (
+                  <Loader2 className="animate-spin" />
+                ) : !hasChanges ? (
+                  <Check />
+                ) : (
+                  <CheckCircle2 />
+                )}
+                {busy ? "처리 중…" : !hasChanges ? "게시됨" : "검사하고 게시"}
+              </Button>
+            </div>
+          </footer>
+        </>
+      )}
+      <Dialog
+        open={review}
+        onOpenChange={(open) => {
+          if (!busy) setReview(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{configLabels[kind]}을 게시할까요?</DialogTitle>
+            <DialogDescription>
+              서버 검사를 통과했어요. 아래 내용을 확인한 뒤 게시해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-3">
+            <CheckCircle2 />
+            <strong className="font-semibold">{summary(kind, document)}</strong>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {kind === "board"
+                ? "새 게임을 시작할 때 이 판을 선택할 수 있어요. 진행 중인 게임의 위치·미션·아이템은 바뀌지 않아요."
+                : kind === "rules"
+                  ? "게시 후 새로 수락하는 후원에 적용해요. 이미 대기 중인 요청은 이전 규칙을 유지해요."
+                  : kind === "items"
+                    ? "게시하면 후원 규칙과 칸 동작에서 이 아이템을 선택할 수 있어요."
+                    : "방송 화면 배치가 새 게시본으로 바뀌어요."}
+            </p>
+          </div>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => setReview(false)}
+            >
+              계속 편집
+            </Button>
+            <Button disabled={busy} onClick={() => void publish()}>
+              {busy ? "게시 중…" : "게시하기"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={presetReview} onOpenChange={setPresetReview}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>기본 구성을 가져올까요?</DialogTitle>
+            <DialogDescription>
+              편집 중인 {configLabels[kind]} 전체를 아래 구성으로 바꿔요. 게시된
+              설정은 게시하기 전까지 유지돼요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-3">
+            <strong className="font-semibold">
+              {kind === "board"
+                ? "가로 9 × 세로 6 · 외곽 26칸"
+                : kind === "rules"
+                  ? "후원 규칙 7개"
+                  : "기본 아이템 · 한잔 실드"}
+            </strong>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {kind === "board"
+                ? "출발·무인도·세계여행·방향전환과 방송 미션을 포함한 기본 판이에요."
+                : kind === "rules"
+                  ? "33 · 52 · 53 · 100 · 101 · 152 · 486개 규칙을 가져와요. 한잔 실드 아이템을 먼저 등록·게시해주세요."
+                  : "기본 후원 규칙에서 사용하는 실드예요. 기존 아이템 목록을 교체하니 사용 중인 항목을 확인해주세요."}
+            </p>
+            <span className="text-xs leading-relaxed text-muted-foreground">
+              현재: {summary(kind, document)}
+            </span>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPresetReview(false)}>
+              취소
+            </Button>
+            <Button
+              onClick={() => {
+                setDocument(
+                  structuredClone(
+                    kind === "board"
+                      ? initialBoard
+                      : kind === "rules"
+                        ? initialRules
+                        : initialRules.items,
+                  ),
+                );
+                setPresetReview(false);
+                setMessage(
+                  "기본 구성을 가져왔어요. 초안을 저장하고 확인해주세요.",
+                );
+              }}
+            >
+              이 구성으로 바꾸기
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </section>
+  );
 }
-
-function RulesEditor({value,change}:{value:DonationTriggerConfig;change:(x:any)=>void}){const update=(i:number,p:any)=>change({...value,rules:value.rules.map((r,j)=>j===i?{...r,...p}:r)});const updateItem=(i:number,p:any)=>change({...value,items:value.items.map((x,j)=>j===i?{...x,...p}:x)});return <div className="space-y-3"><label className="flex gap-2 text-sm"><input type="checkbox" checked={value.multiRollEnabled} onChange={e=>change({...value,multiRollEnabled:e.target.checked})}/>연차(다중 주사위 규칙) 활성화</label><div className="space-y-2 rounded border p-3"><strong className="text-sm">규칙에서 참조하는 아이템</strong>{value.items.map((item,i)=><div className="grid gap-2 md:grid-cols-3" key={i}><Field label="itemId"><Input value={item.id} onChange={e=>updateItem(i,{id:e.target.value})}/></Field><Field label="이름"><Input value={item.label} onChange={e=>updateItem(i,{label:e.target.value})}/></Field><Button variant="destructive" onClick={()=>change({...value,items:value.items.filter((_,j)=>j!==i)})}>삭제</Button></div>)}<Button variant="outline" onClick={()=>change({...value,items:[...value.items,{id:`item-${value.items.length+1}`,label:'새 아이템'}]})}>규칙 아이템 추가</Button><p className="text-xs text-muted-foreground">게시 전 아이템 정의 탭에도 같은 itemId를 등록하세요. 서버는 이름이 아닌 itemId 참조를 검증합니다.</p></div>{value.rules.map((rule,i)=><div className="grid gap-2 rounded border p-3 md:grid-cols-4" key={i}><Field label="규칙 ID"><Input value={rule.id} onChange={e=>update(i,{id:e.target.value})}/></Field><Field label="표시 이름"><Input value={rule.label} onChange={e=>update(i,{label:e.target.value})}/></Field><Field label="정확한 후원 개수"><Num value={rule.amount} change={amount=>update(i,{amount})}/></Field><label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" checked={rule.enabled} onChange={e=>update(i,{enabled:e.target.checked})}/>활성</label><Field label="동작"><Select value={rule.action.type} values={['roll_dice','mission','grant_item','choose_destination']} change={type=>update(i,{action:donationAction(type)})}/></Field><DonationActionFields action={rule.action} change={action=>update(i,{action})}/><Button type="button" variant="destructive" onClick={()=>change({...value,rules:value.rules.filter((_,j)=>j!==i)})}>삭제</Button></div>)}<Button type="button" variant="outline" onClick={()=>change({...value,rules:[...value.rules,{id:crypto.randomUUID(),label:'새 규칙',amount:1,enabled:false,action:donationAction('roll_dice')} ]})}>규칙 추가</Button></div>}
-function DonationActionFields({action,change}:{action:DonationAction;change:(x:DonationAction)=>void}){if(action.type==='roll_dice')return <Field label="rollCount"><Num value={action.rollCount} change={rollCount=>change({...action,rollCount})}/></Field>;if(action.type==='mission')return <><Field label="미션 문구"><Input value={action.message} onChange={e=>change({...action,message:e.target.value})}/></Field><Shield value={action.shield} change={shield=>change({...action,shield})}/></>;if(action.type==='grant_item')return <><Field label="itemId"><Input value={action.itemId} onChange={e=>change({...action,itemId:e.target.value})}/></Field><Field label="지급 수량"><Num value={action.quantity} change={quantity=>change({...action,quantity})}/></Field></>;return <><Field label="선택 주체"><Select value={action.selection} values={['operator','donor_chat','both']} change={selection=>change({...action,selection:selection as any})}/></Field><Field label="채팅 명령"><Input value={action.chatCommand} onChange={e=>change({...action,chatCommand:e.target.value})}/></Field></>}
-
-function ItemsEditor({value,change}:{value:ItemDoc[];change:(x:any)=>void}){const update=(i:number,p:Partial<ItemDoc>)=>change(value.map((x,j)=>j===i?{...x,...p}:x));return <div className="space-y-2">{value.map((item,i)=><div className="grid gap-2 rounded border p-3 md:grid-cols-4" key={i}><Field label="itemId"><Input value={item.id} onChange={e=>update(i,{id:e.target.value})}/></Field><Field label="이름"><Input value={item.label} onChange={e=>update(i,{label:e.target.value})}/></Field><Field label="최대 수량"><Num value={item.maxQuantity??100000} change={maxQuantity=>update(i,{maxQuantity})}/></Field><Button variant="destructive" onClick={()=>change(value.filter((_,j)=>j!==i))}>삭제</Button></div>)}<Button variant="outline" onClick={()=>change([...value,{id:`item-${value.length+1}`,label:'새 아이템',maxQuantity:100000}])}>아이템 추가</Button></div>}
-
-function BoardEditor({value,change}:{value:BoardDefinition;change:(x:any)=>void}){const layout=value.layout;const [resizeMessage,setResizeMessage]=useState('');const updateCell=(i:number,p:any)=>change({...value,cells:value.cells.map((c,j)=>j===i?{...c,...p}:c)});const resize=()=>{if(layout.type!=='perimeter_grid')return;if(!Number.isSafeInteger(layout.rows)||!Number.isSafeInteger(layout.columns)||layout.rows<3||layout.columns<3||layout.rows>64||layout.columns>64){setResizeMessage('행·열은 3~64 사이의 정수로 입력하세요.');return;}const count=2*(layout.rows+layout.columns)-4;if(count<4)return;const removed=value.path.slice(count);if(removed.length&&!window.confirm(`${removed.length}개 칸(${removed.join(', ')})이 새 외곽 크기에서 제외됩니다. 계속할까요?`))return;const cells=structuredClone(value.path.map(id=>value.cells.find(cell=>cell.id===id)).filter((cell):cell is BoardDefinition['cells'][number]=>!!cell));while(cells.length<count){const base=structuredClone(cells.at(-1)??initialBoard.cells[0]) as any;base.id=`cell-new-${crypto.randomUUID().slice(0,8)}`;base.label='새 칸';base.onLand=[{type:'none'}];base.onPass=[];cells.push(base);}const kept=cells.slice(0,count),positions=perimeter(layout.rows,layout.columns);kept.forEach((cell,i)=>{(cell as any).position={type:'grid',row:positions[i][0],column:positions[i][1]};});const path=kept.map(x=>x.id);change({...value,cells:kept,path,startCellId:path.includes(value.startCellId)?value.startCellId:path[0]});setResizeMessage(removed.length?`제외 예정: ${removed.join(', ')}. 저장 전에는 서버에 반영되지 않습니다.`:`${count}칸 외곽으로 재배치했습니다. 기존 stable ID와 내용은 유지했습니다.`);};return <div className="space-y-3"><div className="grid gap-2 md:grid-cols-4"><Field label="보드 이름"><Input value={value.name} onChange={e=>change({...value,name:e.target.value})}/></Field><Field label="캔버스 너비"><Num value={value.canvas.width} change={width=>change({...value,canvas:{...value.canvas,width}})}/></Field><Field label="캔버스 높이"><Num value={value.canvas.height} change={height=>change({...value,canvas:{...value.canvas,height}})}/></Field><Field label="배경색"><Input type="color" value={value.canvas.backgroundColor} onChange={e=>change({...value,canvas:{...value.canvas,backgroundColor:e.target.value}})}/></Field>{layout.type==='perimeter_grid'&&<><Field label="열"><Num value={layout.columns} change={columns=>change({...value,layout:{...layout,columns}})}/></Field><Field label="행"><Num value={layout.rows} change={rows=>change({...value,layout:{...layout,rows}})}/></Field><Button type="button" variant="outline" onClick={resize}>행·열에 맞춰 외곽 칸 재배치</Button></>}<Field label="주사위 개수"><Num value={value.dice.count} change={count=>change({...value,dice:{...value.dice,count}})}/></Field><Field label="주사위 면"><Num value={value.dice.sides} change={sides=>change({...value,dice:{...value.dice,sides}})}/></Field></div>{resizeMessage&&<p className="rounded border border-amber-500/40 p-2 text-xs">{resizeMessage}</p>}{value.cells.map((cell,i)=><details className="rounded border p-3" key={cell.id}><summary className="cursor-pointer font-medium">{cell.id} · {cell.label}</summary><div className="mt-3 grid gap-2 md:grid-cols-4"><Field label="stable cellId"><Input value={cell.id} disabled/></Field><Field label="표시 문구"><Input value={cell.label} onChange={e=>updateCell(i,{label:e.target.value})}/></Field><Field label="모양"><Select value={cell.appearance.shape} values={['circle','rounded_rectangle']} change={shape=>updateCell(i,{appearance:{...cell.appearance,shape}})}/></Field><Field label="칸 일러스트"><Select value={cell.appearance.artwork?.type==='image'?cell.appearance.artwork.assetId:'none'} values={['none','party-toast-v1','party-island-v1','party-travel-v1','party-heart-v1','party-music-v1','party-shield-v1','party-snack-v1','party-kiss-v1','party-punch-v1','party-talk-v1','party-turn-v1','party-bank-v1']} change={assetId=>updateCell(i,{appearance:{...cell.appearance,artwork:assetId==='none'?null:{type:'image',assetId}}})}/></Field>{(['fill','textColor','borderColor'] as const).map(k=><Field label={k} key={k}><Input type="color" value={cell.appearance[k]} onChange={e=>updateCell(i,{appearance:{...cell.appearance,[k]:e.target.value}})}/></Field>)}<EffectEditor value={cell.onLand[0]??{type:'none'}} change={effect=>updateCell(i,{onLand:[effect,...cell.onLand.slice(1)]})}/></div></details>)}</div>}
-
-const effectTypes=['none','mission','choice_mission','move_steps','choose_destination','set_direction','movement_lock','modify_roll','counter_add','counter_settle','grant_item','unconfigured'] as const;
-function EffectEditor({value,change}:{value:BoardEffect;change:(x:BoardEffect)=>void}){return <><Field label="도착 효과"><Select value={value.type} values={[...effectTypes]} change={type=>change(effect(type as BoardEffect['type']))}/></Field>{value.type==='mission'?<><Field label="미션 문구"><Input value={value.message} onChange={e=>change({...value,message:e.target.value})}/></Field><Field label="제한 초"><Num value={value.durationSeconds??0} change={n=>change({...value,durationSeconds:n||null})}/></Field><Shield value={value.shield} change={shield=>change({...value,shield})}/></>:value.type==='choice_mission'?<><Field label="질문"><Input value={value.prompt} onChange={e=>change({...value,prompt:e.target.value})}/></Field><Field label="선택 주체"><Select value={value.selection} values={['operator','donor_chat','both']} change={selection=>change({...value,selection:selection as any})}/></Field><ChoiceList choices={value.choices} change={choices=>change({...value,choices})}/></>:value.type==='move_steps'?<><Field label="이동 칸"><Num value={value.steps} change={steps=>change({...value,steps})}/></Field><Field label="방향"><Select value={value.direction} values={['forward','reverse','with_current','against_current']} change={direction=>change({...value,direction:direction as any})}/></Field><Field label="도착 효과"><Select value={value.onArrival} values={['trigger','skip']} change={onArrival=>change({...value,onArrival:onArrival as any})}/></Field><Field label="통과 효과"><Select value={value.onPass} values={['trigger','skip']} change={onPass=>change({...value,onPass:onPass as any})}/></Field></>:value.type==='choose_destination'?<><Field label="선택 주체"><Select value={value.selection} values={['operator','donor_chat','both']} change={selection=>change({...value,selection:selection as any})}/></Field><Field label="시점"><Select value={value.timing} values={['immediate','next_turn']} change={timing=>change({...value,timing:timing as any})}/></Field><Field label="허용 cellId (쉼표)"><Input value={value.allowedCellIds?.join(',')??''} onChange={e=>change({...value,allowedCellIds:e.target.value.trim()?e.target.value.split(',').map(x=>x.trim()).filter(Boolean):null})}/></Field><Field label="도착 효과"><Select value={value.onArrival} values={['trigger','skip']} change={onArrival=>change({...value,onArrival:onArrival as any})}/></Field><label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" checked={value.excludeCurrentCell} onChange={e=>change({...value,excludeCurrentCell:e.target.checked})}/>현재 칸 제외</label></>:value.type==='set_direction'?<Field label="방향"><Select value={value.direction} values={['forward','reverse','toggle']} change={direction=>change({...value,direction:direction as any})}/></Field>:value.type==='movement_lock'?<><Field label="해제 방식"><Select value={value.release.type} values={['operator','skip_rolls','skip_rolls_or_doubles','dice_faces']} change={t=>change(effect('movement_lock',t))}/></Field>{'count'in value.release&&<Field label="횟수"><Num value={value.release.count} change={count=>change({...value,release:{...value.release,count}} as any)}/></Field>}{value.release.type==='skip_rolls_or_doubles'&&<Field label="더블 처리"><Select value={value.release.onDoubles} values={['move_sum','release_only']} change={onDoubles=>change({...value,release:{...value.release,onDoubles}} as any)}/></Field>}{value.release.type==='dice_faces'&&<Field label="해제 눈 (쉼표)"><Input value={value.release.faces.join(',')} onChange={e=>change({...value,release:{...value.release,faces:e.target.value.split(',').map(Number).filter(Number.isFinite)}} as any)}/></Field>}</>:value.type==='modify_roll'?<><Field label="사용 횟수"><Num value={value.uses} change={uses=>change({...value,uses})}/></Field><Field label="변경 방식"><Select value={value.modifier.type} values={['movement_multiplier','dice_count','repeat_roll']} change={t=>change({...value,modifier:t==='movement_multiplier'?{type:t,factor:2}:{type:t,count:1}} as any)}/></Field><Field label={value.modifier.type==='movement_multiplier'?'배수':'횟수'}><Num value={'factor'in value.modifier?value.modifier.factor:value.modifier.count} change={n=>change({...value,modifier:'factor'in value.modifier?{...value.modifier,factor:n}:{...value.modifier,count:n}} as any)}/></Field></>:value.type==='counter_add'?<><Field label="counterId"><Input value={value.counterId} onChange={e=>change({...value,counterId:e.target.value})}/></Field><Field label="수량"><Num value={value.quantity} change={quantity=>change({...value,quantity})}/></Field></>:value.type==='counter_settle'?<><Field label="counterId"><Input value={value.counterId} onChange={e=>change({...value,counterId:e.target.value})}/></Field><Field label="미션 문구"><Input value={value.message} onChange={e=>change({...value,message:e.target.value})}/></Field><Shield value={value.shield} change={shield=>change({...value,shield})}/><Field label="정산 시점"><Select value={value.settleOn} values={['creation','mission_completion']} change={settleOn=>change({...value,settleOn:settleOn as any})}/></Field></>:value.type==='grant_item'?<><Field label="itemId"><Input value={value.itemId} onChange={e=>change({...value,itemId:e.target.value})}/></Field><Field label="수량"><Num value={value.quantity} change={quantity=>change({...value,quantity})}/></Field></>:value.type==='unconfigured'?<Field label="미확정 질문"><Input value={value.question} onChange={e=>change({...value,question:e.target.value})}/></Field>:null}</>}
-
-function LayoutEditor({value,change}:{value:OverlayLayoutDto;change:(x:any)=>void}){const widgets=['board','dice','current_mission','inventory','direction'] as const;return <div className="space-y-3"><div className="grid gap-2 md:grid-cols-4"><Field label="너비"><Num value={value.width} change={width=>change({...value,width,aspectRatio:'custom'})}/></Field><Field label="높이"><Num value={value.height} change={height=>change({...value,height,aspectRatio:'custom'})}/></Field><Field label="비율"><Select value={value.aspectRatio} values={['16:9','9:16','4:3','custom']} change={aspectRatio=>{const ratio=aspectRatio==='16:9'?16/9:aspectRatio==='9:16'?9/16:aspectRatio==='4:3'?4/3:null;change({...value,aspectRatio,height:ratio?Math.max(1,Math.round(value.width/ratio)):value.height})}}/></Field><Field label="배경"><Input value={value.background} onChange={e=>change({...value,background:e.target.value})}/></Field></div>{widgets.map(id=>{const current=value.widgets.find(x=>x.id===id);const patch=(p:any)=>change({...value,widgets:value.widgets.map(x=>x.id===id?{...x,...p}:x)});return <div className="grid gap-2 rounded border p-3 md:grid-cols-7" key={id}><label className="flex items-end gap-2 pb-2"><input type="checkbox" checked={!!current} onChange={e=>change({...value,widgets:e.target.checked?[...value.widgets,{id,bounds:{x:0,y:0,width:.5,height:.5},z:value.widgets.length}]:value.widgets.filter(x=>x.id!==id)})}/>{id}</label>{current&&(['x','y','width','height'] as const).map(k=><Field label={k} key={k}><Decimal value={current.bounds[k]} change={n=>patch({bounds:{...current.bounds,[k]:n}})}/></Field>)}{current&&<Field label="z"><Num value={current.z} change={z=>patch({z})}/></Field>}</div>})}</div>}
-
-function donationAction(type:string):DonationAction{return type==='mission'?{type,message:'새 미션',shield:null}:type==='grant_item'?{type,itemId:'',quantity:1}:type==='choose_destination'?{type,selection:'both',chatCommand:'!이동'}:{type:'roll_dice',rollCount:1}}
-function effect(type:BoardEffect['type'],variant?:string):BoardEffect{switch(type){case'mission':return{type,message:'새 미션',shield:null,durationSeconds:null};case'choice_mission':return{type,prompt:'선택',selection:'operator',choices:[{id:'choice-1',label:'선택 1',message:'선택 1'}]};case'move_steps':return{type,steps:1,direction:'with_current',onArrival:'trigger',onPass:'trigger'};case'choose_destination':return{type,selection:'both',allowedCellIds:null,onArrival:'trigger',timing:'next_turn',excludeCurrentCell:true};case'set_direction':return{type,direction:'toggle'};case'movement_lock':return variant==='skip_rolls'?{type,release:{type:variant,count:1}}:variant==='skip_rolls_or_doubles'?{type,release:{type:variant,count:1,onDoubles:'move_sum'}}:variant==='dice_faces'?{type,release:{type:variant,faces:[1]}}:{type,release:{type:'operator'}};case'modify_roll':return{type,uses:1,modifier:{type:'movement_multiplier',factor:2}};case'counter_add':return{type,counterId:'drink-bank',quantity:1};case'counter_settle':return{type,counterId:'drink-bank',message:'정산',shield:null,settleOn:'mission_completion'};case'grant_item':return{type,itemId:'',quantity:1};case'unconfigured':return{type,question:'미확정 동작'};default:return{type:'none'}}}
-function Shield({value,change}:{value:{itemId:string;quantity:number}|null;change:(x:any)=>void}){return <><label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" checked={value!==null} onChange={e=>change(e.target.checked?{itemId:'',quantity:1}:null)}/>실드 허용</label>{value&&<><Field label="실드 itemId"><Input value={value.itemId} onChange={e=>change({...value,itemId:e.target.value})}/></Field><Field label="소모량"><Num value={value.quantity} change={quantity=>change({...value,quantity})}/></Field></>}</>}
-function ChoiceList({choices,change}:{choices:readonly {id:string;label:string;message:string}[];change:(x:{id:string;label:string;message:string}[])=>void}){const update=(i:number,p:Partial<{id:string;label:string;message:string}>)=>change(choices.map((x,j)=>j===i?{...x,...p}:x));return <div className="col-span-full space-y-2 rounded border p-2"><strong className="text-xs">선택 미션 목록</strong>{choices.map((choice,i)=><div className="grid gap-2 md:grid-cols-4" key={i}><Field label="ID"><Input value={choice.id} onChange={e=>update(i,{id:e.target.value})}/></Field><Field label="이름"><Input value={choice.label} onChange={e=>update(i,{label:e.target.value})}/></Field><Field label="미션"><Input value={choice.message} onChange={e=>update(i,{message:e.target.value})}/></Field><Button variant="destructive" onClick={()=>change(choices.filter((_,j)=>j!==i))}>삭제</Button></div>)}<Button variant="outline" onClick={()=>change([...choices,{id:`choice-${choices.length+1}`,label:`선택 ${choices.length+1}`,message:'새 선택 미션'}])}>선택 추가</Button></div>}
-function Field({label,children}:{label:string;children:React.ReactNode}){return <label className="grid gap-1 text-xs"><span className="text-muted-foreground">{label}</span>{children}</label>}
-function Num({value,change}:{value:number;change:(n:number)=>void}){return <Input type="number" value={value} onChange={e=>change(Number(e.target.value))}/>}
-function Decimal({value,change}:{value:number;change:(n:number)=>void}){return <Input type="number" min="0" max="1" step="0.01" value={value} onChange={e=>change(Number(e.target.value))}/>}
-function Select({value,values,change}:{value:string;values:string[];change:(x:string)=>void}){return <select className="h-9 rounded border bg-background px-2" value={value} onChange={e=>change(e.target.value)}>{values.map(x=><option key={x} value={x}>{typeLabels[x]??x}</option>)}</select>}
-function textError(error:unknown){return error instanceof Error?error.message:'요청을 처리하지 못했습니다.'}
-const labels:Record<ChannelConfigKind,string>={rules:'후원 규칙',items:'아이템 정의',board:'보드 버전','overlay-layout':'OBS 레이아웃'};
-const typeLabels:Record<string,string>={roll_dice:'주사위 굴리기',mission:'미션',grant_item:'아이템 지급',choose_destination:'원하는 칸 선택',none:'효과 없음',choice_mission:'선택 미션',move_steps:'지정 칸 이동',set_direction:'방향 변경',movement_lock:'이동 제한',modify_roll:'다음 주사위 변경',counter_add:'카운터 적립',counter_settle:'카운터 정산',unconfigured:'미확정',operator:'운영자',donor_chat:'후원자 채팅',both:'둘 다',forward:'정방향',reverse:'역방향',with_current:'현재 방향',against_current:'반대 방향',toggle:'방향 반전',trigger:'실행',skip:'건너뛰기',immediate:'즉시',next_turn:'다음 차례',skip_rolls:'횟수만큼 쉬기',skip_rolls_or_doubles:'쉬기 또는 더블',dice_faces:'특정 주사위 눈',move_sum:'합만큼 이동',release_only:'해제만',movement_multiplier:'이동 거리 배수',dice_count:'주사위 개수',repeat_roll:'반복 굴리기',creation:'미션 생성 시',mission_completion:'미션 해결 시',circle:'원형',rounded_rectangle:'둥근 사각형','party-toast-v1':'건배','party-island-v1':'무인도','party-travel-v1':'세계여행','party-heart-v1':'하트','party-music-v1':'노래','party-shield-v1':'실드','party-snack-v1':'안주','party-kiss-v1':'뽀뽀','party-punch-v1':'죽빵','party-talk-v1':'대화 미션','party-turn-v1':'방향 전환','party-bank-v1':'술 적립'};
-function isShape(kind:ChannelConfigKind,value:any):boolean{const object=(x:any)=>!!x&&typeof x==='object'&&!Array.isArray(x);if(kind==='rules')return object(value)&&value.schemaVersion===1&&Array.isArray(value.items)&&value.items.every((x:any)=>object(x)&&typeof x.id==='string'&&typeof x.label==='string')&&Array.isArray(value.rules)&&value.rules.every((x:any)=>object(x)&&typeof x.id==='string'&&typeof x.label==='string'&&typeof x.amount==='number'&&typeof x.enabled==='boolean'&&object(x.action)&&typeof x.action.type==='string');if(kind==='items')return Array.isArray(value)&&value.every((x:any)=>object(x)&&typeof x.id==='string'&&typeof x.label==='string');if(kind==='board')return object(value)&&value.schemaVersion===1&&object(value.canvas)&&object(value.layout)&&object(value.dice)&&Array.isArray(value.path)&&Array.isArray(value.cells)&&value.cells.every((x:any)=>object(x)&&typeof x.id==='string'&&typeof x.label==='string'&&object(x.appearance)&&typeof x.appearance.shape==='string'&&Array.isArray(x.onLand)&&x.onLand.every(effectShape));return object(value)&&value.schemaVersion===1&&Array.isArray(value.widgets)&&value.widgets.every((x:any)=>object(x)&&typeof x.id==='string'&&object(x.bounds));}
-function perimeter(rows:number,columns:number):[number,number][]{if(!Number.isSafeInteger(rows)||!Number.isSafeInteger(columns)||rows<2||columns<2)return[];const out:[number,number][]=[];for(let c=0;c<columns;c++)out.push([0,c]);for(let r=1;r<rows;r++)out.push([r,columns-1]);for(let c=columns-2;c>=0;c--)out.push([rows-1,c]);for(let r=rows-2;r>0;r--)out.push([r,0]);return out;}
-
-function effectShape(value:any):boolean {
-  if(!value||typeof value!=='object'||typeof value.type!=='string')return false;
-  if(value.type==='movement_lock')return !!value.release&&typeof value.release==='object'&&(value.release.type!=='dice_faces'||Array.isArray(value.release.faces));
-  if(value.type==='modify_roll')return !!value.modifier&&typeof value.modifier==='object';
-  if(value.type==='choice_mission')return Array.isArray(value.choices)&&value.choices.every((choice:any)=>choice&&typeof choice.id==='string'&&typeof choice.label==='string'&&typeof choice.message==='string');
-  if(value.type==='choose_destination')return value.allowedCellIds==null||Array.isArray(value.allowedCellIds);
-  return true;
+function summary(kind: ChannelConfigKind, value: unknown): string {
+  if (!isEditable(kind, value)) return "설정 형식 확인 필요";
+  if (kind === "board") {
+    const b = value as BoardDefinition;
+    return `${b.name} · ${b.path.length}칸 · 주사위 ${b.dice.count}개`;
+  }
+  if (kind === "rules") {
+    const r = value as DonationTriggerConfig;
+    return `후원 규칙 ${r.rules.length}개 · 사용 중 ${r.rules.filter((x) => x.enabled).length}개`;
+  }
+  if (kind === "items") return `아이템 ${(value as NamedItem[]).length}개`;
+  const l = value as OverlayLayoutDto;
+  return `${l.width} × ${l.height} · 표시 영역 ${l.widgets.length}개`;
+}
+function textError(error: unknown) {
+  return error instanceof ApiError && error.status === 409
+    ? "다른 곳에서 설정이 변경됐어요. 입력한 내용은 유지했습니다. 새로고침 전에 변경 내용을 확인해주세요."
+    : error instanceof Error
+      ? error.message
+      : "요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.";
+}
+function friendlyValidation(message: string) {
+  if (/unconfigured|Unconfirmed|unconfirmed/i.test(message))
+    return "아직 정하지 않은 칸 동작이 있어요. 해당 칸에서 동작을 선택해주세요.";
+  if (/unknown.*item|item.*unknown|active item/i.test(message))
+    return "연결한 아이템이 등록되지 않았어요. 아이템 탭에서 등록·게시한 뒤 다시 선택해주세요.";
+  if (/amount|duplicate/i.test(message))
+    return "후원 개수·고유 번호가 중복되거나 올바르지 않아요. 각 규칙을 확인해주세요.";
+  if (/color/i.test(message)) return "칸 또는 배경 색상을 확인해주세요.";
+  if (/dice/i.test(message))
+    return "주사위 개수·면 수와 관련 동작의 값을 확인해주세요.";
+  if (/position|grid|layout|rect|bounds|canvas|width|height/i.test(message))
+    return "화면 크기와 칸·표시 영역의 위치가 올바른지 확인해주세요.";
+  if (/counter/i.test(message))
+    return "적립 항목과 칸에 연결한 적립·청산 동작을 확인해주세요.";
+  return "비어 있는 문구, 수량, 연결된 칸·아이템·동작을 확인해주세요.";
+}
+function isEditable(kind: ChannelConfigKind, value: unknown): boolean {
+  if (kind === "board") {
+    try {
+      validateBoardDefinition(value);
+      return true;
+    } catch {
+      /* Incomplete drafts remain editable when they have a safe structural shape. */
+    }
+  }
+  if (kind === "rules") {
+    try {
+      validateDonationTriggerConfig(value);
+      return true;
+    } catch {
+      /* Allow incomplete form values. */
+    }
+  }
+  const v = value as any;
+  const object = (x: any) => x && typeof x === "object" && !Array.isArray(x);
+  const item = (x: any) =>
+    object(x) && typeof x.id === "string" && typeof x.label === "string";
+  const effects = (list: any) =>
+    Array.isArray(list) &&
+    list.every(
+      (e) =>
+        object(e) &&
+        (e.type === "movement_lock"
+          ? object(e.release) &&
+            (e.release.type !== "dice_faces" || Array.isArray(e.release.faces))
+          : e.type === "modify_roll"
+            ? object(e.modifier)
+            : e.type === "choice_mission"
+              ? Array.isArray(e.choices)
+              : e.type === "choose_destination"
+                ? e.allowedCellIds === null || Array.isArray(e.allowedCellIds)
+                : [
+                    "none",
+                    "mission",
+                    "move_steps",
+                    "set_direction",
+                    "counter_add",
+                    "counter_settle",
+                    "grant_item",
+                    "unconfigured",
+                  ].includes(e.type)),
+    );
+  if (kind === "items") return Array.isArray(v) && v.every(item);
+  if (!object(v) || v.schemaVersion !== 1) return false;
+  if (kind === "rules")
+    return (
+      Array.isArray(v.items) &&
+      v.items.every(item) &&
+      Array.isArray(v.rules) &&
+      v.rules.every(
+        (r: any) =>
+          item(r) &&
+          typeof r.amount === "number" &&
+          object(r.action) &&
+          ["roll_dice", "mission", "grant_item", "choose_destination"].includes(
+            r.action.type,
+          ),
+      )
+    );
+  if (kind === "board")
+    return (
+      typeof v.name === "string" &&
+      object(v.canvas) &&
+      typeof v.canvas.width === "number" &&
+      typeof v.canvas.height === "number" &&
+      object(v.layout) &&
+      object(v.dice) &&
+      Array.isArray(v.widgets) &&
+      v.widgets.every((w: any) => object(w) && object(w.bounds)) &&
+      Array.isArray(v.counters) &&
+      Array.isArray(v.path) &&
+      v.path.length > 0 &&
+      Array.isArray(v.cells) &&
+      v.path.every((id: string) => v.cells.some((c: any) => c.id === id)) &&
+      v.cells.every(
+        (c: any) =>
+          item(c) &&
+          object(c.position) &&
+          object(c.appearance) &&
+          effects(c.onLand) &&
+          effects(c.onPass),
+      )
+    );
+  return (
+    Array.isArray(v.widgets) &&
+    v.widgets.every((w: any) => object(w) && object(w.bounds))
+  );
 }

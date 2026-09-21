@@ -2,6 +2,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import { ArrowLeft, Copy, Loader2, Trash2 } from "lucide-react";
 import type { AccessTokenDto } from "@rogimarble/contracts";
+import {
+  ConsoleNotice,
+  ConsolePanel,
+} from "@/shared/components/common/console-ui";
+import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -85,37 +90,41 @@ export default function AccountPage() {
           </Button>
         ) : (
           <>
-            <form
-              className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_190px_auto] sm:items-end"
-              onSubmit={issue}
-            >
-              <div className="space-y-2">
-                <Label htmlFor="label">토큰 이름</Label>
-                <Input
-                  id="label"
-                  name="label"
-                  maxLength={80}
-                  placeholder="방송용 노트북"
-                  required
-                  disabled={busy}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="expiresAt">만료 시각 (선택)</Label>
-                <Input
-                  id="expiresAt"
-                  name="expiresAt"
-                  type="datetime-local"
-                  disabled={busy}
-                />
-              </div>
-              <Button disabled={busy}>
-                {busy && <Loader2 className="mr-2 size-4 animate-spin" />}새
-                토큰 발급
-              </Button>
-            </form>
+            <Card>
+              <CardContent>
+                <form
+                  className="grid gap-3 sm:grid-cols-[1fr_190px_auto] sm:items-end"
+                  onSubmit={issue}
+                >
+                  <div className="space-y-2">
+                    <Label htmlFor="label">토큰 이름</Label>
+                    <Input
+                      id="label"
+                      name="label"
+                      maxLength={80}
+                      placeholder="방송용 노트북"
+                      required
+                      disabled={busy}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="expiresAt">만료 시각 (선택)</Label>
+                    <Input
+                      id="expiresAt"
+                      name="expiresAt"
+                      type="datetime-local"
+                      disabled={busy}
+                    />
+                  </div>
+                  <Button disabled={busy}>
+                    {busy && <Loader2 className="mr-2 size-4 animate-spin" />}새
+                    토큰 발급
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
             {issued && (
-              <div className="space-y-2 rounded-lg border border-amber-400/50 bg-amber-50 p-4 text-amber-950">
+              <ConsoleNotice variant="warning">
                 <strong className="text-sm">
                   지금 안전한 곳에 복사하세요. 다시 표시되지 않습니다.
                 </strong>
@@ -138,37 +147,43 @@ export default function AccountPage() {
                 >
                   표시 닫기
                 </Button>
-              </div>
+              </ConsoleNotice>
             )}
             <div className="space-y-2">
               <h2 className="text-sm font-semibold">발급 내역</h2>
               {tokens.length ? (
                 tokens.map((token) => (
-                  <div
-                    key={token.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
-                  >
-                    <div>
-                      <div className="text-sm font-medium">{token.label}</div>
-                      <div className="text-xs text-muted-foreground">
-                        만료 {new Date(token.expiresAt).toLocaleString("ko-KR")}{" "}
-                        · 최근 사용{" "}
-                        {token.lastUsedAt
-                          ? new Date(token.lastUsedAt).toLocaleString("ko-KR")
-                          : "없음"}
-                        {token.revokedAt ? " · 회수됨" : ""}
+                  <Card key={token.id}>
+                    <CardContent>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-medium">
+                            {token.label}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            만료{" "}
+                            {new Date(token.expiresAt).toLocaleString("ko-KR")}{" "}
+                            · 최근 사용{" "}
+                            {token.lastUsedAt
+                              ? new Date(token.lastUsedAt).toLocaleString(
+                                  "ko-KR",
+                                )
+                              : "없음"}
+                            {token.revokedAt ? " · 회수됨" : ""}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy || !!token.revokedAt}
+                          onClick={() => void revoke(token.id)}
+                        >
+                          <Trash2 className="mr-2 size-4" />
+                          회수
+                        </Button>
                       </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy || !!token.revokedAt}
-                      onClick={() => void revoke(token.id)}
-                    >
-                      <Trash2 className="mr-2 size-4" />
-                      회수
-                    </Button>
-                  </div>
+                    </CardContent>
+                  </Card>
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground">
@@ -178,19 +193,8 @@ export default function AccountPage() {
             </div>
           </>
         )}
-        {error && (
-          <p
-            role="alert"
-            className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
-          >
-            {error}
-          </p>
-        )}
-        {message && (
-          <p role="status" className="rounded-md border p-3 text-sm">
-            {message}
-          </p>
-        )}
+        {error && <ConsoleNotice variant="destructive">{error}</ConsoleNotice>}
+        {message && <ConsoleNotice>{message}</ConsoleNotice>}
       </section>
     </main>
   );

@@ -18,6 +18,19 @@ import {
   Search,
   ShieldCheck,
 } from "lucide-react";
+import {
+  ConsolePanel,
+  ConsoleNotice,
+  ConsoleCheck,
+} from "@/shared/components/common/console-ui";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { Label } from "@/shared/components/ui/label";
+import { Badge } from "@/shared/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/shared/components/ui/collapsible";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -70,7 +83,7 @@ function time(value?: string | null) {
     ? new Date(value).toLocaleString("ko-KR", { hour12: false })
     : "아직 기록 없음";
 }
-function Card({
+function MetricCard({
   title,
   value,
   detail,
@@ -80,13 +93,9 @@ function Card({
   detail: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border bg-card p-5 shadow-sm">
-      <h2 className="text-sm text-muted-foreground">{title}</h2>
-      <p className="mt-3 text-xl font-bold tracking-tight">{value}</p>
-      <div className="mt-2 text-xs leading-relaxed text-muted-foreground">
-        {detail}
-      </div>
-    </section>
+    <ConsolePanel title={title} description={detail}>
+      <p className="text-xl font-semibold">{value}</p>
+    </ConsolePanel>
   );
 }
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -204,13 +213,11 @@ export default function CollectorPage() {
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-5">
           <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              aria-label="운영 콘솔로 돌아가기"
-              className="rounded-lg border p-2"
-            >
-              <ArrowLeft size={18} />
-            </Link>
+            <Button asChild variant="outline" size="icon">
+              <Link href="/" aria-label="운영 콘솔로 돌아가기">
+                <ArrowLeft />
+              </Link>
+            </Button>
             <div>
               <h1 className="text-lg font-bold">방송·수집 관리</h1>
               <p className="text-xs text-muted-foreground">
@@ -219,14 +226,9 @@ export default function CollectorPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-xs">
-              <input
-                type="checkbox"
-                checked={auto}
-                onChange={(e) => setAuto(e.target.checked)}
-              />
+            <ConsoleCheck checked={auto} onCheckedChange={setAuto}>
               5초마다 갱신
-            </label>
+            </ConsoleCheck>
             <Button
               variant="outline"
               size="sm"
@@ -241,38 +243,39 @@ export default function CollectorPage() {
       </header>
       <div className="mx-auto max-w-6xl space-y-6 px-5 py-7">
         {error && (
-          <div
-            role="alert"
-            className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
-          >
+          <ConsoleNotice variant="warning">
             {error}
             {login && (
               <Link href="/login" className="ml-3 underline">
                 로그인하기
               </Link>
             )}
-          </div>
+          </ConsoleNotice>
         )}
-        <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50/60 px-5 py-4 dark:border-rose-900 dark:bg-rose-950/20">
-          <div className="flex items-center gap-3">
-            <Radio className="text-rose-600" size={20} />
-            <div>
-              <p className="font-semibold">
-                운영 수집 채널 · {status?.collectorChannelId ?? "확인 중"}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                이 채널의 후원·채팅이 주루마블에 전달됩니다.
-              </p>
-            </div>
-          </div>
-          <span className="rounded-full border bg-background px-3 py-1 text-xs">
-            {outdated
-              ? "마지막 조회값 · 최신 상태 확인 필요"
-              : `상태 확인 ${time(status?.lastCheckedAt)}`}
-          </span>
-        </section>
+        <Card>
+          <CardContent>
+            <section className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Radio className="text-muted-foreground" size={20} />
+                <div>
+                  <p className="font-semibold">
+                    운영 수집 채널 · {status?.collectorChannelId ?? "확인 중"}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    이 채널의 후원·채팅이 주루마블에 전달됩니다.
+                  </p>
+                </div>
+              </div>
+              <Badge variant="secondary">
+                {outdated
+                  ? "마지막 조회값 · 최신 상태 확인 필요"
+                  : `상태 확인 ${time(status?.lastCheckedAt)}`}
+              </Badge>
+            </section>
+          </CardContent>
+        </Card>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card
+          <MetricCard
             title="수집기 서버 연결"
             value={
               outdated
@@ -283,7 +286,7 @@ export default function CollectorPage() {
             }
             detail="주루마블 서버 ↔ 수집기 인증 연결"
           />
-          <Card
+          <MetricCard
             title="운영 방송 수집"
             value={
               outdated
@@ -298,7 +301,7 @@ export default function CollectorPage() {
                 : "방송 대기와 연결 오류는 서로 다른 상태입니다."
             }
           />
-          <Card
+          <MetricCard
             title="마지막 방송 입력"
             value={
               <span className="text-base">
@@ -307,242 +310,259 @@ export default function CollectorPage() {
             }
             detail="수집기가 마지막으로 관측한 입력 시각"
           />
-          <Card
+          <MetricCard
             title="확인할 후원"
             value={status ? `${pending.toLocaleString()}건` : "—"}
             detail="게임 처리 대기 · 검토 보류 · 실패 합계"
           />
         </div>
         {status?.errorCode && (
-          <div
-            role="alert"
-            className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
-          >
+          <ConsoleNotice variant="warning">
             {errors[status.errorCode] ?? "수집 상태를 확인해야 합니다."}
-          </div>
+          </ConsoleNotice>
         )}
         <div className="grid gap-5 lg:grid-cols-2">
-          <section className="rounded-2xl border bg-card p-5">
-            <h2 className="flex items-center gap-2 font-semibold">
-              <ShieldCheck size={18} />
-              주루마블 수신 현황
-            </h2>
-            <dl className="mt-3">
-              <Row label="마지막 후원 저장">
-                {time(status?.lastDonationStoredAt)}
-              </Row>
-              <Row label="마지막 채팅 저장">
-                {time(status?.lastChatStoredAt)}
-              </Row>
-              <Row label="수집기에서 가져올 후원">
-                {status?.donationBacklog != null
-                  ? `${status.donationBacklog}건`
-                  : "비교 대기"}
-              </Row>
-              <Row label="채팅 수신">
-                {status?.chatConnected
-                  ? "수신 확인됨"
-                  : status?.chatStreamOpen
-                    ? "스트림 요청됨 · 첫 입력 대기"
-                    : "연결 대기"}
-              </Row>
-            </dl>
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-              방송이 조용하면 최근 수신 시각이 오래될 수 있습니다. 후원은 저장
-              후 확인 응답을 보내며, 채팅은 최근 보관 범위에서 전달됩니다.
-            </p>
-          </section>
-          <section className="rounded-2xl border bg-card p-5">
-            <h2 className="font-semibold">후원 처리 내역</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              현재 DB에 보관된 수신 건수입니다. 실제 별풍선 결제 총액과는
-              다릅니다.
-            </p>
-            <dl className="mt-3">
-              {[
-                ["pending", "게임 처리 대기"],
-                ["held", "검토 보류"],
-                ["failed", "처리 실패"],
-                ["executed", "게임 반영 완료"],
-                ["ignored", "게임 미적용"],
-              ].map(([key, label]) => (
-                <Row key={key} label={label}>
-                  {status?.counts
-                    ? (status.counts[key] ?? 0).toLocaleString()
-                    : "—"}
-                  건
-                </Row>
-              ))}
-            </dl>
-            <Link
-              href="/"
-              className="mt-3 inline-block text-sm underline underline-offset-4"
-            >
-              운영 콘솔에서 후원 내역 보기
-            </Link>
-          </section>
-        </div>
-        <section className="rounded-2xl border bg-card p-5 sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">방송 조회 테스트</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                다른 SOOP 채널도 ID를 입력해 방송 여부와 정보를 확인할 수
-                있습니다.
-              </p>
-            </div>
-            <span className="rounded-full bg-muted px-3 py-1 text-xs">
-              조회 전용
-            </span>
-          </div>
-          <form
-            onSubmit={check}
-            className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"
-          >
-            <div className="flex-1">
-              <label
-                htmlFor="broadcast-channel"
-                className="mb-2 block text-sm font-medium"
-              >
-                SOOP 채널 ID
-              </label>
-              <Input
-                id="broadcast-channel"
-                value={target}
-                onChange={(e) => setTarget(e.target.value)}
-                placeholder="예: h66rogi"
-                maxLength={50}
-                autoCapitalize="none"
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={checking || !status?.canCheckBroadcast || login}
-            >
-              <Search size={16} />
-              {checking ? "방송 확인 중…" : "방송 조회"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!status?.collectorChannelId || checking}
-              onClick={() => {
-                setTarget(status?.collectorChannelId ?? "");
-                setResult(null);
-                setCheckError("");
-              }}
-            >
-              운영 채널 입력
-            </Button>
-          </form>
-          {!login && status && !status.canCheckBroadcast && (
-            <p className="mt-3 text-sm text-muted-foreground">
-              방송 조회 테스트는 채널 운영 권한이 필요합니다.
-            </p>
-          )}
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            조회는 운영 수집 채널을 변경하거나 테스트 채널의 후원·채팅을 게임에
-            연결하지 않습니다. 연령제한 방송은 수집기의 로그인 쿠키로
-            확인합니다.
-          </p>
-          {checkError && (
-            <p role="alert" className="mt-4 text-sm text-destructive">
-              {checkError}
-            </p>
-          )}
-          {result && (
-            <div
-              role="status"
-              className="mt-5 rounded-xl border bg-muted/30 p-5"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <span className="text-xs text-muted-foreground">
-                    {result.productionTarget
-                      ? "운영 채널 조회"
-                      : "테스트 채널 조회"}{" "}
-                    · {result.channelId}
-                  </span>
-                  <h3 className="mt-1 text-lg font-bold">
-                    {broadcastLabels[result.state] ?? "확인 필요"}
-                  </h3>
-                </div>
-                <a
-                  href={`https://play.sooplive.com/${encodeURIComponent(result.channelId)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-sm underline underline-offset-4"
+          <Card>
+            <CardContent>
+              <section className="">
+                <h2 className="flex items-center gap-2 font-semibold">
+                  <ShieldCheck size={18} />
+                  주루마블 수신 현황
+                </h2>
+                <dl className="mt-3">
+                  <Row label="마지막 후원 저장">
+                    {time(status?.lastDonationStoredAt)}
+                  </Row>
+                  <Row label="마지막 채팅 저장">
+                    {time(status?.lastChatStoredAt)}
+                  </Row>
+                  <Row label="수집기에서 가져올 후원">
+                    {status?.donationBacklog != null
+                      ? `${status.donationBacklog}건`
+                      : "비교 대기"}
+                  </Row>
+                  <Row label="채팅 수신">
+                    {status?.chatConnected
+                      ? "수신 확인됨"
+                      : status?.chatStreamOpen
+                        ? "스트림 요청됨 · 첫 입력 대기"
+                        : "연결 대기"}
+                  </Row>
+                </dl>
+                <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                  방송이 조용하면 최근 수신 시각이 오래될 수 있습니다. 후원은
+                  저장 후 확인 응답을 보내며, 채팅은 최근 보관 범위에서
+                  전달됩니다.
+                </p>
+              </section>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <section className="">
+                <h2 className="font-semibold">후원 처리 내역</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  현재 DB에 보관된 수신 건수입니다. 실제 별풍선 결제 총액과는
+                  다릅니다.
+                </p>
+                <dl className="mt-3">
+                  {[
+                    ["pending", "게임 처리 대기"],
+                    ["held", "검토 보류"],
+                    ["failed", "처리 실패"],
+                    ["executed", "게임 반영 완료"],
+                    ["ignored", "게임 미적용"],
+                  ].map(([key, label]) => (
+                    <Row key={key} label={label}>
+                      {status?.counts
+                        ? (status.counts[key] ?? 0).toLocaleString()
+                        : "—"}
+                      건
+                    </Row>
+                  ))}
+                </dl>
+                <Link
+                  href="/"
+                  className="mt-3 inline-block text-sm underline underline-offset-4"
                 >
-                  SOOP 방송 열기
-                  <ExternalLink size={14} />
-                </a>
+                  운영 콘솔에서 후원 내역 보기
+                </Link>
+              </section>
+            </CardContent>
+          </Card>
+        </div>
+        <Card>
+          <CardContent>
+            <section className="">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold">방송 조회 테스트</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    다른 SOOP 채널도 ID를 입력해 방송 여부와 정보를 확인할 수
+                    있습니다.
+                  </p>
+                </div>
+                <Badge variant="secondary">조회 전용</Badge>
               </div>
-              {result.title && (
-                <p className="mt-3 break-words font-medium">{result.title}</p>
-              )}
-              <dl className="mt-3">
-                <Row label="방송자">
-                  {result.displayName || "플랫폼 미제공"}
-                </Row>
-                <Row label="방송 번호">
-                  {result.broadcastId || "없음 / 미제공"}
-                </Row>
-                <Row label="확인 시각">
-                  {time(result.checkedAt)}
-                  {result.cached ? " · 최근 10초 조회 재사용" : ""}
-                </Row>
-              </dl>
-              {["auth_required", "cookie_required"].includes(result.state) && (
-                <p className="mt-3 text-sm text-amber-700">
-                  방송 종료로 판단하지 않았습니다. 수집기 로그인 상태 또는 방송
-                  접근 권한을 확인하세요.
+              <form
+                onSubmit={check}
+                className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"
+              >
+                <div className="flex-1">
+                  <Label htmlFor="broadcast-channel" className="mb-2 block">
+                    SOOP 채널 ID
+                  </Label>
+                  <Input
+                    id="broadcast-channel"
+                    value={target}
+                    onChange={(e) => setTarget(e.target.value)}
+                    placeholder="예: h66rogi"
+                    maxLength={50}
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={checking || !status?.canCheckBroadcast || login}
+                >
+                  <Search size={16} />
+                  {checking ? "방송 확인 중…" : "방송 조회"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!status?.collectorChannelId || checking}
+                  onClick={() => {
+                    setTarget(status?.collectorChannelId ?? "");
+                    setResult(null);
+                    setCheckError("");
+                  }}
+                >
+                  운영 채널 입력
+                </Button>
+              </form>
+              {!login && status && !status.canCheckBroadcast && (
+                <p className="mt-3 text-sm text-muted-foreground">
+                  방송 조회 테스트는 채널 운영 권한이 필요합니다.
                 </p>
               )}
-              {result.state === "lookup_failed" && (
-                <p className="mt-3 text-sm text-amber-700">
-                  채널 ID, 플랫폼 응답 또는 네트워크를 확인하세요. 방송 종료를
-                  확인한 결과가 아닙니다.
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                조회는 운영 수집 채널을 변경하거나 테스트 채널의 후원·채팅을
+                게임에 연결하지 않습니다. 연령제한 방송은 수집기의 로그인 쿠키로
+                확인합니다.
+              </p>
+              {checkError && (
+                <p role="alert" className="mt-4 text-sm text-destructive">
+                  {checkError}
                 </p>
               )}
-            </div>
-          )}
-        </section>
+              {result && (
+                <Card>
+                  <CardContent>
+                    <div role="status" className="mt-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <span className="text-xs text-muted-foreground">
+                            {result.productionTarget
+                              ? "운영 채널 조회"
+                              : "테스트 채널 조회"}{" "}
+                            · {result.channelId}
+                          </span>
+                          <h3 className="mt-1 text-lg font-bold">
+                            {broadcastLabels[result.state] ?? "확인 필요"}
+                          </h3>
+                        </div>
+                        <a
+                          href={`https://play.sooplive.com/${encodeURIComponent(result.channelId)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-sm underline underline-offset-4"
+                        >
+                          SOOP 방송 열기
+                          <ExternalLink size={14} />
+                        </a>
+                      </div>
+                      {result.title && (
+                        <p className="mt-3 break-words font-medium">
+                          {result.title}
+                        </p>
+                      )}
+                      <dl className="mt-3">
+                        <Row label="방송자">
+                          {result.displayName || "플랫폼 미제공"}
+                        </Row>
+                        <Row label="방송 번호">
+                          {result.broadcastId || "없음 / 미제공"}
+                        </Row>
+                        <Row label="확인 시각">
+                          {time(result.checkedAt)}
+                          {result.cached ? " · 최근 10초 조회 재사용" : ""}
+                        </Row>
+                      </dl>
+                      {["auth_required", "cookie_required"].includes(
+                        result.state,
+                      ) && (
+                        <p className="mt-3 text-sm text-warning">
+                          방송 종료로 판단하지 않았습니다. 수집기 로그인 상태
+                          또는 방송 접근 권한을 확인하세요.
+                        </p>
+                      )}
+                      {result.state === "lookup_failed" && (
+                        <p className="mt-3 text-sm text-warning">
+                          채널 ID, 플랫폼 응답 또는 네트워크를 확인하세요. 방송
+                          종료를 확인한 결과가 아닙니다.
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </section>
+          </CardContent>
+        </Card>
         <ChatReceptionTest
           target={target}
           onTargetChange={setTarget}
           allowed={Boolean(status?.canCheckBroadcast) && !login}
         />
-        <details className="rounded-2xl border bg-card p-5">
-          <summary className="cursor-pointer text-sm font-semibold">
-            상세 진단 정보
-          </summary>
-          <dl className="mt-3">
-            <Row label="수집기 저장 위치">
-              {status?.remote?.currentCursor?.channelOffset ?? "—"}
-            </Row>
-            <Row label="주루마블 저장 위치">
-              {status?.cursor?.channelOffset ?? "—"}
-            </Row>
-            <Row label="재생 시작 위치">
-              {status?.remote?.earliestCursor?.channelOffset ?? "—"}
-            </Row>
-            <Row label="수집기 저장 세대">
-              {status?.remote?.currentCursor?.journalGeneration ?? "—"}
-            </Row>
-            <Row label="복구 버전">
-              {status?.remote?.recoveryRevision ?? "—"}
-            </Row>
-            <Row label="수집 품질 사유">
-              {status?.remote?.qualityReasons?.join(", ") || "보고된 사유 없음"}
-            </Row>
-          </dl>
-          <p className="mt-3 text-xs text-muted-foreground">
-            이 화면은 수집기 RPC와 주루마블 저장 상태를 조회합니다. EC2 전체
-            컨테이너의 상태나 백업 복원 성공을 판정하는 화면은 아닙니다.
-          </p>
-        </details>
+        <ConsolePanel title="상세 진단 정보">
+          <Collapsible>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" size="sm">
+                진단 정보 펼치기
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <dl className="mt-3">
+                <Row label="수집기 저장 위치">
+                  {status?.remote?.currentCursor?.channelOffset ?? "—"}
+                </Row>
+                <Row label="주루마블 저장 위치">
+                  {status?.cursor?.channelOffset ?? "—"}
+                </Row>
+                <Row label="재생 시작 위치">
+                  {status?.remote?.earliestCursor?.channelOffset ?? "—"}
+                </Row>
+                <Row label="수집기 저장 세대">
+                  {status?.remote?.currentCursor?.journalGeneration ?? "—"}
+                </Row>
+                <Row label="복구 버전">
+                  {status?.remote?.recoveryRevision ?? "—"}
+                </Row>
+                <Row label="수집 품질 사유">
+                  {status?.remote?.qualityReasons?.join(", ") ||
+                    "보고된 사유 없음"}
+                </Row>
+              </dl>
+              <p className="mt-3 text-xs text-muted-foreground">
+                이 화면은 수집기 RPC와 주루마블 저장 상태를 조회합니다. EC2 전체
+                컨테이너의 상태나 백업 복원 성공을 판정하는 화면은 아닙니다.
+              </p>
+            </CollapsibleContent>
+          </Collapsible>
+        </ConsolePanel>
       </div>
     </main>
   );

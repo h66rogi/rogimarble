@@ -18,6 +18,7 @@ COPY packages/contracts packages/contracts
 COPY packages/game-core packages/game-core
 COPY packages/overlay-ui packages/overlay-ui
 COPY presets presets
+COPY docs/source-imports/song-request-console.json docs/source-imports/song-request-console.json
 ARG NEXT_PUBLIC_API_BASE_URL=/api
 ARG NEXT_PUBLIC_CHANNEL_ID=preview
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL NEXT_PUBLIC_CHANNEL_ID=$NEXT_PUBLIC_CHANNEL_ID

@@ -3,6 +3,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, ArrowLeft, Radio } from "lucide-react";
+import {
+  ConsoleNotice,
+  ConsolePanel,
+} from "@/shared/components/common/console-ui";
+import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -46,49 +51,42 @@ export default function LoginPage() {
         주루마블 운영 콘솔
       </header>
       <div className="flex flex-1 items-center justify-center px-5 py-12">
-        <section className="w-full max-w-sm space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-xl font-semibold">운영자 로그인</h1>
-            <p className="text-sm text-muted-foreground">
-              발급받은 접근 토큰을 입력하세요. 토큰은 이 브라우저에 저장되지
-              않습니다.
-            </p>
-          </div>
-          <form onSubmit={submit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="token">접근 토큰</Label>
-              <Input
-                id="token"
-                name="token"
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                maxLength={64}
-                required
-                disabled={busy}
-                placeholder="rma_…"
-              />
-            </div>
-            <Button className="w-full" disabled={busy || !ready}>
-              {busy && <Loader2 className="mr-2 size-4 animate-spin" />}토큰으로
-              로그인
-            </Button>
-          </form>
-          {error && (
-            <p
-              role="alert"
-              className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
-            >
-              {error}
-            </p>
-          )}
-          <a
-            href="/"
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        <section className="w-full max-w-sm">
+          <ConsolePanel
+            title="운영자 로그인"
+            description="발급받은 접근 토큰을 입력하세요. 토큰은 이 브라우저에 저장되지 않습니다."
           >
-            <ArrowLeft className="size-3" />
-            콘솔로 돌아가기
-          </a>
+            <form onSubmit={submit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="token">접근 토큰</Label>
+                <Input
+                  id="token"
+                  name="token"
+                  type="password"
+                  autoComplete="off"
+                  spellCheck={false}
+                  maxLength={64}
+                  required
+                  disabled={busy}
+                  placeholder="rma_…"
+                />
+              </div>
+              <Button className="w-full" disabled={busy || !ready}>
+                {busy && <Loader2 className="mr-2 size-4 animate-spin" />}
+                토큰으로 로그인
+              </Button>
+            </form>
+            {error && (
+              <ConsoleNotice variant="destructive">{error}</ConsoleNotice>
+            )}
+            <a
+              href="/"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="size-3" />
+              콘솔로 돌아가기
+            </a>
+          </ConsolePanel>
         </section>
       </div>
     </main>

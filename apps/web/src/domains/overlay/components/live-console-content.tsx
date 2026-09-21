@@ -1711,6 +1711,11 @@ export function LiveConsoleContent({
   const [activeTab, setActiveTab] = useState<
     'home' | 'queue' | 'omakase' | 'blocks' | 'overlay' | 'settings' | 'session-history'
   >('home');
+  // Preserve the imported shell; new product UI lives in the marble components.
+  const [hasVisitedConfig, setHasVisitedConfig] = useState(false);
+  useEffect(() => {
+    if (activeTab === 'blocks') setHasVisitedConfig(true);
+  }, [activeTab]);
   const [marbleState, setMarbleState] = useState<OperatorSnapshot | null>(null);
   useEffect(() => {
     const handleState = (event: Event) => setMarbleState((event as CustomEvent<OperatorSnapshot>).detail);
@@ -4014,8 +4019,28 @@ export function LiveConsoleContent({
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
         <div className="flex items-center justify-between px-4 gap-2">
           {/* Ant Design 스타일 탭 */}
-          <div className="flex items-center gap-0.5 relative min-w-0 overflow-x-auto scrollbar-none">
+          <div
+            role="tablist"
+            aria-label="운영 콘솔 메뉴"
+            onKeyDown={(event) => {
+              const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[data-console-tab]'));
+              const index = tabs.indexOf(document.activeElement as HTMLButtonElement);
+              if (index < 0) return;
+              const next = event.key === 'ArrowRight' ? (index + 1) % tabs.length
+                : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
+                : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : -1;
+              if (next >= 0) { event.preventDefault(); tabs[next].focus(); }
+            }}
+            className="flex items-center gap-0.5 relative min-w-0 overflow-x-auto scrollbar-none"
+          >
             <button
+              type="button"
+              role="tab"
+              data-console-tab="home"
+              id="console-tab-home"
+              aria-controls="console-panel-home"
+              aria-selected={activeTab === 'home'}
+              tabIndex={activeTab === 'home' ? 0 : -1}
               onClick={() => setActiveTab('home')}
               className={cn(
                 "relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
@@ -4035,6 +4060,13 @@ export function LiveConsoleContent({
               )}
             </button>
             <button
+              type="button"
+              role="tab"
+              data-console-tab="queue"
+              id="console-tab-queue"
+              aria-controls="console-panel-queue"
+              aria-selected={activeTab === 'queue'}
+              tabIndex={activeTab === 'queue' ? 0 : -1}
               onClick={() => setActiveTab('queue')}
               className={cn(
                 "relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
@@ -4083,6 +4115,13 @@ export function LiveConsoleContent({
               </button>
             )}
             <button
+              type="button"
+              role="tab"
+              data-console-tab="blocks"
+              id="console-tab-blocks"
+              aria-controls="console-panel-blocks"
+              aria-selected={activeTab === 'blocks'}
+              tabIndex={activeTab === 'blocks' ? 0 : -1}
               onClick={() => setActiveTab('blocks')}
               className={cn(
                 "relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
@@ -4102,6 +4141,13 @@ export function LiveConsoleContent({
               )}
             </button>
             <button
+              type="button"
+              role="tab"
+              data-console-tab="overlay"
+              id="console-tab-overlay"
+              aria-controls="console-panel-overlay"
+              aria-selected={activeTab === 'overlay'}
+              tabIndex={activeTab === 'overlay' ? 0 : -1}
               onClick={() => setActiveTab('overlay')}
               className={cn(
                 "relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
@@ -4121,6 +4167,13 @@ export function LiveConsoleContent({
               )}
             </button>
             <button
+              type="button"
+              role="tab"
+              data-console-tab="settings"
+              id="console-tab-settings"
+              aria-controls="console-panel-settings"
+              aria-selected={activeTab === 'settings'}
+              tabIndex={activeTab === 'settings' ? 0 : -1}
               onClick={() => setActiveTab('settings')}
               className={cn(
                 "relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
@@ -4491,8 +4544,9 @@ export function LiveConsoleContent({
         className="flex-1 overflow-hidden"
       >
         <ResizablePanel
-          defaultSize={isDesktopLayout ? 64 : 100}
-          minSize={isDesktopLayout ? 45 : 100}
+          id="console-content"
+          defaultSize={isDesktopLayout && activeTab === 'home' ? 64 : 100}
+          minSize={isDesktopLayout && activeTab === 'home' ? 45 : 100}
           order={1}
         >
         <main className="h-full overflow-hidden">
@@ -4500,6 +4554,9 @@ export function LiveConsoleContent({
           {(
             <motion.div
               key="home"
+              id="console-panel-home"
+              role="tabpanel"
+              aria-labelledby="console-tab-home"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -4524,7 +4581,7 @@ export function LiveConsoleContent({
                   (typeof managerLyricsText === 'string' &&
                     managerLyricsText.length > 0);
                 const upper = (
-                  <div className="h-full overflow-y-auto p-3 md:p-5 space-y-4 bg-rose-50/30 dark:bg-background">
+                  <div className="relative h-full overflow-y-auto p-3 md:p-5 space-y-4 bg-rose-50/30 dark:bg-background">
                 <MarbleOperationsPanel />
                 <div className="hidden">
                 {!isDesktopLayout && (
@@ -4960,15 +5017,31 @@ export function LiveConsoleContent({
               </ScrollArea>
             </motion.div>
           )}
-          {activeTab !== 'home' && (
+          {(hasVisitedConfig || activeTab === 'blocks') && (
+            <motion.div
+              key="marble-config"
+              id="console-panel-blocks"
+              role="tabpanel"
+              aria-labelledby="console-tab-blocks"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className={cn("relative h-full overflow-y-auto bg-background p-6", activeTab !== 'blocks' && "hidden")}
+            >
+              <MarbleDataPanel view="config" />
+            </motion.div>
+          )}
+          {activeTab !== 'home' && activeTab !== 'blocks' && (
             <motion.div
               key={`marble-${activeTab}`}
+              id={`console-panel-${activeTab}`}
+              role="tabpanel"
+              aria-labelledby={`console-tab-${activeTab}`}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="h-full overflow-y-auto bg-background p-6"
+              className="relative h-full overflow-y-auto bg-background p-6"
             >
-              <MarbleDataPanel view={activeTab === 'queue' ? 'donations' : activeTab === 'blocks' ? 'config' : activeTab === 'overlay' ? 'obs' : activeTab === 'settings' ? 'operations' : activeTab === 'session-history' ? 'sessions' : 'missions'} />
+              <MarbleDataPanel view={activeTab === 'queue' ? 'donations' : activeTab === 'overlay' ? 'obs' : activeTab === 'settings' ? 'operations' : activeTab === 'session-history' ? 'sessions' : 'missions'} />
             </motion.div>
           )}
           {false && activeTab === 'blocks' && (
@@ -5742,9 +5815,9 @@ export function LiveConsoleContent({
         </ResizablePanel>
         {isDesktopLayout && activeTab === 'home' && <ResizableHandle withHandle />}
         {isDesktopLayout && activeTab === 'home' && (
-          <ResizablePanel defaultSize={36} minSize={30} maxSize={55} order={2}>
-            <aside className="h-full flex flex-col bg-background text-sm">
-              <div id="marble-controls-root" className="flex-1 overflow-y-auto" />
+          <ResizablePanel id="console-controls" defaultSize={36} minSize={30} maxSize={55} order={2}>
+            <aside aria-label="방송 조작" className="h-full flex flex-col bg-background text-sm">
+              <div id="marble-controls-root" className="relative flex-1 overflow-y-auto" />
               <div className="hidden">
               <div className="flex-1 overflow-y-auto">
                 {/* 1. 명령어 레퍼런스 (제일 위) */}

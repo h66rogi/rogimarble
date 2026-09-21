@@ -38,3 +38,7 @@ deploy/.preview/
 
 # Generated from the pinned PDF.js package during the web build.
 apps/web/public/_pdfjs/
+
+# Local console browser verification
+apps/web/test-results/
+apps/web/playwright-report/
