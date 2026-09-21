@@ -38,7 +38,8 @@ test("OBS updates a theme at the same game revision, keeps the camera space open
   state.session.revision = 1;
   state.session.currentCellId = "cell-04";
   state.latestCommand = { commandId: "synthetic-roll-one", sessionId: state.session.id, sessionEpoch: 1, presentationEpoch: 0, type: "roll_dice", afterRevision: 1, result: { dice: [3], distance: 3, direction: "forward", fromCellId: "cell-01", toCellId: "cell-04", path: ["cell-02", "cell-03", "cell-04"] } };
-  await expect(surface).toHaveAttribute("data-presentation-phase", "reveal", { timeout: 7000 });
+  // Reveal is shorter than expect() polling intervals; observe it every animation frame.
+  await page.waitForFunction(() => document.querySelector(".marble-board")?.getAttribute("data-presentation-phase") === "reveal", { }, { timeout: 7000 });
   await expect(page.locator(".die")).toHaveCount(1);
   await expect(surface).toHaveAttribute("data-presentation-phase", "idle", { timeout: 10000 });
   await expect(page.locator(".center-widget")).toHaveCount(0);
@@ -51,7 +52,8 @@ test("OBS updates a theme at the same game revision, keeps the camera space open
   state.session.revision = 3;
   state.session.currentCellId = "cell-13";
   state.latestCommand = { commandId: "synthetic-island-two", sessionId: state.session.id, sessionEpoch: 1, presentationEpoch: 1, type: "roll_dice", afterRevision: 3, result: { dice: [2, 2], distance: 4, direction: "forward", fromCellId: "cell-09", toCellId: "cell-13", path: ["cell-10", "cell-11", "cell-12", "cell-13"] } };
-  await expect(surface).toHaveAttribute("data-presentation-phase", "reveal", { timeout: 7000 });
+  // Reveal is shorter than expect() polling intervals; observe it every animation frame.
+  await page.waitForFunction(() => document.querySelector(".marble-board")?.getAttribute("data-presentation-phase") === "reveal", { }, { timeout: 7000 });
   await expect(page.locator(".die")).toHaveCount(2);
   await expect(surface).toHaveAttribute("data-presentation-phase", "idle", { timeout: 10000 });
   await page.setViewportSize({ width: 1280, height: 720 });
