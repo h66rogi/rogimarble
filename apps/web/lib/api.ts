@@ -50,7 +50,14 @@ export interface CollectorStatus {
 }
 export interface BroadcastStatus {channelId:string;state:string;title:string;displayName:string;broadcastId:string;checkedAt:string|null;cached:boolean;productionTarget:boolean}
 
+export interface ChatTestStatus {
+  sessionId:string;channelId:string;state:string;active:boolean;startedAt:string|null;expiresAt:string|null;joinedAt:string|null;lastReceivedAt:string|null;
+  receivedCount:string;messages:{sequence:string;displayName:string;message:string;receivedAt:string|null}[];
+}
 export const api = {
+  chatTest:()=>request<ChatTestStatus>(`/v1/channels/${encodeURIComponent(channelId())}/collector/chat-test`,{cache:'no-store'}),
+  startChatTest:(targetChannelId:string,sessionId:string)=>request<ChatTestStatus>(`/v1/channels/${encodeURIComponent(channelId())}/collector/chat-test`,{method:'POST',body:JSON.stringify({targetChannelId,sessionId})}),
+  stopChatTest:(sessionId:string)=>request<ChatTestStatus>(`/v1/channels/${encodeURIComponent(channelId())}/collector/chat-test/${encodeURIComponent(sessionId)}/stop`,{method:'POST'}),
   checkBroadcast:(targetChannelId:string)=>request<BroadcastStatus>(`/v1/channels/${encodeURIComponent(channelId())}/collector/broadcast-check`,{method:'POST',body:JSON.stringify({targetChannelId})}),
   collectorStatus:()=>request<CollectorStatus>(`/v1/channels/${encodeURIComponent(channelId())}/collector`,{cache:'no-store'}),
   login: async (username: string, password: string) => { const result = await request<LoginResponse>(operatorApi.login, { method: 'POST', body: JSON.stringify({ username, password }) }); sessionStorage.setItem('rogimarble.csrf', result.csrfToken); return result; },

@@ -51,4 +51,45 @@ export class CollectorController {
         : undefined,
     );
   }
+  @Get("/v1/channels/:channelId/collector/chat-test")
+  @Header("Cache-Control", "no-store")
+  @UseGuards(SessionGuard)
+  async chatTestStatus(
+    @Req() req: AuthenticatedRequest,
+    @Param("channelId") channelId: string,
+  ) {
+    await this.api.assertAccess(req.operator!, channelId, true);
+    return this.collector.chatTest(channelId, "status");
+  }
+  @Post("/v1/channels/:channelId/collector/chat-test")
+  @Header("Cache-Control", "no-store")
+  @UseGuards(SessionGuard, CsrfGuard)
+  async startChatTest(
+    @Req() req: AuthenticatedRequest,
+    @Param("channelId") channelId: string,
+    @Body() body: unknown,
+  ) {
+    await this.api.assertAccess(req.operator!, channelId, true);
+    const input =
+      typeof body === "object" && body !== null
+        ? (body as Record<string, unknown>)
+        : {};
+    return this.collector.chatTest(
+      channelId,
+      "start",
+      input.targetChannelId,
+      input.sessionId,
+    );
+  }
+  @Post("/v1/channels/:channelId/collector/chat-test/:sessionId/stop")
+  @Header("Cache-Control", "no-store")
+  @UseGuards(SessionGuard, CsrfGuard)
+  async stopChatTest(
+    @Req() req: AuthenticatedRequest,
+    @Param("channelId") channelId: string,
+    @Param("sessionId") sessionId: string,
+  ) {
+    await this.api.assertAccess(req.operator!, channelId, true);
+    return this.collector.chatTest(channelId, "stop", undefined, sessionId);
+  }
 }

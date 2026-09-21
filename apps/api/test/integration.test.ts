@@ -378,3 +378,12 @@ test('collector management uses sessions, CSRF and current channel permissions',
     assert.equal((await readOnly.post(path+'/broadcast-check',body)).status,403);
   }
 });
+
+test('chat test start, status and stop require operator scope; mutations require CSRF',async()=>{
+ const base='/v1/channels/test-channel/collector/chat-test',id=randomUUID(),body={targetChannelId:'fixture-channel',sessionId:id};
+ assert.equal((await fetch(`http://127.0.0.1:${apiPort}${base}`)).status,401);
+ const http=client(await login());assert.equal((await http.post(base,body,null)).status,403);assert.equal((await http.post(base+'/'+id+'/stop',{},null)).status,403);
+ assert.equal((await http.get(base)).status,503);assert.equal((await http.post(base,body)).status,503);assert.equal((await http.post(base+'/'+id+'/stop',{})).status,503);
+ for(const name of ['viewer','channel-viewer']){const reader=client(await login(name));assert.equal((await reader.get(base)).status,403);assert.equal((await reader.post(base,body)).status,403);assert.equal((await reader.post(base+'/'+id+'/stop',{})).status,403);}
+ assert.equal((await http.post('/v1/channels/unrelated-channel/collector/chat-test',body)).status,403);
+});

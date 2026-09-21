@@ -49,3 +49,16 @@ test('broadcast lookup serializes a separate test target without changing produc
   const result=await rpc.checkBroadcast('another-fixture');assert.equal(result.channelId,'another-fixture');assert.equal(result.state,'live');assert.equal(timestamp(result.checkedAt),'2023-11-14T22:13:20.000Z');
   assert.equal(rpc.config.collectorChannelId,'fixture-channel');
 });
+
+test('chat test RPCs keep the authorized channel and use a separate session ID',async()=>{
+  const {CollectorRpc}=await import('../src/collector-rpc.ts');const rpc=Object.create(CollectorRpc.prototype) as InstanceType<typeof CollectorRpc>;
+  const calls:any[]=[];const sessionId='11111111-2222-4333-8444-555555555555';
+  const client=Object.fromEntries(['startChatTest','getChatTest','stopChatTest'].map(method=>[method,(body:any,_options:any,done:any)=>{assert.equal(body.channelId,config.collectorChannelId);assert.equal(body.consumerId,config.consumerId);calls.push({method,...body});done(null,{state:'idle'});} ]));
+  Object.assign(rpc,{config,client});await rpc.startChatTest('other-fixture',sessionId);await rpc.getChatTest();await rpc.stopChatTest(sessionId);
+  assert.equal(calls[0].targetChannelId,'other-fixture');assert.equal(calls[0].sessionId,sessionId);assert.equal(calls[2].sessionId,sessionId);assert.equal(calls[1].targetChannelId,undefined);
+});
+test('chat test response exposes only bounded samples and preserves uint64 counters',async()=>{
+  const {chatTestStatus}=await import('../src/collector-rpc.ts');const input:any={sessionId:'11111111-2222-4333-8444-555555555555',channelId:'fixture-channel',state:'receiving',active:true,receivedCount:'18446744073709551615',messages:[{sequence:'18446744073709551615',displayName:'Fixture',message:'Synthetic chat',receivedAt:{seconds:'1700000000',nanos:0},raw:'synthetic-private-packet',userId:'excluded-id'}],cookie:'synthetic-private-cookie'};
+  const result=chatTestStatus(input);assert.equal(result.receivedCount,'18446744073709551615');assert.equal(result.messages[0].receivedAt,'2023-11-14T22:13:20.000Z');assert.equal('raw' in result.messages[0],false);assert.equal('cookie' in result,false);
+  assert.throws(()=>chatTestStatus({...input,messages:Array(21).fill(input.messages[0])}));assert.throws(()=>chatTestStatus({...input,messages:[{...input.messages[0],message:'x'.repeat(1001)}]}));assert.throws(()=>chatTestStatus({...input,channelId:'https://example.com'}));
+});

@@ -3,7 +3,7 @@ import { status as GrpcStatus, type ClientReadableStream } from '@grpc/grpc-js';
 import type pg from 'pg';
 import { pool } from '../../../packages/database/src/index.ts';
 import { DonationIngestionService } from './donation-ingestion.service.ts';
-import { assertCollectorStatus, collectorConnection, donationInput, chatInput, CollectorRpc, type CollectorConnection, type CollectorStatus, timestamp } from './collector-rpc.ts';
+import { assertCollectorStatus, collectorConnection, donationInput, chatInput, CollectorRpc, type CollectorConnection, type CollectorStatus, timestamp, chatTestStatus, chatTestIdPattern } from './collector-rpc.ts';
 
 @Injectable()
 export class CollectorService implements OnModuleInit,OnModuleDestroy {
@@ -47,6 +47,25 @@ export class CollectorService implements OnModuleInit,OnModuleDestroy {
       if(code===GrpcStatus.RESOURCE_EXHAUSTED)throw new HttpException('조회가 진행 중입니다. 잠시 후 다시 시도하세요.',429);
       if(code===GrpcStatus.UNIMPLEMENTED)throw new ServiceUnavailableException('수집기 방송 조회 기능을 준비 중입니다.');
       throw new ServiceUnavailableException('수집기에 방송 정보를 요청하지 못했습니다. 연결 상태를 확인하세요.');
+    }finally{rpc?.close();}
+  }
+  async chatTest(channelId:string,action:'start'|'status'|'stop',targetChannelId?:unknown,sessionId?:unknown){
+    if(!this.config||channelId!==this.config.gameChannelId)throw new ServiceUnavailableException('채팅 테스트 연결이 설정되지 않았습니다.');
+    if(action==='start'&&(typeof targetChannelId!=='string'||!/^[A-Za-z0-9_-]{1,50}$/.test(targetChannelId)))throw new BadRequestException('SOOP 채널 ID를 입력하세요.');
+    if(action!=='status'&&(typeof sessionId!=='string'||!chatTestIdPattern.test(sessionId)))throw new BadRequestException('유효한 테스트 ID가 필요합니다.');
+    let rpc:CollectorRpc|undefined;
+    try{
+      rpc=new CollectorRpc(this.config);
+      const result=action==='start'?await rpc.startChatTest(targetChannelId as string,sessionId as string):action==='stop'?await rpc.stopChatTest(sessionId as string):await rpc.getChatTest();
+      if(action!=='status'&&result.sessionId!==sessionId||action==='start'&&result.channelId!==targetChannelId)throw new Error('Chat test scope mismatch');
+      return chatTestStatus(result);
+    }catch(error){
+      const code=(error as {code?:number}).code;
+      if(code===GrpcStatus.PERMISSION_DENIED)throw new HttpException('수집 거부 채널이거나 테스트 접근 권한이 없습니다.',403);
+      if(code===GrpcStatus.ALREADY_EXISTS)throw new HttpException('이미 진행 중인 테스트가 있습니다. 현재 테스트를 종료한 뒤 시작하세요.',409);
+      if(code===GrpcStatus.NOT_FOUND)throw new HttpException('테스트가 만료되었거나 다른 테스트로 바뀌었습니다. 상태를 새로고침하세요.',404);
+      if(code===GrpcStatus.RESOURCE_EXHAUSTED)throw new HttpException('잠시 후 다시 시작하세요. 테스트 시작 간격은 5초입니다.',429);
+      throw new ServiceUnavailableException('채팅 테스트에 연결하지 못했습니다. 잠시 후 상태를 확인하세요.');
     }finally{rpc?.close();}
   }
   private async tick(){
