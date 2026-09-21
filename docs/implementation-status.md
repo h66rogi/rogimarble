@@ -10,7 +10,7 @@
 | sol_web | apps/web, overlay-ui, animation, asset-manifest | 관리 화면·26칸 보드·격리 체험·Lottie/정적 OBS, 운영 폼 | 안전성 단위 5개와 실제 브라우저 통합 13개 통과 |
 | sol_backend | apps/api/gateway, contracts/database/game-core | 제품 API 계약·인증·PG 저장·수동 명령·재고·미션 | 실제 PG/HTTP 회귀 12개와 001 호환성 추가 회귀 통과 |
 | sol_deploy | root 설정/lock, deploy, tools/ops, infrastructure, source-imports → collector | 설치/빌드·Compose·초기 배포, collector 독립 실행과 계약 생성 | 로컬 기동 및 Go/TS wire 양방향 검증 통과 |
-| Operator | 통합·리뷰·검증·진행 기록·대상 환경 연결 | 사용자 확인 URL과 현재 기능/제한, 배포 결과 | 최신 앱·DNS/TLS·외부 health·backup 확인, 최종 CI/재부팅과 사용자 인증 대기 |
+| Operator | 통합·리뷰·검증·진행 기록·대상 환경 연결 | 사용자 확인 URL과 현재 기능/제한, 배포 결과 | 초기 배포 CI·DNS/TLS·외부 health·backup·두 호스트 재부팅 확인, 사용자 인증 연동 진행 |
 
 공유 package install/lock은 sol_deploy가 소유한다. 앱별 package.json은 각 구현자가 관리하며 계약을 직접 협의한다.
 동일 파일을 동시에 수정하지 않는다. 원본 private 전체/이력 반입 금지는 그대로 적용한다.
@@ -95,7 +95,8 @@ public source 저장소와 private GHCR release를 만들고 클라우드 기반
 
 이 결과는 첫 출시 전체 완료가 아닌, 피드백 가능한 수동 운영 구현이다. 전체 후원 내역·대기열·운영 이력 UI,
 보드 전체 효과, 규칙/아이템/보드 웹 편집, 실시간 OBS gateway, 실제 SOOP connector/journal/gRPC/inbox,
-제품 간 실제 수집 통합, SSO/operator binding, 재부팅 복구·실방송 검증은 원래 구현 계획의 필수 범위로 남아 있다.
+제품 간 실제 수집 통합, SSO 실사용 연동·실방송 검증은 원래 구현 계획의 필수 범위로 남아 있다.
+두 호스트의 초기 배포와 재부팅 복구는 실제 확인했다. 관리자 화면의 계정 binding 등록은 공유 쿠키 발급을 대신하지 않는다.
 운영 IaC·Compose·공유 인증 연결은 [EC2 배포 준비 상태](deployment-readiness.md)에서 별도로 추적한다.
 
 ## EC2 준비 작업의 추가 검증
@@ -103,5 +104,25 @@ public source 저장소와 private GHCR release를 만들고 클라우드 기반
 Mac mini Tailscale SSH 및 AWS 서울 리전 접근을 확인했고 network와 두 제품 root를 적용했다. 두 EC2와 data EBS mount,
 cloud-init/SSM/Docker, OIDC role assume와 private GHCR pull을 실제 확인했다. 최신 release에서 Marble container 5개와 Collector container 6개가 healthy이고 두 canonical HTTPS health 경로가 외부 HTTP 200이다. 세 Terraform root의 validate/mock, 두 EBS plan guard fixture suite,
 배포 모의 검사 6개, API 인증 5개/API 빌드, 웹 검사 7개/typecheck와 collector 배포 정적·모의 검사를 통과했다.
-API file credential 수정과 암호화 S3 logical backup의 `pg_restore --list` 검증도 확인했다. 최종 CI와 DB/systemd 재부팅,
-issuer 공유 쿠키 발급·operator binding/로그인 확인은 별도로 남아 있다. 기존 Atlantis와 management IAM은 확장하지 않았다.
+API file credential 수정과 암호화 S3 logical backup의 `pg_restore --list` 검증도 확인했다. 두 제품의 초기 최종 CI와 EC2/systemd 재부팅 복구를 실제 확인했다.
+issuer 공유 쿠키 발급과 실제 사용자 로그인 확인은 별도로 남아 있다. 기존 Atlantis와 management IAM은 확장하지 않았다.
+
+
+## 멜로밍 콘솔 스타일과 서비스 관리자
+
+사용자 요청에 따라 meloming-front의 현재 관리 shell과 삭제 전 console 이력을 조사하여
+사이드바·헤더·보라색 강조색·중립 배경의 시각 구조를 반영했다. 직접 반입 범위는
+[소스 반입 기록](source-imports.md)에 명시한다. 기본 폰트는 네이버 공식 나눔스퀘어네오
+variable WOFF2이며 웹 이미지에서 직접 제공하고 OFL 고지를 함께 배포한다.
+
+`/admin/login`과 `/admin`은 계정·채널·멤버 권한·외부 계정 연결·변경 이력을 관리한다.
+일반 게임 인증과 별도 관리자 세션을 사용하며 shared 모드에서도 독립적으로 동작하도록 구성한다.
+Mutation의 관리자 재검증, CSRF/Origin 검증, 권한 변경 직렬화, 비밀번호 변경 시 세션 폐기를
+포함한다. 공개 bootstrap endpoint나 기본 비밀번호를 추가하지 않는다.
+
+로기챗 소스 조사에서 현재 쿠키가 host-only임을 확인했다. 기존 공유 쿠키 로그인은
+issuer의 추가 발급·실검증이 필요하며 준비 전에는 로그인 화면에 연동 준비 상태를 표시한다.
+[인증 조사 기록](authentication.md), [관리자 화면 계약](admin-console.md)을 함께 확인한다.
+
+관리자 API 회귀는 기존 PG/HTTP 통합 검사에 포함한다. 빌드·통합 검사·운영 배포의 실제
+성공 여부는 해당 커밋의 release/private-deploy 작업 및 배포 후 브라우저 검증 기록으로 판정한다.

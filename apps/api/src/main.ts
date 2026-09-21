@@ -13,6 +13,6 @@ if(process.env.AUTH_MODE==='rogichat_shared_cookie'){
   if(process.env.WEB_ORIGIN!=='https://marble.rogi.chat')throw new Error('WEB_ORIGIN must be the approved marble web origin');
 }
 const app=await NestFactory.create(AppModule,{cors:false});
-if(process.env.AUTH_MODE==='rogichat_shared_cookie')app.enableCors({origin:'https://marble.rogi.chat',credentials:true,methods:['GET','POST','OPTIONS'],allowedHeaders:['Content-Type','X-CSRF-Token','Authorization'],maxAge:600});
+if(process.env.AUTH_MODE==='rogichat_shared_cookie')app.enableCors({origin:'https://marble.rogi.chat',credentials:true,methods:['GET','POST','PUT','PATCH','DELETE','OPTIONS'],allowedHeaders:['Content-Type','X-CSRF-Token','Authorization'],maxAge:600});
 app.enableShutdownHooks();
 await app.listen(Number(process.env.PORT??4000),'0.0.0.0');
