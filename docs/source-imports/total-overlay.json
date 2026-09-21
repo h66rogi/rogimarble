@@ -33,7 +33,7 @@
       "sourcePath": "app/overlay/[token]/widgets/total/page.tsx",
       "targetPath": "apps/web/src/integrated-overlay/app/overlay/[token]/widgets/total/page.tsx",
       "sourceSha256": "d7273306798dc5bbe16fd23553d3452ca2bc8d74e6f70a4b24e4ea5403ba9df7",
-      "importedSha256": "4650c062b001c07a6c4110e2ef4f38180c7ad4e8326d620958658026caa80d7e",
+      "importedSha256": "4e051398e993a117c81eaa10efcb584cc5b37b5da54403df13aeab05db9f5e40",
       "adaptation": "Active original total-overlay entry directly adapted: normalized canvas measurement, widget geometry, z-order and render loop retained; song-request widgets replaced by server-authoritative Rogimarble board, dice, mission, inventory, direction and connection status widgets."
     },
     {

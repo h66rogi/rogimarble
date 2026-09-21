@@ -137,8 +137,9 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
   useEffect(() => () => { playbackTimersRef.current.forEach(window.clearTimeout); }, []);
 
   const missingLiveBoard = status !== 'preview' && !!state && !state.boardDefinition;
-  const displayStatus = missingLiveBoard ? 'error' : status;
-  const label = displayStatus === 'preview' ? 'PREVIEW · 정적 프리셋' : displayStatus === 'live' ? 'LIVE · polling' : displayStatus === 'stale' ? '연결 지연 · 마지막 상태' : displayStatus === 'connecting' ? '연결 중' : displayStatus === 'unauthorized' ? 'OBS 토큰 거부됨' : '오버레이 상태를 불러오지 못함';
+  const waitingForSession = status !== 'preview' && !!state && !state.session;
+  const displayStatus = missingLiveBoard && !waitingForSession ? 'error' : status;
+  const label = waitingForSession ? '게임 시작 대기' : displayStatus === 'preview' ? 'PREVIEW · 정적 프리셋' : displayStatus === 'live' ? 'LIVE · polling' : displayStatus === 'stale' ? '연결 지연 · 마지막 상태' : displayStatus === 'connecting' ? '연결 중' : displayStatus === 'unauthorized' ? 'OBS 토큰 거부됨' : '오버레이 상태를 불러오지 못함';
   const displayBelongsToSession = !!session && lastSessionIdRef.current === session.id;
   const tokenCellId = missingLiveBoard ? previewBoard.path[0] : (displayBelongsToSession ? displayedCellId : null) ?? session?.currentCellId ?? board.path[0];
   const correctionKey = commandType === 'set_position' ? presentationKey : 'continuous-board';
