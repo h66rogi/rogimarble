@@ -289,7 +289,7 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
                     raise ReleaseError(f"smoke check failed: {url}")
                 sleep(2)
         for attempt in range(60):
-            state = runner.run(compose + ["ps", "--format", "json"], check=False)
+            state = runner.run(["docker", "compose", "--env-file", str(run_root / "release.env"), "-f", str(app_root / COMPOSE_PATH), "ps", "--format", "json"], check=False)
             if containers_healthy({"ok": state.returncode == 0, "output": state.stdout}):
                 break
             if attempt == 59:

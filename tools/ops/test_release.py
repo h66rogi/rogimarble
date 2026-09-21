@@ -140,6 +140,8 @@ class ReleaseTest(unittest.TestCase):
             self.assertFalse((config/"deployed-release.json").exists());waits.append(seconds)
         deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=wait)
         self.assertEqual(waits,[1]);self.assertEqual(runner.probes,2)
+        for command in runner.commands:
+            if command[-3:]==["ps","--format","json"]:self.assertEqual(command[command.index("--env-file")+1],str(run/"release.env"))
         self.assertTrue((config/"deployed-release.json").is_file())
 
     def test_reboot_restores_runtime_without_losing_successful_receipt(self):
