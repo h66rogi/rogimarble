@@ -11,9 +11,9 @@ export class AppController {
   constructor(private readonly api: ApiService) {}
   @Get('/health') health() { return { status: 'ok' }; }
   @Get('/ready') async ready() {
-    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['004_admin_console.sql']);
+    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['003_external_auth_bindings.sql']);
       if(!result.rowCount)throw new Error('required migration missing');
-      await pool().query('SELECT id FROM admin_audit_log LIMIT 0'); return { status:'ready',schemaVersion:'004_admin_console.sql' }; }
+      await pool().query('SELECT issuer,subject FROM external_auth_bindings LIMIT 0'); return { status:'ready',schemaVersion:'003_external_auth_bindings.sql' }; }
     catch { throw new ServiceUnavailableException('Database or migrations are not ready'); }
   }
   @Post('/v1/auth/login') @HttpCode(200)
@@ -35,7 +35,7 @@ export class AppController {
     setSessionCookie(response,sessionCookieValue(token),expires);
     return {operator:{id:found.rows[0].id,username:found.rows[0].username,role:found.rows[0].role},csrfToken:csrf};
   }
-  @Get('/v1/auth/config') config():AuthConfigResponse{if(authMode()==='shared'){const enabled=process.env.ROGICHAT_SHARED_LOGIN_READY==='true';return{mode:'shared',loginUrl:enabled?'https://rogi.chat':null,sharedCookieEnabled:enabled,message:enabled?null:'RogiChat shared login is being prepared'};}return{mode:'local',loginUrl:null,sharedCookieEnabled:false,message:null};}
+  @Get('/v1/auth/config') config():AuthConfigResponse{return authMode()==='shared'?{mode:'shared',loginUrl:'https://rogi.chat'}:{mode:'local',loginUrl:null};}
   @Get('/v1/auth/session') @UseGuards(SessionGuard) @Header('Cache-Control','no-store') @Header('Pragma','no-cache')
   async authSession(@Req() request:AuthenticatedRequest):Promise<AuthSessionResponse>{
     let csrfToken=request.csrfToken;

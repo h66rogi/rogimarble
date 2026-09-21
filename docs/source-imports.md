@@ -25,23 +25,3 @@ Compose, Caddy 설정, helper와 문서는 최종 설계에 맞춰 새로 작성
 
 참고 저장소의 build/dev server는 실행하지 않았다. 참고 시점의 고정 SHA는 작업 저장소 밖의
 `_references/rogimarble/inventory.json`에 보관하며, private inventory와 운영 식별자는 이 공개 대상에 복사하지 않는다.
-
-
-## 운영 콘솔 스타일과 나눔스퀘어네오
-
-- `dylabs/meloming-front`를 작업 저장소 밖에서 조사했다. 조사 HEAD는
-  `0ec12a25a9ff5c56fd24770d16f91e8d26b138b6`이며, console 제거 커밋
-  `162385383ab5fab5f93f94b0feda9045c78400fa`의 부모에서도 화면 구성을 확인했다.
-- 참고 경로: `src/features/home-new/layout/ManageShell.tsx`,
-  `src/shared/components/layout/management-sidebar-wrapper.tsx`, `src/app/globals.css`,
-  `src/app/(auth)/auth/login/login-page-content.tsx`, 과거
-  `src/app/(default)/channel/[user]/(manage)/manage/console/page.tsx`.
-- 사이드바·얇은 헤더·보라색 강조·중립 배경·흰 카드의 시각적 패턴을 이 제품의 기존
-  운영 로직에 맞춰 구현했다. 원본 소스 파일·브랜드 이미지·운영 데이터·Git 이력은
-  반입하지 않았다. private 코드의 직접 반입 허용 목록은 여전히 비어 있다.
-- 폰트는 private 원본이 아닌 [네이버 공식 배포](https://campaign.naver.com/nanumsquare_neo/)의
-  `NaverNanumSquareNeo.zip`에서 `NanumSquareNeo-Variable.woff2` 한 파일만 변경 없이
-  선별했다. 대상은 `apps/web/public/fonts/NanumSquareNeo-Variable.woff2`이며,
-  SHA-256은 `141ac2f0717274f96e4f7e0109952bcb29251eb0d23eabeb11834e23214948d9`다.
-  SIL OFL 1.1 원문 고지는 같은 디렉터리의 `OFL.txt`에 포함한다.
-  정적 자산으로 직접 제공하므로 방문자의 브라우저가 외부 폰트 CDN에 접속하지 않는다.

@@ -1,8 +1,8 @@
-import { operatorApi, type AuthConfigResponse, type GameSessionDto, type LoginResponse, type OperatorStateDto, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
+import { operatorApi, type GameSessionDto, type LoginResponse, type OperatorStateDto, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
 import type { OperatorCommand, OperatorSnapshot } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
-export type AuthConfig = AuthConfigResponse;
+export interface AuthConfig { mode: 'local' | 'shared'; loginUrl: string | null }
 
 export class ApiError extends Error {
   readonly status: number;
