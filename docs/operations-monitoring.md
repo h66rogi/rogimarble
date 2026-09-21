@@ -24,6 +24,8 @@ A freshness alarm is enabled only after the backup job emits this metric and a s
 
 Before enabling notifications, record the alarm owner, destination, expected response, maintenance suppression process, and test evidence. Verify status alarm behavior with read-only inspection or a controlled later exercise; do not impair a production instance merely to test an alarm.
 
+The periodic updater's successful health/no-op check means only that the deployed receipt still matches a healthy active release; it does not prove that private GHCR credentials are available. New-release deployment is driven by the trusted `private-deploy` workflow while its packages-read job token is temporarily present in the dedicated Secrets Manager entry. Monitor the fixed SSM command result and the receipt SHA returned by `production-status.py` against the triggering release SHA without logging the full private status document. If that run fails, rerun the failed `private-deploy` workflow to mint a new job token. Do not install a human PAT or make an anonymous registry fallback part of recovery.
+
 ## Implemented IaC baseline
 
 The product root now creates the four host alarms and a CloudWatch dashboard and outputs `monitoring_dashboard_url` plus `monitoring_alarm_names`. Every `alarm_actions` and `ok_actions` list is empty. The dashboard and alarms may incur CloudWatch charges; deployment readiness must include them in the cost review. Backup freshness remains documentation-only until a real emitter exists.

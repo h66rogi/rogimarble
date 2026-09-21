@@ -63,10 +63,14 @@ issuer의 account partition 생성 키/정책이 바뀌면 기존 binding을 확
 1. 세 Terraform root와 EBS 삭제/교체 거부 검사를 검증한다. 실제 plan과 환경 입력은 private 디렉터리에 저장한다.
 2. network → marble → collector 순서로 적용할 계획을 검토한다. collector 입력은 실제 생성된 marble SG를 참조한다.
 3. SSM으로 호스트를 확인하고 데이터 EBS의 최초 초기화/마운트를 명시적으로 수행한다. 기존 filesystem은 다시 포맷하지 않는다.
-4. 검토한 source commit으로 이미지를 발행하고 digest·Compose·migration checksum을 묶은 release manifest를 만든다.
-5. 호스트 helper/systemd를 설치하고 역할별 secret 파일을 준비한다. mount UUID·권한·manifest 검사를 통과한 뒤 migration과 앱 기동을 수행한다.
+4. 검토한 source commit으로 private GHCR 이미지를 발행하고 digest·Compose·migration checksum을 묶은 public metadata release bundle을 만든다.
+5. 성공한 main release의 `private-deploy`가 OIDC로 제한된 AWS role을 맡아 packages-read job token을 전용 Secrets Manager에 잠시 쓰고, parameter 없는 제품 고정 SSM document로 배포를 시작한다. 호스트는 임시 root-only Docker config로 digest를 pull한다. workflow 종료 때 secret 값을 비우며 사람 PAT나 지속 registry login은 두지 않는다.
 6. marble의 고정 주소를 두 도메인에 연결하고 TLS·공유 인증·운영자 binding·서버 저장을 확인한다.
 7. 실제 재부팅·기동 실패·배포 실패·백업/복구를 검증한 뒤 사용자 피드백 URL을 안내한다.
+
+주기 updater는 public Release metadata와 배포 receipt의 health/no-op 상태를 자격 없이 확인한다. 새 private image 배포는
+job token이 살아 있는 `private-deploy` 실행이 담당한다. 실패 시 timer가 익명 pull로 우회하지 않으며 현재 release를
+유지한다. 실패한 `private-deploy` run을 재실행해 새 단기 token으로 같은 최신 release를 다시 검증·배포한다.
 
 운영 Compose와 helper는 [배포 절차](deployment-production.md), EC2/state/EBS는
 [인프라 준비](infrastructure-preparation.md)에 정리한다. 수집기는 별도 레포의 동명 문서를 따른다.

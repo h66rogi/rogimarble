@@ -81,7 +81,7 @@ services:
         source: ${DATA_ROOT}/redis
         target: /data
         bind: {create_host_path: false}
-    tmpfs: [/tmp:rw,noexec,nosuid,nodev,size=16777216,mode=1777]
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=16777216,mode=1777"]
     networks: [data]
     healthcheck: {test: [CMD, redis-cli, ping], interval: 5s, timeout: 3s, retries: 30}
     logging: {driver: json-file, options: {max-size: 10m, max-file: "5"}}
@@ -106,7 +106,7 @@ services:
         bind: {create_host_path: false}
     depends_on: {postgres: {condition: service_healthy}}
     networks: [data]
-    tmpfs: [/tmp:rw,noexec,nosuid,nodev,size=16777216,mode=1777]
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=16777216,mode=1777"]
     mem_limit: 512m
     cpus: 0.5
 
@@ -140,7 +140,7 @@ services:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
     networks: [edge, data]
-    tmpfs: [/tmp:rw,noexec,nosuid,nodev,size=33554432,mode=1777]
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=33554432,mode=1777"]
     mem_limit: 384m
     cpus: 1.0
     healthcheck:
@@ -161,7 +161,7 @@ services:
       # NEXT_PUBLIC values are compiled into IMAGE_WEB and are verified by the release publisher.
     expose: ["3000"]
     networks: [edge]
-    tmpfs: [/tmp:rw,noexec,nosuid,nodev,size=33554432,mode=1777]
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=33554432,mode=1777"]
     mem_limit: 384m
     cpus: 1.0
     healthcheck:
@@ -198,7 +198,7 @@ services:
         source: ${DATA_ROOT}/caddy-config
         target: /config
         bind: {create_host_path: false}
-    tmpfs: [/tmp:rw,noexec,nosuid,nodev,size=16777216,mode=1777]
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=16777216,mode=1777"]
     networks: [edge]
     mem_limit: 128m
     cpus: 0.5

@@ -188,6 +188,13 @@ release에서 `release-bundle.tar.gz`와 `.sha256`만 받고, tag가 `production
 요구한다. archive checksum, 안전한 경로, build manifest exact fields를 확인한 뒤 root-owned
 `runtime-overlay.json`을 합친다. private immutable GHCR pull이나 어느 검증이라도 실패하면 기존 앱을 유지한다.
 
+이 주기 실행은 public release metadata 확인과 이미 배포된 receipt의 health/no-op 확인에 GitHub 자격을 사용하지 않는다.
+새 release의 private image pull은 성공한 `release` 뒤 실행되는 `private-deploy` workflow가 packages-read job token을
+전용 Secrets Manager 값으로 잠시 제공하고 고정 SSM 문서를 호출하는 동안 수행한다. workflow는 SSM 완료까지 기다린 뒤
+그 값을 비우며 EC2에는 사람 PAT나 지속 registry login을 남기지 않는다. 자격이 없는 timer가 새 digest를 만나면 현재
+release를 유지하고 실패한다. 재시도는 실패한 `private-deploy` run을 다시 실행해 새 job token을 발급받아 수행한다.
+public GitHub Release asset은 checksum과 source metadata 전달 경로일 뿐 GHCR image 공개를 뜻하지 않는다.
+
 `/usr/local/lib/rogimarble/production-status.py`는 활성 release/source/image receipt, app unit, Compose container 상태,
 canonical readiness, data disk 사용량, 최신 backup 나이를 JSON으로 반환한다. collector/후원 연결 여부를 정상으로
 추론하지 않으며 현재 `feedback` profile의 지원 범위만 보여준다.
