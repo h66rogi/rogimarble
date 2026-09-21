@@ -38,3 +38,10 @@ API 프로세스가 수집 루프를 실행한다. 수집 연결 실패는 API�
 소비 계약 반입 범위는 [collector protobuf manifest](source-imports/collector-contract.json)의 공개 proto 1개다.
 collector의 private 운영 설정, 플랫폼 계정, 원본 저장소의 전체 코드·이력을 가져오지 않는다.
 합성 DB/gRPC 검사와 실제 방송 수신은 구분한다. 방송 대기 상태에서의 연결 성공을 실제 후원 게임 검증 완료로 표현하지 않는다.
+
+## 운영 화면과 테스트 조회
+
+콘솔의 `/collector` 화면에서 인증 연결·마지막 입력·후원 처리 건수·수신 지연과 복구 정보를 확인한다.
+운영 권한 사용자는 다른 SOOP 채널도 조회할 수 있다. `CheckBroadcast`는 기존 consumer/channel의
+인증 범위를 유지하고 조회할 ID를 별도로 전달한다. 테스트 채널의 수집 구독이나 게임 입력을 만들지 않는다.
+자세한 사용법·권한·실패 상태는 [방송·수집 관리](collector-management.md)를 따른다.

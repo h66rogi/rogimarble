@@ -34,3 +34,18 @@ test('actual protobuf service decoder preserves uint64 and enum representations'
   assert.equal(decoded.donations[0].identityStatus,'IDENTITY_STATUS_OBSERVATION_ONLY');
   assert.equal(donationInput(decoded.donations[0],config,'0').cursor.channelOffset,'18446744073709551615');
 });
+
+test('broadcast lookup serializes a separate test target without changing production authorization',async()=>{
+  const { CollectorRpc }=await import('../src/collector-rpc.ts');
+  const rpc=Object.create(CollectorRpc.prototype) as InstanceType<typeof CollectorRpc>;
+  Object.assign(rpc,{config,client:{checkBroadcast:(body:any,options:any,done:any)=>{
+    assert.equal(body.consumerId,config.consumerId);assert.equal(body.channelId,config.collectorChannelId);
+    assert.equal(body.targetChannelId,'another-fixture');assert.ok(options.deadline>Date.now());
+    const definition=loadSync(new URL('../proto/collector.proto',import.meta.url).pathname,{longs:String,enums:String,defaults:true,oneofs:true});
+    const method=(definition['rogi.collector.v1.CollectorService'] as any).CheckBroadcast;
+    assert.deepEqual(method.requestDeserialize(method.requestSerialize(body)),body);
+    done(null,method.responseDeserialize(method.responseSerialize({channelId:'another-fixture',state:'live',checkedAt:{seconds:'1700000000',nanos:0},title:'Fixture broadcast'})));
+  }}});
+  const result=await rpc.checkBroadcast('another-fixture');assert.equal(result.channelId,'another-fixture');assert.equal(result.state,'live');assert.equal(timestamp(result.checkedAt),'2023-11-14T22:13:20.000Z');
+  assert.equal(rpc.config.collectorChannelId,'fixture-channel');
+});

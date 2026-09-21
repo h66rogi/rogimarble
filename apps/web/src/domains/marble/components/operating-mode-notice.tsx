@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { OperatorSnapshot } from '../../../../lib/types';
 import { api, type CollectorStatus } from '../../../../lib/api';
@@ -18,6 +19,6 @@ export function OperatingModeNotice() {
   const pending=(collector?.counts?.pending??0)+(collector?.counts?.held??0)+(collector?.counts?.failed??0);
   return <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-rose-100 bg-rose-50/70 px-4 py-2 text-xs text-rose-900 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-100">
     <span className="font-semibold">주루마블 · {mode}</span>
-    <span className="text-rose-800/80 dark:text-rose-200/80">{collection}{pending?` · 확인할 후원 ${pending}건`:''}</span>
+    <Link href="/collector" className="text-rose-800/80 underline underline-offset-4 dark:text-rose-200/80">{collection}{pending?` · 확인할 후원 ${pending}건`:''} · 방송·수집 관리</Link>
   </div>;
 }

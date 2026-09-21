@@ -1,9 +1,9 @@
-import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common';
+import { BadRequestException, HttpException, ServiceUnavailableException, Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common';
 import { status as GrpcStatus, type ClientReadableStream } from '@grpc/grpc-js';
 import type pg from 'pg';
 import { pool } from '../../../packages/database/src/index.ts';
 import { DonationIngestionService } from './donation-ingestion.service.ts';
-import { assertCollectorStatus, collectorConnection, donationInput, chatInput, CollectorRpc, type CollectorConnection } from './collector-rpc.ts';
+import { assertCollectorStatus, collectorConnection, donationInput, chatInput, CollectorRpc, type CollectorConnection, type CollectorStatus, timestamp } from './collector-rpc.ts';
 
 @Injectable()
 export class CollectorService implements OnModuleInit,OnModuleDestroy {
@@ -11,6 +11,7 @@ export class CollectorService implements OnModuleInit,OnModuleDestroy {
   private rpc:CollectorRpc|null=null;
   private timer:ReturnType<typeof setTimeout>|null=null;
   private stopped=false;
+  private remote:CollectorStatus|null=null;
   private chatStream:ClientReadableStream<any>|null=null;
   private state={enabled:false,transport:'disabled',collectionState:'disabled',collectionActive:false,lastCheckedAt:null as string|null,lastAcceptedAt:null as string|null,errorCode:null as string|null,chatConnected:false};
   constructor(private readonly ingestion:DonationIngestionService){}
@@ -23,8 +24,30 @@ export class CollectorService implements OnModuleInit,OnModuleDestroy {
   onModuleDestroy(){this.stopped=true;if(this.timer)clearTimeout(this.timer);this.chatStream?.cancel();this.rpc?.close();}
   async status(channelId:string){
     if(!this.config)return {...this.state};
-    if(channelId!==this.config.gameChannelId)return {...this.state,enabled:false,transport:'disabled',collectionActive:false};
-    return {...this.state,...await this.ingestion.status(channelId,this.config.consumerId)};
+    if(channelId!==this.config.gameChannelId)return {enabled:false,transport:'disabled',collectionState:'disabled',collectionActive:false,lastCheckedAt:null,lastAcceptedAt:null,errorCode:null,chatConnected:false};
+    const local=await this.ingestion.status(channelId,this.config.consumerId);
+    const remote=this.remote;
+    const backlog=remote?.currentCursor&&local.cursor&&remote.currentCursor.journalGeneration===local.cursor.journalGeneration&&BigInt(remote.currentCursor.channelOffset)>=BigInt(local.cursor.channelOffset)?String(BigInt(remote.currentCursor.channelOffset)-BigInt(local.cursor.channelOffset)):null;
+    return {...this.state,...local,collectorChannelId:this.config.collectorChannelId,
+      remote:remote?{configured:remote.configured,qualityReasons:remote.qualityReasons,earliestCursor:remote.earliestCursor,currentCursor:remote.currentCursor,recoveryRevision:remote.recoveryRevision,lastReceivedAt:timestamp(remote.lastReceivedAt)}:null,
+      donationBacklog:backlog,chatStreamOpen:Boolean(this.chatStream),
+      stale:!this.state.lastCheckedAt||Date.now()-Date.parse(this.state.lastCheckedAt)>15000};
+  }
+  async checkBroadcast(channelId:string,targetChannelId:unknown){
+    if(!this.config||channelId!==this.config.gameChannelId)throw new ServiceUnavailableException('방송 조회 연결이 설정되지 않았습니다.');
+    if(typeof targetChannelId!=='string'||!/^[A-Za-z0-9_-]{1,50}$/.test(targetChannelId))throw new BadRequestException('SOOP 채널 ID를 입력하세요. URL은 입력할 수 없습니다.');
+    let rpc:CollectorRpc|undefined;
+    try{
+      rpc=new CollectorRpc(this.config);
+      const result=await rpc.checkBroadcast(targetChannelId);
+      if(result.channelId!==targetChannelId||!['live','offline','cookie_required','auth_required','lookup_failed'].includes(result.state))throw new Error('Invalid diagnostic response');
+      return {channelId:result.channelId,state:result.state,title:result.title,displayName:result.displayName,broadcastId:result.broadcastId,checkedAt:timestamp(result.checkedAt),cached:result.cached,productionTarget:targetChannelId===this.config.collectorChannelId};
+    }catch(error){
+      const code=(error as {code?:number}).code;
+      if(code===GrpcStatus.RESOURCE_EXHAUSTED)throw new HttpException('조회가 진행 중입니다. 잠시 후 다시 시도하세요.',429);
+      if(code===GrpcStatus.UNIMPLEMENTED)throw new ServiceUnavailableException('수집기 방송 조회 기능을 준비 중입니다.');
+      throw new ServiceUnavailableException('수집기에 방송 정보를 요청하지 못했습니다. 연결 상태를 확인하세요.');
+    }finally{rpc?.close();}
   }
   private async tick(){
     if(this.stopped||!this.config)return;
@@ -35,7 +58,7 @@ export class CollectorService implements OnModuleInit,OnModuleDestroy {
       locked=(await guard.query('SELECT pg_try_advisory_lock(hashtextextended($1,0)) AS locked',[`collector-poll:${this.config.consumerId}:${this.config.collectorChannelId}`])).rows[0].locked;
       if(!locked)return;
       this.rpc??=new CollectorRpc(this.config);
-      const remote=await this.rpc.status();assertCollectorStatus(remote,this.config);
+      const remote=await this.rpc.status();assertCollectorStatus(remote,this.config);this.remote=remote;
       this.state={...this.state,lastCheckedAt:new Date().toISOString(),collectionState:remote.processHealth,collectionActive:remote.collectionActive};
       let cursor=await this.ingestion.cursor(this.config.gameChannelId,this.config.consumerId);
       if(!cursor){

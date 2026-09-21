@@ -40,9 +40,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export interface CollectorStatus { enabled:boolean;transport:string;collectionState:string;collectionActive:boolean;lastCheckedAt:string|null;lastAcceptedAt:string|null;errorCode:string|null;chatConnected:boolean;counts?:Record<string,number> }
+export interface CollectorStatus {
+  enabled:boolean;transport:string;collectionState:string;collectionActive:boolean;
+  lastCheckedAt:string|null;lastAcceptedAt:string|null;errorCode:string|null;chatConnected:boolean;
+  canCheckBroadcast:boolean;collectorChannelId?:string;stale?:boolean;chatStreamOpen?:boolean;
+  counts?:Record<string,number>;donationBacklog?:string|null;lastDonationStoredAt?:string|null;lastChatStoredAt?:string|null;
+  cursor?:{journalGeneration:string;channelOffset:string;recoveryRevision:string}|null;
+  remote?:{configured:boolean;qualityReasons:string[];earliestCursor?:{journalGeneration:string;channelOffset:string};currentCursor?:{journalGeneration:string;channelOffset:string};recoveryRevision:string;lastReceivedAt:string|null}|null;
+}
+export interface BroadcastStatus {channelId:string;state:string;title:string;displayName:string;broadcastId:string;checkedAt:string|null;cached:boolean;productionTarget:boolean}
 
 export const api = {
+  checkBroadcast:(targetChannelId:string)=>request<BroadcastStatus>(`/v1/channels/${encodeURIComponent(channelId())}/collector/broadcast-check`,{method:'POST',body:JSON.stringify({targetChannelId})}),
   collectorStatus:()=>request<CollectorStatus>(`/v1/channels/${encodeURIComponent(channelId())}/collector`,{cache:'no-store'}),
   login: async (username: string, password: string) => { const result = await request<LoginResponse>(operatorApi.login, { method: 'POST', body: JSON.stringify({ username, password }) }); sessionStorage.setItem('rogimarble.csrf', result.csrfToken); return result; },
   loginToken: async (token: string) => { const result=await request<LoginResponse>('/v1/auth/token',{method:'POST',body:JSON.stringify({token})});sessionStorage.setItem('rogimarble.csrf',result.csrfToken);return result; },
