@@ -52,11 +52,11 @@ async function login(username='admin',origin='https://console.example'){
   return {csrf:sessionBody.csrfToken,cookie};
 }
 function client(auth:{csrf:string;cookie:string}){
-  const get=(path:string)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{headers:{cookie:auth.cookie}});
+  const get=(path:string)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{headers:{origin:'https://console.example',cookie:auth.cookie}});
   const post=(path:string,body:unknown,csrf:string|null=auth.csrf)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'POST',
-    headers:{cookie:auth.cookie,'content-type':'application/json',...(csrf?{'x-csrf-token':csrf}:{})},body:JSON.stringify(body)});
-  const put=(path:string,body:unknown)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'PUT',headers:{cookie:auth.cookie,'content-type':'application/json','x-csrf-token':auth.csrf},body:JSON.stringify(body)});
-  const del=(path:string)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'DELETE',headers:{cookie:auth.cookie,'x-csrf-token':auth.csrf}});
+    headers:{origin:'https://console.example',cookie:auth.cookie,'content-type':'application/json',...(csrf?{'x-csrf-token':csrf}:{})},body:JSON.stringify(body)});
+  const put=(path:string,body:unknown)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'PUT',headers:{origin:'https://console.example',cookie:auth.cookie,'content-type':'application/json','x-csrf-token':auth.csrf},body:JSON.stringify(body)});
+  const del=(path:string)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'DELETE',headers:{origin:'https://console.example',cookie:auth.cookie,'x-csrf-token':auth.csrf}});
   return {get,post,put,del};
 }
 
@@ -117,7 +117,7 @@ test('live overlay layout persists, uses CAS, scopes channels, and revoked OBS t
 test('pawn image upload is revisioned, sanitized, replaced, and deleted',async()=>{
   const auth=await login();
   const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64');
-  const upload=(revision:number,csrf:string|null=auth.csrf,mime='image/png')=>fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image?expectedRevision=${revision}`,{method:'PUT',headers:{cookie:auth.cookie,'content-type':mime,...(csrf?{'x-csrf-token':csrf}:{})},body:png});
+  const upload=(revision:number,csrf:string|null=auth.csrf,mime='image/png')=>fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image?expectedRevision=${revision}`,{method:'PUT',headers:{origin:'https://console.example',cookie:auth.cookie,'content-type':mime,...(csrf?{'x-csrf-token':csrf}:{})},body:png});
   assert.equal((await upload(0,null)).status,403);
   assert.equal((await upload(0,auth.csrf,'image/jpeg')).status,415);
   let response=await upload(0);assert.equal(response.status,200);const first=await response.json() as any;assert.equal(first.revision,1);assert.equal(first.image.mimeType,'image/png');
@@ -125,9 +125,9 @@ test('pawn image upload is revisioned, sanitized, replaced, and deleted',async()
   assert.equal((await upload(0)).status,409);
   const replacements=await Promise.all([upload(1),upload(1)]);assert.deepEqual(replacements.map(item=>item.status).sort(),[200,409]);response=replacements.find(item=>item.status===200)!;const second=await response.json() as any;assert.equal(second.revision,2);assert.notEqual(second.image.assetId,first.image.assetId);
   assert.equal((await fetch(`http://127.0.0.1:${apiPort}${first.image.url}`)).status,404);
-  response=await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image?expectedRevision=2`,{method:'DELETE',headers:{cookie:auth.cookie,'x-csrf-token':auth.csrf}});assert.equal(response.status,200);assert.deepEqual(await response.json(),{revision:3,image:null});
+  response=await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image?expectedRevision=2`,{method:'DELETE',headers:{origin:'https://console.example',cookie:auth.cookie,'x-csrf-token':auth.csrf}});assert.equal(response.status,200);assert.deepEqual(await response.json(),{revision:3,image:null});
   assert.equal((await fetch(`http://127.0.0.1:${apiPort}${second.image.url}`)).status,404);
-  const state=await (await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/operator-state`,{headers:{cookie:auth.cookie}})).json() as any;assert.deepEqual(state.pawnAppearance,{revision:3,image:null});
+  const state=await (await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/operator-state`,{headers:{origin:'https://console.example',cookie:auth.cookie}})).json() as any;assert.deepEqual(state.pawnAppearance,{revision:3,image:null});
 });
 
 test('the initial effect board registers once through the shared runtime gate',()=>{
@@ -183,7 +183,7 @@ test('viewer relation cannot override global read-only role',async()=>{
   assert.equal(state.capabilities.inventory,false);assert.equal(state.capabilities.sessionLifecycle,false);
   const response=await http.post(`/v1/channels/test-channel/sessions/${state.session.id}/commands`,{commandId:randomUUID(),sessionEpoch:1,
     expectedRevision:1,type:'set_direction',reason:'viewer check',payload:{direction:'reverse'}});assert.equal(response.status,403);
-  const forbiddenUpload=await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image?expectedRevision=0`,{method:'PUT',headers:{cookie:viewerAuth.cookie,'x-csrf-token':viewerAuth.csrf,'content-type':'image/png'},body:Buffer.from('not an image')});assert.equal(forbiddenUpload.status,403);
+  const forbiddenUpload=await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image?expectedRevision=0`,{method:'PUT',headers:{origin:'https://console.example',cookie:viewerAuth.cookie,'x-csrf-token':viewerAuth.csrf,'content-type':'image/png'},body:Buffer.from('not an image')});assert.equal(forbiddenUpload.status,403);
 });
 
 test('channel view permission disables writes even for operator role',async()=>{
@@ -362,13 +362,13 @@ test('array item configuration round-trips as JSON and publishes active definiti
 test('access token exchange stores only a hash and revocation invalidates its sessions',async()=>{
   const recovery=await login(),http=client(recovery);
   let response=await http.post('/v1/auth/tokens',{label:'integration browser'});assert.equal(response.status,201);const issued=await response.json() as any;assert.match(issued.token,/^rma_[A-Za-z0-9_-]{43}$/);
-  response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/token`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:issued.token})});assert.equal(response.status,200);const exchanged=await response.json() as any;assert.equal(exchanged.authMode,'token');const cookie=response.headers.get('set-cookie')!.split(';')[0];
+  response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/token`,{method:'POST',headers:{'content-type':'application/json',origin:'https://console.example'},body:JSON.stringify({token:issued.token})});assert.equal(response.status,200);const exchanged=await response.json() as any;assert.equal(exchanged.authMode,'token');const cookie=response.headers.get('set-cookie')!.split(';')[0];
   assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/auth/session`,{headers:{cookie}})).status,200);
   const stored=command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-At','-c',`SELECT token_hash FROM operator_access_tokens WHERE id='${issued.id}'`]).trim();assert.equal(stored.length,64);assert.notEqual(stored,issued.token);
   const listed=await (await http.get('/v1/auth/tokens')).text();assert.equal(listed.includes(issued.token),false);
   assert.equal((await http.del(`/v1/auth/tokens/${issued.id}`)).status,204);assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/auth/session`,{headers:{cookie}})).status,401);
   response=await http.post('/v1/auth/tokens',{label:'expired fixture'});const expired=await response.json() as any;command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-c',`UPDATE operator_access_tokens SET created_at=now()-interval '2 seconds',expires_at=now()-interval '1 second' WHERE id='${expired.id}'`]);
-  assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/auth/token`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:expired.token})})).status,401);
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/auth/token`,{method:'POST',headers:{'content-type':'application/json',origin:'https://console.example'},body:JSON.stringify({token:expired.token})})).status,401);
 });
 
 test('supported arrival effects persist counters, reservations, missions, modifiers, locks and chained movement',async()=>{
@@ -471,7 +471,7 @@ test('collector donation ingestion runs against the integration PostgreSQL datab
 test('collector management uses sessions, CSRF and current channel permissions',async()=>{
   const path='/v1/channels/test-channel/collector',body={targetChannelId:'fixture-broadcast'};
   assert.equal((await fetch(`http://127.0.0.1:${apiPort}${path}`)).status,401);
-  assert.equal((await fetch(`http://127.0.0.1:${apiPort}${path}/broadcast-check`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})).status,401);
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}${path}/broadcast-check`,{method:'POST',headers:{'content-type':'application/json',origin:'https://console.example'},body:JSON.stringify(body)})).status,401);
   const http=client(await login());const response=await http.get(path);assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'no-store');
   const state=await response.json() as any;assert.equal(state.enabled,false);assert.equal(state.canCheckBroadcast,false);
   assert.equal((await http.post(path+'/broadcast-check',body,null)).status,403);
