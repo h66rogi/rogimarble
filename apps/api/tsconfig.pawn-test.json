@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {"outDir": "./dist-pawn"},
+  "include": ["src/**/*.ts", "test/pawn-assets.test.ts", "../../packages/*/src/**/*.ts"]
+}

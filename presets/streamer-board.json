@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "id": "streamer-reference-board",
+  "id": "streamer-reference-board-normal-die-v2",
   "name": "스트리머 전달 주루마블 판",
   "canvas": {
-    "width": 778,
-    "height": 519,
-    "backgroundColor": "#ffffff"
+    "width": 1920,
+    "height": 1080,
+    "backgroundColor": "#fff8ef"
   },
   "layout": {
     "type": "perimeter_grid",
     "columns": 9,
     "rows": 6,
-    "gap": 6,
+    "gap": 14,
     "padding": {
-      "top": 33,
-      "right": 46,
-      "bottom": 24,
-      "left": 36
+      "top": 40,
+      "right": 40,
+      "bottom": 40,
+      "left": 40
     }
   },
   "defaultDirection": "forward",
@@ -60,9 +60,9 @@
       },
       "appearance": {
         "shape": "circle",
-        "fill": "#ffffff",
-        "textColor": "#111111",
-        "borderColor": "#8e627a",
+        "fill": "#e0f1e8",
+        "textColor": "#54253b",
+        "borderColor": "#85b7a1",
         "artwork": null
       },
       "onLand": [
@@ -82,10 +82,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffadd1",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#ffdfeb",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-toast-v1"
+        }
       },
       "onLand": [
         {
@@ -107,10 +110,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffcee5",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#fff1f4",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-snack-v1"
+        }
       },
       "onLand": [
         {
@@ -132,10 +138,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffadd1",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#ffdfeb",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-heart-v1"
+        }
       },
       "onLand": [
         {
@@ -157,10 +166,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffcee5",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#fff1f4",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-toast-v1"
+        }
       },
       "onLand": [
         {
@@ -182,10 +194,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffadd1",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#ffdfeb",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-kiss-v1"
+        }
       },
       "onLand": [
         {
@@ -207,10 +222,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffcee5",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#fff1f4",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-punch-v1"
+        }
       },
       "onLand": [
         {
@@ -232,10 +250,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffadd1",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#ffdfeb",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-heart-v1"
+        }
       },
       "onLand": [
         {
@@ -257,10 +278,13 @@
       },
       "appearance": {
         "shape": "circle",
-        "fill": "#ffffff",
-        "textColor": "#111111",
-        "borderColor": "#8e627a",
-        "artwork": null
+        "fill": "#e0f1e8",
+        "textColor": "#54253b",
+        "borderColor": "#85b7a1",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-island-v1"
+        }
       },
       "onLand": [
         {
@@ -284,10 +308,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffadd1",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#ffdfeb",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-snack-v1"
+        }
       },
       "onLand": [
         {
@@ -309,10 +336,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffcee5",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#fff1f4",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-toast-v1"
+        }
       },
       "onLand": [
         {
@@ -334,10 +364,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffadd1",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#ffdfeb",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-talk-v1"
+        }
       },
       "onLand": [
         {
@@ -359,10 +392,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffcee5",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#fff0cf",
+        "textColor": "#54253b",
+        "borderColor": "#ddbd79",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-bank-v1"
+        }
       },
       "onLand": [
         {
@@ -383,10 +419,13 @@
       },
       "appearance": {
         "shape": "circle",
-        "fill": "#ffffff",
-        "textColor": "#111111",
-        "borderColor": "#8e627a",
-        "artwork": null
+        "fill": "#e0f1e8",
+        "textColor": "#54253b",
+        "borderColor": "#85b7a1",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-travel-v1"
+        }
       },
       "onLand": [
         {
@@ -410,10 +449,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffcee5",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#fff1f4",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-heart-v1"
+        }
       },
       "onLand": [
         {
@@ -435,10 +477,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffadd1",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#ffdfeb",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-toast-v1"
+        }
       },
       "onLand": [
         {
@@ -460,10 +505,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffcee5",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#fff1f4",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-snack-v1"
+        }
       },
       "onLand": [
         {
@@ -485,9 +533,9 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffadd1",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
+        "fill": "#fff0cf",
+        "textColor": "#54253b",
+        "borderColor": "#ddbd79",
         "artwork": null
       },
       "onLand": [
@@ -512,10 +560,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffcee5",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#fff1f4",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-turn-v1"
+        }
       },
       "onLand": [
         {
@@ -538,10 +589,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffadd1",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#ffdfeb",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-toast-v1"
+        }
       },
       "onLand": [
         {
@@ -563,9 +617,9 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffcee5",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
+        "fill": "#fff1f4",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
         "artwork": null
       },
       "onLand": [
@@ -585,10 +639,13 @@
       },
       "appearance": {
         "shape": "circle",
-        "fill": "#ffffff",
-        "textColor": "#111111",
-        "borderColor": "#8e627a",
-        "artwork": null
+        "fill": "#e0f1e8",
+        "textColor": "#54253b",
+        "borderColor": "#85b7a1",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-turn-v1"
+        }
       },
       "onLand": [
         {
@@ -608,10 +665,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffcee5",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#fff0cf",
+        "textColor": "#54253b",
+        "borderColor": "#ddbd79",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-toast-v1"
+        }
       },
       "onLand": [
         {
@@ -634,10 +694,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffadd1",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#ffdfeb",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-heart-v1"
+        }
       },
       "onLand": [
         {
@@ -659,10 +722,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffcee5",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#fff1f4",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-talk-v1"
+        }
       },
       "onLand": [
         {
@@ -684,10 +750,13 @@
       },
       "appearance": {
         "shape": "rounded_rectangle",
-        "fill": "#ffadd1",
-        "textColor": "#111111",
-        "borderColor": "#00000000",
-        "artwork": null
+        "fill": "#ffdfeb",
+        "textColor": "#54253b",
+        "borderColor": "#edbdd0",
+        "artwork": {
+          "type": "image",
+          "assetId": "party-music-v1"
+        }
       },
       "onLand": [
         {
@@ -710,7 +779,7 @@
     }
   ],
   "dice": {
-    "count": 2,
+    "count": 1,
     "sides": 6
   }
 }

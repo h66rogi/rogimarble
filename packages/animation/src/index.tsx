@@ -69,9 +69,21 @@ const diceBurst = {
   ] }], ip: 0, op: 24, st: 0, bm: 0 }]
 };
 
-export function DiceLottie({ active, reducedMotion = false }: { active: boolean; reducedMotion?: boolean }) {
+const singleDiceBurst = (() => {
+  const copy = structuredClone(diceBurst) as any;
+  copy.layers[0].shapes = copy.layers[0].shapes.filter((shape: { nm?: string }) => shape.nm !== 'decorative-die-right');
+  const die = copy.layers[0].shapes.find((shape: { nm?: string }) => shape.nm === 'decorative-die-left');
+  const position = die?.it?.find((item: { ty?: string }) => item.ty === 'tr')?.p?.k;
+  if (Array.isArray(position)) for (const frame of position) {
+    if (Array.isArray(frame.s)) frame.s[0] += 32;
+    if (Array.isArray(frame.e)) frame.e[0] += 32;
+  }
+  return copy;
+})();
+
+export function DiceLottie({ active, reducedMotion = false, count = 1 }: { active: boolean; reducedMotion?: boolean; count?: number }) {
   if (!active || reducedMotion) return null;
-  return <Lottie className="dice-lottie" animationData={diceBurst} autoplay loop={false} aria-hidden="true" />;
+  return <Lottie className="dice-lottie" animationData={count > 1 ? diceBurst : singleDiceBurst} autoplay loop={false} aria-hidden="true" />;
 }
 
 const landingSpark = {

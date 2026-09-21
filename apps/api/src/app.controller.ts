@@ -12,9 +12,9 @@ export class AppController {
   constructor(private readonly api: ApiService,private readonly configuration:ConfigurationService) {}
   @Get('/health') health() { return { status: 'ok' }; }
   @Get('/ready') async ready() {
-    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['008_collector_inbox.sql']);
+    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['010_apply_board_version.sql']);
       if(!result.rowCount)throw new Error('required migration missing');
-      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0'); return { status:'ready',schemaVersion:'008_collector_inbox.sql' }; }
+      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0');await pool().query('SELECT 1 FROM pawn_assets LIMIT 0'); return { status:'ready',schemaVersion:'010_apply_board_version.sql' }; }
     catch { throw new ServiceUnavailableException('Database or migrations are not ready'); }
   }
   @Post('/v1/auth/login') @HttpCode(200) @Header('Cache-Control','no-store')

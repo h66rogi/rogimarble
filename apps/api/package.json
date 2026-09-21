@@ -10,7 +10,8 @@
     "test:integration": "tsc --noEmit --target es2022 --module nodenext --moduleResolution nodenext --esModuleInterop --skipLibCheck --allowImportingTsExtensions test/integration.test.ts && node --experimental-strip-types --test test/integration.test.ts",
     "test:auth": "tsc -p tsconfig.test.json --pretty false && node --test dist-test/apps/api/test/auth-shared.test.js",
     "token:cli": "node --experimental-strip-types src/access-token-cli.ts",
-    "test:collector": "node --experimental-strip-types --test test/collector-rpc.test.ts"
+    "test:collector": "node --experimental-strip-types --test test/collector-rpc.test.ts",
+    "test:pawn": "tsc -p tsconfig.pawn-test.json --pretty false && node --test dist-pawn/apps/api/test/pawn-assets.test.js"
   },
   "dependencies": {
     "@grpc/grpc-js": "1.14.3",
@@ -23,6 +24,7 @@
     "@rogimarble/game-core": "workspace:*",
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "sharp": "0.35.4"
   }
 }

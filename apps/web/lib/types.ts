@@ -1,4 +1,4 @@
-import type { InventoryItemDto, MissionDto, SessionStatus, SessionCounterDto, SessionEffectTaskDto, SessionMovementLockDto, SessionRollModifierDto, SessionCommandDto } from '@rogimarble/contracts';
+import type { InventoryItemDto, MissionDto, PawnAppearanceDto, SessionStatus, SessionCounterDto, SessionEffectTaskDto, SessionMovementLockDto, SessionRollModifierDto, SessionCommandDto } from '@rogimarble/contracts';
 
 export type Direction = 'forward' | 'reverse';
 
@@ -16,6 +16,7 @@ export interface OperatorSnapshot {
   effectTasks?: readonly SessionEffectTaskDto[];
   movementLock?: SessionMovementLockDto | null;
   rollModifiers?: readonly SessionRollModifierDto[];
+  pawnAppearance: PawnAppearanceDto;
   donations: Array<{ id: string; donor: string; quantity: number; createdAt: string; result: string }>;
   queue: Array<{ id: string; label: string; status: string }>;
   capabilities?: { manualRoll: boolean; setDirection: boolean; setPosition: boolean; arrivalEffects: boolean; donations: boolean; inventory: boolean; missions: boolean; sessionLifecycle: boolean };
