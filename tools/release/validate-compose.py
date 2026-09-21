@@ -57,6 +57,7 @@ def parsed_compose() -> dict:
             "APP_DB_USER": "rogimarble_app",
             "DATA_ROOT": "/srv/rogimarble",
             "RUNTIME_SECRET_ROOT": "/run/rogimarble/secrets",
+            "RUNTIME_COLLECTOR_ROOT": "/run/rogimarble/collector-client",
             "APP_ROOT": "/opt/rogimarble/app",
             "WEB_DOMAIN": "marble.rogi.chat",
             "API_DOMAIN": "marble-api.rogi.chat",
