@@ -114,8 +114,8 @@ export class ApiService {
         const task = await pendingTravel(client, sessionId);
         const lockedMovement = await client.query('SELECT 1 FROM session_movement_locks WHERE session_id=$1', [sessionId]);
         if (task && !lockedMovement.rowCount) {
-          if (task.payload.reservedTurnCommandId) throw new ConflictException('여행 목적지를 확정하거나 여행을 취소해 주세요.');
-          const decision = reserveTravelTurn(task.payload, body.commandId);
+          const decision = task.payload.reservedTurnCommandId ? decideTravel(task.payload, false) : reserveTravelTurn(task.payload, body.commandId);
+          if (task.payload.reservedTurnCommandId && decision.type === 'wait') throw new ConflictException('여행 목적지를 확정하거나 여행을 취소해 주세요.');
           result = await applyTravelDecision(client, session, task, decision, body.commandId, operator.id, afterCommands);
         } else result = await executeNormalRoll(client, session, body.commandId, operator.id, afterCommands);
       }else if(body.type==='set_direction'){result={direction:body.payload.direction};session.direction=body.payload.direction;

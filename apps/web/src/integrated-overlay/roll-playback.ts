@@ -1,6 +1,8 @@
 import type { OverlayPresentationCommandDto } from '@rogimarble/contracts';
 
-export type RollPlayback = { readonly dice: readonly number[]; readonly cells: readonly string[] };
+export const presentationMovementCommands = ['roll_dice','choose_destination','cancel_destination','resume'] as const;
+export type PresentationMovementCommand = typeof presentationMovementCommands[number];
+export type RollPlayback = { readonly dice: readonly number[]; readonly cells: readonly string[]; readonly kind:'roll'|'travel' };
 export type RollTimelineEvent = { readonly at:number; readonly phase:'reveal'|'stepping'|'cell'|'landing'|'idle'; readonly cellId?:string };
 
 export function buildRollTimeline(cells:readonly string[], reducedMotion=false):readonly RollTimelineEvent[]{
@@ -13,9 +15,14 @@ export function buildRollTimeline(cells:readonly string[], reducedMotion=false):
   return events;
 }
 
+export function buildTravelTimeline(cells:readonly string[], reducedMotion=false):readonly RollTimelineEvent[]{
+  if(reducedMotion||cells.length<2)return[];
+  return[{at:0,phase:'stepping'},{at:180,phase:'cell',cellId:cells.at(-1)!},{at:400,phase:'landing'},{at:960,phase:'idle'}];
+}
+
 /** Builds display-only playback from the server result. It never derives a roll locally. */
 export function rollPlayback(command: OverlayPresentationCommandDto | null | undefined, boardPath: readonly string[], finalCellId: string): RollPlayback | null {
-  if (command?.type !== 'roll_dice' || !command.result || !('dice' in command.result) || !('path' in command.result)) return null;
+  if (!command || !presentationMovementCommands.includes(command.type as PresentationMovementCommand) || !command.result || !('dice' in command.result) || !('path' in command.result)) return null;
   const { dice, path, fromCellId, toCellId, effects } = command.result;
   if (!Array.isArray(dice) || !dice.every((value) => Number.isSafeInteger(value) && value > 0)) return null;
   if(!Array.isArray(path))return null;
@@ -24,7 +31,7 @@ export function rollPlayback(command: OverlayPresentationCommandDto | null | und
   if (!fullPath.every((cell) => typeof cell === 'string' && boardPath.includes(cell))) return null;
   if (typeof fromCellId !== 'string' || !boardPath.includes(fromCellId) || toCellId !== finalCellId) return null;
   if(fullPath.length?fullPath.at(-1)!==finalCellId:fromCellId!==finalCellId)return null;
-  return { dice, cells: [fromCellId, ...fullPath] };
+  return { dice, cells: [fromCellId, ...fullPath], kind:dice.length?'roll':'travel' };
 }
 
 function collectEffectPath(effects:unknown):string[]{

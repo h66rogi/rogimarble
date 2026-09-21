@@ -106,7 +106,7 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
     if(observedSessionRef.current!==sessionKey){observedSessionRef.current=sessionKey;observedCommandIdRef.current=command?.commandId??null;return;}
     if(command?.commandId===observedCommandIdRef.current)return;
     observedCommandIdRef.current = command?.commandId ?? null;
-    if(command?.type==='roll_dice'&&command.result&&'dice'in command.result) presentation.play({commandId:command.commandId,sessionKey,presentationEpoch:command.presentationEpoch,result:command.result});
+    if(playback&&command) presentation.play({commandId:command.commandId,commandType:command.type as 'roll_dice'|'choose_destination'|'cancel_destination'|'resume',sessionKey,presentationEpoch:command.presentationEpoch,finalCellId:session.currentCellId,result:command.result});
   },[session?.id,session?.sessionEpoch,state?.latestCommand?.commandId]);
 
   const missingLiveBoard = status !== 'preview' && !!state && !state.boardDefinition;

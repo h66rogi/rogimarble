@@ -296,6 +296,7 @@ test('supported arrival effects persist counters, reservations, missions, modifi
   const http=client(await login()),created=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId,initialCellId:board.startCellId,direction:'forward'});assert.equal(created.status,201);
   let state=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;const path=`/v1/channels/test-channel/sessions/${state.session.id}/commands`;
   const land=async(cellId:string)=>{state=await (await http.get('/v1/channels/test-channel/operator-state')).json();const response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'set_position',reason:'effect integration',payload:{cellId,pauseAutomaticMovement:true,triggerArrivalEffects:true}});assert.equal(response.status,201);return response.json() as Promise<any>;};
+  let response:Response;
   await land(board.cells[1].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,1);assert.equal(state.counters[0].available,1);
   await land(board.cells[2].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.missions.at(-1).message,'effect mission');assert.equal(state.missions.at(-1).durationSeconds,30);
   await land(board.cells[3].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.deepEqual(state.rollModifiers.map((x:any)=>[x.factor,x.usesRemaining]),[[2,1]]);
@@ -320,6 +321,7 @@ test('next-turn travel reserves exactly one turn and supports selection, pause, 
   const board=JSON.parse(await readFile(new URL('../../../presets/streamer-board.json',import.meta.url),'utf8')) as any;board.id=`travel-test-${randomUUID()}`;board.name='Travel integration board';board.dice={count:1,sides:2};
   for(const cell of board.cells){cell.onLand=[];cell.onPass=[];}const travelCell=board.cells[1].id,destination=board.cells[8].id;
   board.cells[1].onLand=[{type:'choose_destination',selection:'operator',allowedCellIds:[destination],onArrival:'skip',timing:'next_turn',excludeCurrentCell:true}];
+  board.cells[2].onLand=[{type:'movement_lock',release:{type:'skip_rolls',count:1}}];
   const boardVersionId=randomUUID(),operator=(await db.query(`SELECT id FROM operators WHERE username='admin'`)).rows[0].id;await db.query(`INSERT INTO board_versions(id,channel_id,board_definition,status,supported_for_live,created_by) VALUES($1,'test-channel',$2,'validated',true,$3)`,[boardVersionId,board,operator]);await db.end();
   const http=client(await login());let response=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId,initialCellId:board.startCellId,direction:'forward'});assert.equal(response.status,201);
   let state:any;const refresh=async()=>state=await (await http.get('/v1/channels/test-channel/operator-state')).json();await refresh();const path=`/v1/channels/test-channel/sessions/${state.session.id}/commands`;
@@ -331,4 +333,15 @@ test('next-turn travel reserves exactly one turn and supports selection, pause, 
   task=await arrive();response=await send('resume',{});assert.equal(response.status,201);response=await send('roll_dice',{count:1});result=(await response.json() as any).result;assert.equal(result.travelStatus,'waiting');assert.ok(result.reservedTurnCommandId);assert.equal((await send('roll_dice',{count:1})).status,409);
   await refresh();task=state.effectTasks.find((x:any)=>x.status==='pending');response=await send('pause',{});assert.equal(response.status,201);response=await send('choose_destination',{taskId:task.id,cellId:destination,expectedTaskRevision:task.revision});assert.equal(response.status,201);assert.equal((await response.json() as any).result.travelStatus,'waiting');response=await send('resume',{});result=(await response.json() as any).result;assert.equal(result.travelStatus,'moved');assert.equal(result.toCellId,destination);
   task=await arrive();await send('resume',{});response=await send('roll_dice',{count:1});result=(await response.json() as any).result;const reserved=result.reservedTurnCommandId;await send('pause',{});await refresh();task=state.effectTasks.find((x:any)=>x.status==='pending');response=await send('cancel_destination',{taskId:task.id,expectedTaskRevision:task.revision});assert.equal(response.status,201);assert.equal((await response.json() as any).result.travelStatus,'waiting');response=await send('resume',{});result=(await response.json() as any).result;assert.equal(result.travelStatus,'returned');assert.equal(result.reservedTurnCommandId,reserved);assert.ok(result.dice.length>0);
+  for(const cancel of [false,true]){
+    await refresh();if(state.movementLock)assert.equal((await send('clear_movement_lock',{})).status,201);
+    task=await arrive();await send('resume',{});response=await send('roll_dice',{});const waiting=(await response.json() as any).result;assert.ok(waiting.reservedTurnCommandId);
+    assert.equal((await send('set_position',{cellId:board.cells[2].id,pauseAutomaticMovement:true,triggerArrivalEffects:true})).status,201);
+    await refresh();task=state.effectTasks.find((x:any)=>x.status==='pending');
+    response=await send(cancel?'cancel_destination':'choose_destination',{taskId:task.id,expectedTaskRevision:task.revision,...(cancel?{}:{cellId:destination})});assert.equal(response.status,201);
+    assert.equal((await send('resume',{})).status,201);
+    response=await send('roll_dice',{});assert.equal(response.status,201);await refresh();assert.equal(state.movementLock,null);
+    response=await send('roll_dice',{});assert.equal(response.status,201);const resumed=(await response.json() as any).result;assert.equal(resumed.travelStatus,cancel?'returned':'moved');assert.equal(resumed.reservedTurnCommandId,waiting.reservedTurnCommandId);
+  }
+
 });
