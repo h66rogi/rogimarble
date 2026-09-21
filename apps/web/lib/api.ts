@@ -1,4 +1,4 @@
-import { operatorApi, type AccessTokenDto, type ChannelConfigKind, type ChannelConfigStateDto, type ChannelConfigVersionDto, type DonationPageDto, type GameSessionDto, type IssuedAccessTokenDto, type IssuedObsTokenDto, type LoginResponse, type ObsTokenDto, type OperationPageDto, type OperatorStateDto, type OverlayStateDto, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
+import { operatorApi, type AccessTokenDto, type ChannelConfigKind, type ChannelConfigStateDto, type ChannelConfigVersionDto, type DonationPageDto, type GameSessionDto, type IssuedAccessTokenDto, type IssuedObsTokenDto, type LoginResponse, type ObsTokenDto, type OperationPageDto, type OperatorStateDto, type OverlayStateDto, type PawnAppearanceDto, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
 import type { OperatorCommand, OperatorSnapshot } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
@@ -49,6 +49,21 @@ export interface CollectorStatus {
   remote?:{configured:boolean;qualityReasons:string[];earliestCursor?:{journalGeneration:string;channelOffset:string};currentCursor?:{journalGeneration:string;channelOffset:string};recoveryRevision:string;lastReceivedAt:string|null}|null;
 }
 export interface BroadcastStatus {channelId:string;state:string;title:string;displayName:string;broadcastId:string;checkedAt:string|null;cached:boolean;productionTarget:boolean}
+export function apiAssetUrl(path: string) { return new URL(path, API_BASE || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost')).href; }
+
+async function pawnMutation(method: 'PUT' | 'DELETE', expectedRevision: number, file?: File): Promise<PawnAppearanceDto> {
+  const response = await fetch(`${API_BASE}${operatorApi.pawnImage(channelId())}?expectedRevision=${expectedRevision}`, {
+    method,
+    credentials: 'include',
+    headers: {
+      ...(file ? { 'content-type': file.type } : {}),
+      ...(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('rogimarble.csrf') ? { 'X-CSRF-Token': sessionStorage.getItem('rogimarble.csrf')! } : {}),
+    },
+    body: file,
+  });
+  if (!response.ok) throw new ApiError('말 이미지를 저장하지 못했습니다.', response.status);
+  return response.json() as Promise<PawnAppearanceDto>;
+}
 
 export const api = {
   checkBroadcast:(targetChannelId:string)=>request<BroadcastStatus>(`/v1/channels/${encodeURIComponent(channelId())}/collector/broadcast-check`,{method:'POST',body:JSON.stringify({targetChannelId})}),
@@ -62,6 +77,8 @@ export const api = {
   accessTokens:()=>request<readonly AccessTokenDto[]>('/v1/auth/tokens',{cache:'no-store'}),
   issueAccessToken:(label:string,expiresAt?:string)=>request<IssuedAccessTokenDto>('/v1/auth/tokens',{method:'POST',body:JSON.stringify({label,...(expiresAt?{expiresAt}:{})})}),
   revokeAccessToken:(id:string)=>request<void>(`/v1/auth/tokens/${encodeURIComponent(id)}`,{method:'DELETE'}),
+  uploadPawnImage:(file:File,expectedRevision:number)=>pawnMutation('PUT',expectedRevision,file),
+  removePawnImage:(expectedRevision:number)=>pawnMutation('DELETE',expectedRevision),
   snapshot: async () => adaptState(await request<OperatorStateDto>(operatorApi.operatorState(channelId()), { cache: 'no-store' })),
   runnableBoards: () => request<readonly RunnableBoardVersionDto[]>(operatorApi.runnableBoards(channelId()), { cache: 'no-store' }),
   config: (kind: ChannelConfigKind) => request<ChannelConfigStateDto>(operatorApi.config(channelId(), kind), { cache: 'no-store' }),
@@ -149,5 +166,5 @@ async function retryIntent(pending: PendingIntent) {
 
 function channelId() { return process.env.NEXT_PUBLIC_CHANNEL_ID ?? 'demo-channel'; }
 function adaptState(value: OperatorStateDto): OperatorSnapshot {
-  return { latestCommand: value.latestCommand, revision: value.session?.revision ?? 0, session: value.session ? { id: value.session.id, status: value.session.status, channelName: value.session.channelId, sessionEpoch: value.session.sessionEpoch, boardVersionId: value.session.boardVersionId, presentationEpoch: value.session.presentationEpoch, previewOnly: value.session.previewOnly } : null, token: { cellId: value.session?.currentCellId ?? 'cell-01', direction: value.session?.direction ?? 'forward' }, dice: null, inventory: [...value.inventory], missions: [...value.missions], counters: value.counters ?? [], effectTasks: value.effectTasks ?? [], movementLock: value.movementLock ?? null, rollModifiers: value.rollModifiers ?? [], donations: [], queue: [], capabilities: value.capabilities, boardDefinition: value.boardDefinition };
+  return { latestCommand: value.latestCommand, revision: value.session?.revision ?? 0, session: value.session ? { id: value.session.id, status: value.session.status, channelName: value.session.channelId, sessionEpoch: value.session.sessionEpoch, boardVersionId: value.session.boardVersionId, presentationEpoch: value.session.presentationEpoch, previewOnly: value.session.previewOnly } : null, token: { cellId: value.session?.currentCellId ?? 'cell-01', direction: value.session?.direction ?? 'forward' }, dice: null, inventory: [...value.inventory], missions: [...value.missions], counters: value.counters ?? [], effectTasks: value.effectTasks ?? [], movementLock: value.movementLock ?? null, rollModifiers: value.rollModifiers ?? [], pawnAppearance: value.pawnAppearance ?? { revision: 0, image: null }, donations: [], queue: [], capabilities: value.capabilities, boardDefinition: value.boardDefinition };
 }

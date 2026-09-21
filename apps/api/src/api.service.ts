@@ -6,6 +6,7 @@ import { transaction, pool } from '../../../packages/database/src/index.ts';
 import type pg from 'pg';
 import { decideTravel, reserveTravelTurn, type TravelReservation } from './travel-turn.ts';
 import { isBoardSupportedForLive, unsupportedBoardEffects } from './board-support.ts';
+import { pawnAppearance } from './pawn-assets.ts';
 
 type Operator = { id: string; role: 'admin'|'operator'|'viewer' };
 export type SessionRow = { id:string; channel_id:string; status:'ready'|'running'|'paused'|'ended'; session_epoch:number; revision:string;
@@ -51,8 +52,9 @@ export class ApiService {
       const rollModifiers=session?await rollModifierState(client,session.id):[];
       const latest=session?await client.query('SELECT * FROM game_commands WHERE session_id=$1 AND status=\'completed\' AND result ? \'dice\' AND result ? \'path\' ORDER BY after_revision DESC,created_at DESC,command_id DESC LIMIT 1',[session.id]):{rows:[]};
       const collectorEnabled=await client.query('SELECT 1 FROM collector_consumer_cursors WHERE channel_id=$1 LIMIT 1',[channelId]);
+      const pawn=await pawnAppearance(client,channelId);
       const canOperate=operator.role!=='viewer'&&access.rows[0].permission!=='view';
-      return { session,boardDefinition:result.rows[0]?.board_definition??null,latestCommand:latest.rows[0]?commandDto(latest.rows[0]):null,inventory,missions,counters,effectTasks,movementLock,rollModifiers,capabilities:{ manualRoll:canOperate,setDirection:canOperate,setPosition:canOperate,
+      return { session,boardDefinition:result.rows[0]?.board_definition??null,latestCommand:latest.rows[0]?commandDto(latest.rows[0]):null,inventory,missions,counters,effectTasks,movementLock,rollModifiers,pawnAppearance:pawn,capabilities:{ manualRoll:canOperate,setDirection:canOperate,setPosition:canOperate,
         arrivalEffects:canOperate&&!!session&&isBoardSupportedForLive(result.rows[0]!.board_definition!),donations:canOperate&&!!collectorEnabled.rowCount,inventory:canOperate,missions:canOperate,sessionLifecycle:canOperate } };
     });
   }
@@ -165,6 +167,14 @@ export class ApiService {
       }else if(body.type==='clear_roll_modifier'){
         const removed=await client.query('DELETE FROM session_roll_modifiers WHERE session_id=$1 AND id=$2 RETURNING factor,uses_remaining',[sessionId,body.payload.modifierId]);
         if(!removed.rowCount)throw new ConflictException('이미 이동 배수가 해제되었습니다.');result={clearedModifier:removed.rows[0]};
+      }else if(body.type==='apply_board_version'){
+        if(session.status!=='paused'||!session.automatic_movement_paused)throw new ConflictException('Board version can only change while movement is paused');
+        if(body.payload.boardVersionId===session.board_version_id)throw new ConflictException('Board version is already active');
+        const target=await client.query<{id:string;board_definition:BoardDefinition}>(`SELECT id,board_definition FROM board_versions WHERE id=$1 AND channel_id=$2 AND status='validated' AND supported_for_live=true FOR SHARE`,[body.payload.boardVersionId,channelId]);
+        if(!target.rowCount)throw new NotFoundException('Runnable board version not found');
+        assertRunnableBoard(target.rows[0].board_definition);assertCompatibleBoardTransition(session.board_definition,target.rows[0].board_definition);
+        const previousBoardVersionId=session.board_version_id;session.board_version_id=target.rows[0].id;session.board_definition=target.rows[0].board_definition;
+        result={previousBoardVersionId,boardVersionId:session.board_version_id};
       }
       else if(body.type==='pause'){if(session.status!=='running')throw new ConflictException('Only a running session can pause');session.status='paused';session.automatic_movement_paused=true;result={status:'paused'};}
       else if(body.type==='resume'){if(session.status!=='paused')throw new ConflictException('Only a paused session can resume');session.status='running';session.automatic_movement_paused=false;result={status:'running'};
@@ -216,9 +226,9 @@ export class ApiService {
         result={mission:missionDto(resolved),...(inventory?{inventory}:{})};
         afterCommands.push(()=>client.query('UPDATE missions SET status=$2,revision=revision+1,resolved_by_command_id=$3,resolved_at=$4 WHERE id=$1',[mission.id,status,body.commandId,resolvedAt]).then(()=>undefined));
       }
-      const invalidatesPresentation=body.type==='set_position'||body.type==='end_session'||body.type==='choose_destination'||body.type==='cancel_destination'||(body.type==='resume'&&!!result&&typeof result==='object'&&'travelTaskId' in result);
-      const updated=await client.query<SessionRow>(`UPDATE game_sessions SET current_cell_id=$2,direction=$3,automatic_movement_paused=$4,status=$5,revision=revision+1,presentation_epoch=presentation_epoch+$6,updated_at=now() WHERE id=$1 RETURNING *`,
-        [session.id,session.current_cell_id,session.direction,session.automatic_movement_paused,session.status,invalidatesPresentation?1:0]);
+      const invalidatesPresentation=body.type==='set_position'||body.type==='end_session'||body.type==='choose_destination'||body.type==='cancel_destination'||body.type==='apply_board_version'||(body.type==='resume'&&!!result&&typeof result==='object'&&'travelTaskId' in result);
+      const updated=await client.query<SessionRow>(`UPDATE game_sessions SET current_cell_id=$2,direction=$3,automatic_movement_paused=$4,status=$5,revision=revision+1,presentation_epoch=presentation_epoch+$6,board_version_id=$7,updated_at=now() WHERE id=$1 RETURNING *`,
+        [session.id,session.current_cell_id,session.direction,session.automatic_movement_paused,session.status,invalidatesPresentation?1:0,session.board_version_id]);
       updated.rows[0].board_definition=session.board_definition;
       const after=this.dto(updated.rows[0]);
       const inserted=await client.query(`INSERT INTO game_commands(command_id,channel_id,session_id,operator_id,type,request_hash,status,before_revision,after_revision,result,reason,session_epoch,presentation_epoch)
@@ -260,6 +270,8 @@ function validateCommand(v:unknown):asserts v is SessionCommandRequest{
     if(!exactObject(v.payload,[]))throw new UnprocessableEntityException('Invalid lock command');
   }else if(v.type==='clear_roll_modifier'){
     if(!exactObject(v.payload,['modifierId'])||!isUuid(v.payload.modifierId))throw new UnprocessableEntityException('Invalid modifier command');
+  }else if(v.type==='apply_board_version'){
+    if(!exactObject(v.payload,['boardVersionId'])||!isUuid(v.payload.boardVersionId))throw new UnprocessableEntityException('Invalid board version command');
   }else if(v.type==='choose_destination'||v.type==='cancel_destination'){
     const keys=v.type==='choose_destination'?['taskId','cellId','expectedTaskRevision']:['taskId','expectedTaskRevision'];
     if(!exactObject(v.payload,keys)||!isUuid(v.payload.taskId)||!Number.isSafeInteger(v.payload.expectedTaskRevision)||Number(v.payload.expectedTaskRevision)<0||(v.type==='choose_destination'&&(typeof v.payload.cellId!=='string'||!v.payload.cellId||v.payload.cellId.length>128)))throw new UnprocessableEntityException('Invalid travel command');
@@ -284,6 +296,12 @@ function validateCommand(v:unknown):asserts v is SessionCommandRequest{
   }else throw new UnprocessableEntityException('Unsupported command type');
 }
 function commandDto(row:any):SessionCommandDto{return{commandId:row.command_id,sessionId:row.session_id,sessionEpoch:row.session_epoch,presentationEpoch:Number(row.presentation_epoch),type:row.type,status:row.status,operatorId:row.operator_id,beforeRevision:Number(row.before_revision),afterRevision:Number(row.after_revision),result:row.result,rejectionCode:row.rejection_code,createdAt:new Date(row.created_at).toISOString()}}
+export function assertCompatibleBoardTransition(current:BoardDefinition,target:BoardDefinition):void{
+  const behavior=(board:BoardDefinition)=>({path:board.path,startCellId:board.startCellId,defaultDirection:board.defaultDirection,counters:board.counters,
+    cells:[...board.cells].sort((a,b)=>a.id.localeCompare(b.id)).map(cell=>({id:cell.id,onLand:cell.onLand,onPass:cell.onPass}))});
+  if(canonicalJson(behavior(current))!==canonicalJson(behavior(target)))throw new UnprocessableEntityException('Board version changes game behavior or stable cell identities');
+}
+function canonicalJson(value:unknown):string{if(Array.isArray(value))return`[${value.map(canonicalJson).join(',')}]`;if(value&&typeof value==='object')return`{${Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,item])=>`${JSON.stringify(key)}:${canonicalJson(item)}`).join(',')}}`;return JSON.stringify(value);}
 function missionDto(row:any):MissionDto{return{durationSeconds:row.duration_seconds??null,id:row.id,message:row.message,quantity:row.quantity,status:row.status,shield:row.shield_item_id?{itemId:row.shield_item_id,quantity:row.shield_quantity}:null,
   revision:Number(row.revision),createdAt:new Date(row.created_at).toISOString(),resolvedAt:row.resolved_at?new Date(row.resolved_at).toISOString():null};}
 type Queryable=Pick<pg.PoolClient,'query'>;

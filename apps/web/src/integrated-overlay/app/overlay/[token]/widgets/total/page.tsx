@@ -7,6 +7,7 @@ import { validateOverlayLayout, type OverlayLayoutDto, type OverlayStateDto } fr
 import { CanvasSizeNotice } from '@/integrated-overlay/domains/overlay/components/shared/CanvasSizeNotice';
 import { rollPlayback } from '@/integrated-overlay/roll-playback';
 import { useRollPresentation } from '@/lib/use-roll-presentation';
+import { apiAssetUrl } from '@/lib/api';
 
 type WidgetId = 'board' | 'dice' | 'current_mission' | 'inventory' | 'direction';
 type LayoutWidget = { id: WidgetId; enabled: boolean; x: number; y: number; w: number; h: number; z: number };
@@ -19,12 +20,12 @@ const DEFAULT_TOTAL_OVERLAY_LAYOUT: TotalLayout = {
   height: 1080,
   background: 'transparent',
   widgets: [
-    { id: 'board', enabled: true, x: 0.015, y: 0.025, w: 0.97, h: 0.95, z: 1 },
+    { id: 'board', enabled: true, x: 0, y: 0, w: 1, h: 1, z: 1 },
     // The board already owns the authoritative dice/Lottie presentation.
     { id: 'dice', enabled: false, x: 0.41, y: 0.39, w: 0.18, h: 0.12, z: 3 },
-    { id: 'current_mission', enabled: true, x: 0.32, y: 0.64, w: 0.36, h: 0.075, z: 3 },
-    { id: 'inventory', enabled: true, x: 0.56, y: 0.28, w: 0.14, h: 0.07, z: 3 },
-    { id: 'direction', enabled: true, x: 0.3, y: 0.28, w: 0.14, h: 0.07, z: 3 },
+    { id: 'current_mission', enabled: true, x: 0.39, y: 0.69, w: 0.22, h: 0.095, z: 3 },
+    { id: 'inventory', enabled: true, x: 0.51, y: 0.255, w: 0.16, h: 0.075, z: 3 },
+    { id: 'direction', enabled: true, x: 0.33, y: 0.255, w: 0.16, h: 0.075, z: 3 },
   ],
 };
 
@@ -83,7 +84,9 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
   const totalLayout = useMemo(() => mergeLayout(state?.layout as Record<string, unknown> | null), [state?.layout]);
   const presentationKey = session ? `${session.id}:${session.sessionEpoch}:${session.presentationEpoch}` : 'none';
   const commandType = state?.latestCommand?.type ?? null;
-  const playback = session ? rollPlayback(state?.latestCommand, board.path, session.currentCellId) : null;
+  const presentationCommand = session && state?.latestCommand?.sessionEpoch === session.sessionEpoch
+    && state.latestCommand.presentationEpoch === session.presentationEpoch ? state.latestCommand : null;
+  const playback = session ? rollPlayback(presentationCommand, board.path, session.currentCellId) : null;
   const presentation = useRollPresentation({sessionKey:session?`${session.id}:${session.sessionEpoch}`:null,presentationEpoch:session?.presentationEpoch??null,authoritativeCellId:session?.currentCellId??board.path[0],boardPath:board.path});
   const currentMission = state?.missions.find((mission) => mission.status === 'pending') ?? null;
 
@@ -120,7 +123,7 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
 
   return (
     <div ref={containerRef} className="fixed inset-0 flex h-screen w-screen items-center justify-center overflow-hidden bg-transparent" data-total-overlay-source="meloming-overlay">
-      <div className="relative overflow-hidden" style={{ width: Math.min(canvasSize.width, canvasSize.height * (totalLayout.width / totalLayout.height)), height: Math.min(canvasSize.height, canvasSize.width / (totalLayout.width / totalLayout.height)), background: totalLayout.background }}>
+      <div className="relative overflow-hidden" style={{ width: Math.min(canvasSize.width, canvasSize.height * (totalLayout.width / totalLayout.height)), height: Math.min(canvasSize.height, canvasSize.width / (totalLayout.width / totalLayout.height)), background: totalLayout.background, containerType: 'inline-size' }}>
       {shouldRenderWidgets && totalLayout.widgets.filter((widget) => widget.enabled).map((widget) => {
         const fittedWidth = Math.min(canvasSize.width, canvasSize.height * (totalLayout.width / totalLayout.height));
         const fittedHeight = Math.min(canvasSize.height, canvasSize.width / (totalLayout.width / totalLayout.height));
@@ -129,7 +132,7 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
         const left = fittedWidth * clamp01(widget.x);
         const top = fittedHeight * clamp01(widget.y);
         return <div key={widget.id} data-overlay-widget={widget.id} data-overlay-version="1" className="absolute" style={{ left, top, width, height, zIndex: widget.z ?? 1 }}>
-          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} tokenCellId={tokenCellId} moving={presentation.moving} dice={presentation.dice.length?presentation.dice:playback?.dice} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} /></div>}
+          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} tokenCellId={tokenCellId} moving={presentation.moving} dice={presentation.dice.length?presentation.dice:playback?.dice} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} pawnImageUrl={state?.pawnAppearance?.image ? apiAssetUrl(state.pawnAppearance.image.url) : null} /></div>}
           {widget.id === 'dice' && <OverlayCard eyebrow="이번 주사위" value={presentation.effectPhase==='anticipation'?'굴리는 중…':(presentation.dice.length?presentation.dice:playback?.dice)?.join(' + ')||'대기 중'} />}
           {widget.id === 'current_mission' && <OverlayCard eyebrow="현재 미션" value={currentMission ? `${currentMission.message} × ${currentMission.quantity}` : '진행 중인 미션 없음'} />}
           {widget.id === 'inventory' && <OverlayCard eyebrow="보유 아이템" value={state?.inventory.length ? state.inventory.map((item) => `${item.name} ${item.quantity}`).join(' · ') : '없음'} align="left" />}
@@ -145,8 +148,8 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
 }
 
 function OverlayCard({ eyebrow, value, align = 'center' }: { eyebrow: string; value: string; align?: 'left' | 'center' }) {
-  return <div className={`h-full w-full overflow-hidden rounded-2xl border border-rose-200/80 bg-white/95 px-4 py-3 text-rose-950 shadow-lg backdrop-blur ${align === 'left' ? 'text-left' : 'text-center'}`}>
-    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-rose-700/70">{eyebrow}</div>
-    <div className="mt-1 line-clamp-3 text-sm font-bold leading-snug">{value}</div>
+  return <div className={`broadcast-hud-card ${align === 'left' ? 'is-left' : ''}`}>
+    <div className="broadcast-hud-eyebrow">{eyebrow}</div>
+    <div className="broadcast-hud-value">{value}</div>
   </div>;
 }

@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { closePool, transaction } from './index.ts';
 import { assertBoardPublishable, validateBoardDefinition, type BoardDefinition } from '../../game-core/src/board-definition.ts';
 import { unsupportedBoardEffects } from '../../game-core/src/runtime-support.ts';
+import { knownAssetIds } from '../../asset-manifest/src/index.ts';
 
 const source = process.argv[2];
 const channelId = process.env.BOARD_CHANNEL_ID?.trim();
@@ -24,7 +25,7 @@ const id = await transaction(async (client) => {
     [channelId, operator.rows[0].id, 'manage']);
   if (!access.rowCount) throw new Error('Operator cannot manage channel');
   const items=await client.query<{item_id:string}>('SELECT item_id FROM item_definitions WHERE channel_id=$1 AND active=true',[channelId]);
-  assertBoardPublishable(board,{itemIds:items.rows.map(row=>row.item_id),assetIds:[]});
+  assertBoardPublishable(board,{itemIds:items.rows.map(row=>row.item_id),assetIds:knownAssetIds});
   const existing=await client.query<{id:string;matches:boolean}>(`SELECT id,board_definition=$3::jsonb matches FROM board_versions WHERE channel_id=$1 AND board_definition->>'id'=$2 ORDER BY created_at DESC LIMIT 1`,[channelId,board.id,board]);
   if(existing.rowCount){if(!existing.rows[0].matches)throw new Error('Board id already exists with different content');await client.query(`UPDATE board_versions SET status='validated',supported_for_live=true WHERE id=$1`,[existing.rows[0].id]);return existing.rows[0].id;}
   const created=randomUUID();await client.query(`INSERT INTO board_versions(id, channel_id, board_definition, status, supported_for_live, created_by)

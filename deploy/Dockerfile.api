@@ -8,12 +8,14 @@ COPY apps/gateway/package.json apps/gateway/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/database/package.json packages/database/package.json
 COPY packages/game-core/package.json packages/game-core/package.json
+COPY packages/asset-manifest/package.json packages/asset-manifest/package.json
 RUN pnpm install --frozen-lockfile
 COPY apps/api apps/api
 COPY apps/gateway apps/gateway
 COPY packages/contracts packages/contracts
 COPY packages/database packages/database
 COPY packages/game-core packages/game-core
+COPY packages/asset-manifest packages/asset-manifest
 COPY presets presets
 RUN pnpm --filter @rogimarble/api... build
 

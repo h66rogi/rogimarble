@@ -1,6 +1,7 @@
 import type { OperatorSnapshot } from './types';
 
 export const demoSnapshot: OperatorSnapshot = {
+  pawnAppearance: { revision: 0, image: null },
   revision: 12,
   session: { id: 'preview-session', status: 'paused', channelName: '체험 채널', sessionEpoch: 1, presentationEpoch: 1, previewOnly: true },
   token: { cellId: 'cell-01', direction: 'forward' },

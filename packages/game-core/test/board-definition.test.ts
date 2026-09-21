@@ -5,6 +5,7 @@ import {
   assertBoardPublishable, getCellRect, previewBoardMove, validateBoardDefinition,
   type BoardDefinition, type BoardEffect,
 } from '../src/board-definition.ts';
+import { knownAssetIds } from '../../asset-manifest/src/index.ts';
 
 type Mutable<T> = T extends readonly (infer U)[] ? Mutable<U>[]
   : T extends object ? { -readonly [K in keyof T]: Mutable<T[K]> } : T;
@@ -15,7 +16,7 @@ function preset(): Mutable<BoardDefinition> {
   return value as Mutable<BoardDefinition>;
 }
 
-const resources = { itemIds: ['drink-shield'], assetIds: ['pawn-walk'] };
+const resources = { itemIds: ['drink-shield'], assetIds: [...knownAssetIds,'pawn-walk'] };
 
 /** Explicit synthetic fixture, never a replacement for the streamer preset. */
 function configuredFixture(): Mutable<BoardDefinition> {
@@ -26,7 +27,7 @@ function configuredFixture(): Mutable<BoardDefinition> {
 
 test('streamer image is represented by 26 independent cells in clockwise logical order', () => {
   const board = preset();
-  assert.deepEqual(board.canvas, { width: 778, height: 519, backgroundColor: '#ffffff' });
+  assert.deepEqual(board.canvas, { width: 1920, height: 1080, backgroundColor: '#fff8ef' });
   assert.equal(board.layout.type, 'perimeter_grid');
   if (board.layout.type !== 'perimeter_grid') return;
   assert.equal(board.layout.columns, 9); assert.equal(board.layout.rows, 6);
@@ -39,7 +40,7 @@ test('streamer image is represented by 26 independent cells in clockwise logical
 test('confirmed streamer rules are configured; arbitrary unresolved drafts still cannot go live', () => {
   const board = preset();
   assertBoardPublishable(board, resources);
-  assert.deepEqual(board.dice, { count: 2, sides: 6 });
+  assert.deepEqual(board.dice, { count: 1, sides: 6 });
   assert.deepEqual(board.counters, [{ id: 'drink-bank', label: '술 적립', unit: '잔', initialValue: 0 }]);
   assert.deepEqual(board.cells[12].onLand, [{ type: 'counter_add', counterId: 'drink-bank', quantity: 1 }]);
   assert.deepEqual(board.cells[17].onLand, [{ type: 'modify_roll', uses: 1, modifier: { type: 'movement_multiplier', factor: 2 } }]);
@@ -50,7 +51,7 @@ test('confirmed streamer rules are configured; arbitrary unresolved drafts still
   assert.throws(() => assertBoardPublishable(board, resources), /Unconfigured cell/);
 });
 
-test('island escape and delayed travel require compatible editable settings', () => {
+test('island escape uses its own two-dice check independently of normal dice count', () => {
   const board = preset();
   assert.deepEqual(board.cells[8].onLand, [{ type: 'movement_lock', release: {
     type: 'skip_rolls_or_doubles', count: 3, onDoubles: 'move_sum',
@@ -59,7 +60,7 @@ test('island escape and delayed travel require compatible editable settings', ()
     allowedCellIds: null, onArrival: 'trigger', timing: 'next_turn', excludeCurrentCell: true }]);
   board.dice.count = 1;
   validateBoardDefinition(board);
-  assert.throws(() => assertBoardPublishable(board, resources), /requires two dice/);
+  assertBoardPublishable(board, resources);
   board.cells[8].onLand = [{ type: 'movement_lock', release: { type: 'skip_rolls', count: 3 } }];
   assertBoardPublishable(board, resources);
   board.cells[13].onLand = [{ type: 'choose_destination', selection: 'both',
@@ -90,13 +91,13 @@ test('renaming cells and reordering the cells array do not change route or actio
 
 test('canvas resize recalculates geometry without changing IDs, routes or effects', () => {
   const board = preset(); const path = [...board.path]; const effects = board.cells.map((cell) => structuredClone(cell.onLand));
-  assert.deepEqual(getCellRect(board, 'cell-01'), { x: 36, y: 33, width: 72, height: 72 });
-  assert.deepEqual(getCellRect(board, 'cell-14'), { x: 660, y: 423, width: 72, height: 72 });
+  assert.deepEqual(getCellRect(board, 'cell-01'), { x: 40, y: 40, width: 192, height: 155 });
+  assert.deepEqual(getCellRect(board, 'cell-14'), { x: 1688, y: 885, width: 192, height: 155 });
   board.canvas.width = 1400; board.canvas.height = 900;
   const resized = getCellRect(board, 'cell-14');
   assert.ok(resized.width > 72 && resized.height > 72);
-  assert.equal(resized.x + resized.width, 1400 - 46);
-  assert.equal(resized.y + resized.height, 900 - 24);
+  assert.equal(resized.x + resized.width, 1400 - 40);
+  assert.equal(resized.y + resized.height, 900 - 40);
   assert.deepEqual(board.path, path); assert.deepEqual(board.cells.map((cell) => cell.onLand), effects);
   board.canvas.width = 10;
   assert.throws(() => validateBoardDefinition(board), /no space/);
@@ -141,7 +142,7 @@ test('freeform cells and central widgets share normalized layout without joining
   board.widgets = [{ id: 'dice', type: 'dice', bounds: { x: 0.3, y: 0.4, width: 0.2, height: 0.2 } },
     { id: 'art', type: 'lottie', assetId: 'pawn-walk', bounds: { x: 0.6, y: 0.4, width: 0.2, height: 0.2 } }];
   assertBoardPublishable(board, resources);
-  assert.equal(board.path.length, 4); assert.ok(Math.abs(getCellRect(board, 'cell-01').width - 77.8) < 1e-9);
+  assert.equal(board.path.length, 4); assert.ok(Math.abs(getCellRect(board, 'cell-01').width - 192) < 1e-9);
   board.widgets[0].bounds.x = 0.95;
   assert.throws(() => validateBoardDefinition(board), /outside canvas/);
 });

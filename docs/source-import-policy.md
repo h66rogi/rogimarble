@@ -16,6 +16,9 @@
 고정 원본·허용 목록·변경 사유는 [통합 오버레이 이식 기록](source-imports/total-overlay.md)에 기록한다.
 `docs/assets/streamer-board-reference.png`는 사용자가 직접 제공한 참고 이미지의 변경 없는 사본이며,
 보드 프리셋은 그 칸 정보를 데이터로 옮긴 것이다. private 참고 레포의 이미지/코드를 가져온 것이 아니다.
+`apps/web/public/artwork/`의 두 주루마블 atlas는 내장 image generation 도구로 새로 제작했다.
+외부 상품·작가의 이미지는 디자인 조사에만 사용했다. 생성 프롬프트와 시각 검토 근거는
+[방송 화면 아트 디렉션](overlay-art-direction.md)에 기록한다. 스트리머가 올린 말 사진은 운영 DB에만 보관한다.
 
 ## 선별 이식 절차
 

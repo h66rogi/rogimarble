@@ -84,6 +84,22 @@ test('health, readiness, cookie session and CSRF fail closed',async()=>{
   assert.equal((await http.post('/v1/channels/test-channel/sessions',{},null)).status,403);
 });
 
+test('pawn image upload is revisioned, sanitized, replaced, and deleted',async()=>{
+  const auth=await login();
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64');
+  const upload=(revision:number,csrf:string|null=auth.csrf,mime='image/png')=>fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image?expectedRevision=${revision}`,{method:'PUT',headers:{cookie:auth.cookie,'content-type':mime,...(csrf?{'x-csrf-token':csrf}:{})},body:png});
+  assert.equal((await upload(0,null)).status,403);
+  assert.equal((await upload(0,auth.csrf,'image/jpeg')).status,415);
+  let response=await upload(0);assert.equal(response.status,200);const first=await response.json() as any;assert.equal(first.revision,1);assert.equal(first.image.mimeType,'image/png');
+  response=await fetch(`http://127.0.0.1:${apiPort}${first.image.url}`);assert.equal(response.status,200);assert.equal(response.headers.get('content-type'),'image/png');
+  assert.equal((await upload(0)).status,409);
+  const replacements=await Promise.all([upload(1),upload(1)]);assert.deepEqual(replacements.map(item=>item.status).sort(),[200,409]);response=replacements.find(item=>item.status===200)!;const second=await response.json() as any;assert.equal(second.revision,2);assert.notEqual(second.image.assetId,first.image.assetId);
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}${first.image.url}`)).status,404);
+  response=await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image?expectedRevision=2`,{method:'DELETE',headers:{cookie:auth.cookie,'x-csrf-token':auth.csrf}});assert.equal(response.status,200);assert.deepEqual(await response.json(),{revision:3,image:null});
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}${second.image.url}`)).status,404);
+  const state=await (await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/operator-state`,{headers:{cookie:auth.cookie}})).json() as any;assert.deepEqual(state.pawnAppearance,{revision:3,image:null});
+});
+
 test('the initial effect board registers once through the shared runtime gate',()=>{
   const env={DATABASE_URL:databaseUrl,BOARD_CHANNEL_ID:'test-channel',BOARD_OPERATOR_USERNAME:'admin'};
   const first=command(process.execPath,['--experimental-strip-types','packages/database/src/register-board.ts','presets/streamer-board.json'],{env});
@@ -133,10 +149,11 @@ test('viewer relation cannot override global read-only role',async()=>{
   command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-v','ON_ERROR_STOP=1','-c',
     `INSERT INTO operators(id,username,password_hash,role) SELECT '${randomUUID()}','viewer',password_hash,'viewer' FROM operators WHERE username='admin';
      INSERT INTO channel_operators(channel_id,operator_id,permission) SELECT 'test-channel',id,'operate' FROM operators WHERE username='viewer';`]);
-  const http=client(await login('viewer')),state=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
+  const viewerAuth=await login('viewer'),http=client(viewerAuth),state=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
   assert.equal(state.capabilities.inventory,false);assert.equal(state.capabilities.sessionLifecycle,false);
   const response=await http.post(`/v1/channels/test-channel/sessions/${state.session.id}/commands`,{commandId:randomUUID(),sessionEpoch:1,
     expectedRevision:1,type:'set_direction',reason:'viewer check',payload:{direction:'reverse'}});assert.equal(response.status,403);
+  const forbiddenUpload=await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image?expectedRevision=0`,{method:'PUT',headers:{cookie:viewerAuth.cookie,'x-csrf-token':viewerAuth.csrf,'content-type':'image/png'},body:Buffer.from('not an image')});assert.equal(forbiddenUpload.status,403);
 });
 
 test('channel view permission disables writes even for operator role',async()=>{
@@ -293,6 +310,7 @@ test('supported arrival effects persist counters, reservations, missions, modifi
   board.cells[4].onLand=[{type:'movement_lock',release:{type:'skip_rolls',count:1}}];
   board.cells[5].onLand=[{type:'counter_settle',counterId:'drink-bank',message:'settle snapshot',shield:null,settleOn:'mission_completion'}];
   board.cells[6].onLand=[{type:'move_steps',steps:2,direction:'with_current',onArrival:'skip',onPass:'skip'}];
+  board.cells[7].onLand=[{type:'movement_lock',release:{type:'skip_rolls_or_doubles',count:3,onDoubles:'release_only'}}];
   const boardVersionId=randomUUID();const operator=(await db.query(`SELECT id FROM operators WHERE username='admin'`)).rows[0].id;
   await db.query(`INSERT INTO board_versions(id,channel_id,board_definition,status,supported_for_live,created_by) VALUES($1,'test-channel',$2,'validated',true,$3)`,[boardVersionId,board,operator]);
   await db.end();
@@ -317,6 +335,19 @@ test('supported arrival effects persist counters, reservations, missions, modifi
   response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'complete_mission',reason:'settlement complete',payload:{missionId:settlement.id,expectedMissionRevision:0}});assert.equal(response.status,201);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,1);assert.equal(state.counters[0].reserved,0);
   const moved=await land(board.cells[6].id);assert.equal((await moved).result.toCellId,board.path[(board.path.indexOf(board.cells[6].id)+2)%board.path.length]);
+  await land(board.cells[7].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();
+  response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'resume',reason:'island dice integration',payload:{}});assert.equal(response.status,201);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'roll_dice',reason:'island escape attempt',payload:{}});assert.equal(response.status,201);assert.equal(((await response.json() as any).result.dice as number[]).length,2);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();if(state.movementLock){response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'clear_movement_lock',reason:'finish island test',payload:{}});assert.equal(response.status,201);}
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'roll_dice',reason:'normal one die',payload:{}});assert.equal(response.status,201);assert.equal(((await response.json() as any).result.dice as number[]).length,1);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'pause',reason:'board version transition',payload:{}});assert.equal(response.status,201);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();const sessionIdBefore=state.session.id,missionIds=state.missions.map((x:any)=>x.id),inventoryBefore=state.inventory;
+  const compatible=structuredClone(board),compatibleId=randomUUID();compatible.id=`compatible-${compatibleId}`;compatible.name='Visual refresh';compatible.canvas={...compatible.canvas,width:compatible.canvas.width+100};compatible.dice={count:1,sides:6};
+  const incompatible=structuredClone(compatible),incompatibleId=randomUUID();incompatible.id=`incompatible-${incompatibleId}`;incompatible.cells[0].onLand=[{type:'set_direction',direction:'toggle'}];
+  const transitionDb=new pg.Client({connectionString:databaseUrl});await transitionDb.connect();await transitionDb.query(`INSERT INTO board_versions(id,channel_id,board_definition,status,supported_for_live,created_by) VALUES($1,'test-channel',$2,'validated',true,$3),($4,'test-channel',$5,'validated',true,$3)`,[compatibleId,compatible,operator,incompatibleId,incompatible]);await transitionDb.end();
+  response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'apply_board_version',reason:'reject behavior change',payload:{boardVersionId:incompatibleId}});assert.equal(response.status,422);
+  response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'apply_board_version',reason:'apply visual and dice update',payload:{boardVersionId:compatibleId}});assert.equal(response.status,201);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session.id,sessionIdBefore);assert.equal(state.session.boardVersionId,compatibleId);assert.equal(state.session.status,'paused');assert.equal(state.session.automaticMovementPaused,true);assert.deepEqual(state.missions.map((x:any)=>x.id),missionIds);assert.deepEqual(state.inventory,inventoryBefore);assert.equal(state.boardDefinition.canvas.width,compatible.canvas.width);
 });
 
 test('next-turn travel reserves exactly one turn and supports selection, pause, resume and cancellation',async()=>{

@@ -8,6 +8,8 @@ import { AccessTokenService } from './access-token.service.ts';
 import { CollectorController } from './collector.controller.ts';
 import { CollectorService } from './collector.service.ts';
 import { DonationIngestionService } from './donation-ingestion.service.ts';
+import { PawnAssetsController } from './pawn-assets.controller.ts';
+import { PawnAssetService } from './pawn-assets.ts';
 
-@Module({ controllers:[AppController,AccessTokenController,CollectorController], providers:[ApiService,ConfigurationService,SessionGuard,CsrfGuard,AccessTokenService,CollectorService,DonationIngestionService] })
+@Module({ controllers:[AppController,AccessTokenController,CollectorController,PawnAssetsController], providers:[ApiService,ConfigurationService,SessionGuard,CsrfGuard,AccessTokenService,CollectorService,DonationIngestionService,PawnAssetService] })
 export class AppModule {}

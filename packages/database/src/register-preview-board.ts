@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateBoardDefinition, type BoardDefinition } from '../../game-core/src/board-definition.ts';
+import { assertBoardPublishable, validateBoardDefinition, type BoardDefinition } from '../../game-core/src/board-definition.ts';
+import { knownAssetIds } from '../../asset-manifest/src/index.ts';
 import { closePool, transaction } from './index.ts';
 
 const channelId=process.env.BOARD_CHANNEL_ID?.trim();
@@ -15,6 +16,7 @@ const preset=source as BoardDefinition;
 const board:BoardDefinition={...preset,id:`${preset.id}-safe-preview`,name:`${preset.name} · 효과 없는 격리 미리보기`,
   cells:preset.cells.map(cell=>({...cell,onLand:[{type:'none'}],onPass:[]}))};
 validateBoardDefinition(board);
+assertBoardPublishable(board,{itemIds:[],assetIds:knownAssetIds});
 const id=randomUUID();
 await transaction(async client=>{
   const operator=await client.query<{id:string}>('SELECT id FROM operators WHERE username=$1 AND disabled_at IS NULL',[username]);

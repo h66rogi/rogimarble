@@ -8,7 +8,7 @@
   "scripts": {
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
-    "test": "node --experimental-strip-types --test packages/game-core/test/*.test.ts",
+    "test": "node --experimental-strip-types --test packages/game-core/test/*.test.ts packages/asset-manifest/test/*.test.ts",
     "preview:up": "./tools/ops/preview.sh up",
     "preview:status": "./tools/ops/preview.sh status",
     "preview:logs": "./tools/ops/preview.sh logs",

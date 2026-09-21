@@ -383,8 +383,6 @@ export function assertBoardPublishable(board: unknown, resources: BoardResources
       if ((effect.type === 'mission' || effect.type === 'counter_settle') && effect.shield !== null) item(effect.shield.itemId);
       if (effect.type === 'movement_lock' && effect.release.type === 'dice_faces'
           && effect.release.faces.some((face) => face > board.dice.sides)) throw new Error('Release face exceeds dice sides');
-      if (effect.type === 'movement_lock' && effect.release.type === 'skip_rolls_or_doubles'
-          && board.dice.count !== 2) throw new Error('Doubles release requires two dice');
       if (effect.type === 'choose_destination' && effect.excludeCurrentCell
           && (effect.allowedCellIds ?? board.path).every((id) => id === cell.id)) {
         throw new Error('Destination selection has no eligible cell');

@@ -4,7 +4,8 @@ export type SessionStatus = 'ready' | 'running' | 'paused' | 'ended';
 export type Direction = 'forward' | 'reverse';
 export type OperatorCommandType = 'create_session' | 'roll_dice' | 'set_direction' | 'set_position' |
   'pause' | 'resume' | 'end_session' | 'adjust_inventory' | 'create_mission' |
-  'complete_mission' | 'waive_mission' | 'use_shield' | 'choose_destination' | 'cancel_destination' | 'adjust_counter' | 'clear_movement_lock' | 'clear_roll_modifier';
+  'complete_mission' | 'waive_mission' | 'use_shield' | 'choose_destination' | 'cancel_destination' | 'adjust_counter' | 'clear_movement_lock' | 'clear_roll_modifier' | 'apply_board_version';
+
 export type OperatorCommandStatus = 'completed' | 'rejected';
 
 export interface LoginRequest {
@@ -110,7 +111,8 @@ export type SessionCommandRequest =
   | CommandBase<'cancel_destination', { readonly taskId: string; readonly expectedTaskRevision: number }>
   | CommandBase<'adjust_counter', { readonly counterId: string; readonly quantity: number; readonly expectedCounterRevision: number }>
   | CommandBase<'clear_movement_lock', Record<string, never>>
-  | CommandBase<'clear_roll_modifier', { readonly modifierId: string }>;
+  | CommandBase<'clear_roll_modifier', { readonly modifierId: string }>
+  | CommandBase<'apply_board_version', { readonly boardVersionId: string }>;
 
 export interface RollResultDto {
   readonly dice: readonly number[];
@@ -141,7 +143,8 @@ export interface SessionCommandDto {
   readonly result: RollResultDto | { readonly direction: Direction } |
     { readonly fromCellId: string; readonly toCellId: string; readonly automaticMovementPaused: true } |
     { readonly status: SessionStatus } | { readonly inventory: InventoryItemDto } |
-    { readonly mission: MissionDto; readonly inventory?: InventoryItemDto } | GameSessionDto | null;
+    { readonly mission: MissionDto; readonly inventory?: InventoryItemDto } |
+    { readonly previousBoardVersionId:string; readonly boardVersionId:string } | GameSessionDto | null;
   readonly rejectionCode: 'unsupported_board_effect' | null;
   readonly createdAt: string;
 }
@@ -164,6 +167,12 @@ export interface MissionDto {
   readonly revision: number; readonly createdAt: string; readonly resolvedAt: string | null;
 }
 
+export interface PawnImageDto {
+  readonly assetId:string; readonly url:string; readonly mimeType:'image/png'|'image/jpeg'|'image/webp';
+  readonly width:number; readonly height:number; readonly source:'upload'; readonly updatedAt:string;
+}
+export interface PawnAppearanceDto { readonly revision:number; readonly image:PawnImageDto|null }
+
 export interface OperatorStateDto {
   readonly latestCommand?: SessionCommandDto | null;
   readonly session: GameSessionDto | null;
@@ -174,6 +183,7 @@ export interface OperatorStateDto {
   readonly effectTasks?: readonly SessionEffectTaskDto[];
   readonly movementLock?: SessionMovementLockDto | null;
   readonly rollModifiers?: readonly SessionRollModifierDto[];
+  readonly pawnAppearance: PawnAppearanceDto;
   readonly capabilities: {
     readonly manualRoll: boolean;
     readonly setDirection: boolean;
@@ -218,7 +228,7 @@ export interface OverlayPresentationCommandDto { readonly commandId:string; read
 export type OverlayWidgetId='board'|'dice'|'current_mission'|'inventory'|'direction';
 export interface OverlayLayoutDto { readonly schemaVersion:1; readonly width:number; readonly height:number; readonly aspectRatio:'16:9'|'9:16'|'4:3'|'custom'; readonly background:string; readonly widgets:readonly {readonly id:OverlayWidgetId;readonly bounds:{readonly x:number;readonly y:number;readonly width:number;readonly height:number};readonly z:number}[] }
 export function validateOverlayLayout(value:unknown):asserts value is OverlayLayoutDto {if(!value||typeof value!=='object'||Array.isArray(value))throw new TypeError('overlay layout must be an object');const x=value as any;if(Object.keys(x).some(k=>!['schemaVersion','width','height','aspectRatio','background','widgets'].includes(k))||x.schemaVersion!==1)throw new TypeError('overlay layout schema is invalid');for(const key of ['width','height'])if(!Number.isInteger(x[key])||x[key]<1||x[key]>7680)throw new TypeError(`${key} must be 1-7680`);if(!['16:9','9:16','4:3','custom'].includes(x.aspectRatio))throw new TypeError('aspectRatio is unsupported');const ratios:Record<string,number>={'16:9':16/9,'9:16':9/16,'4:3':4/3};if(x.aspectRatio!=='custom'&&Math.abs(x.width/x.height-ratios[x.aspectRatio])>0.01)throw new TypeError('width and height must match aspectRatio');if(typeof x.background!=='string'||x.background.length>100)throw new TypeError('background must be text');if(!Array.isArray(x.widgets)||x.widgets.length>5)throw new TypeError('widgets must be an array of at most 5');const allowed=['board','dice','current_mission','inventory','direction'],ids=new Set<string>();for(const widget of x.widgets){if(!widget||typeof widget!=='object'||Object.keys(widget).some(k=>!['id','bounds','z'].includes(k))||!allowed.includes(widget.id)||ids.has(widget.id))throw new TypeError('widget id is invalid or duplicated');ids.add(widget.id);if(!Number.isSafeInteger(widget.z)||widget.z<0||widget.z>100)throw new TypeError('widget z must be 0-100');const b=widget.bounds;if(!b||Object.keys(b).some(k=>!['x','y','width','height'].includes(k)))throw new TypeError('widget bounds are invalid');for(const key of ['x','y','width','height'])if(typeof b[key]!=='number'||!Number.isFinite(b[key])||b[key]<0||b[key]>1)throw new TypeError('widget bounds must be finite normalized numbers');if(b.width===0||b.height===0||b.x+b.width>1||b.y+b.height>1)throw new TypeError('widget is outside layout');}}
-export interface OverlayStateDto { readonly channelId:string; readonly session:GameSessionDto|null; readonly boardDefinition:unknown|null; readonly latestCommand?:OverlayPresentationCommandDto|null; readonly inventory:readonly InventoryItemDto[]; readonly missions:readonly MissionDto[]; readonly layout:unknown|null; readonly capabilities:{readonly arrivalEffects:boolean;readonly donations:boolean} }
+export interface OverlayStateDto { readonly channelId:string; readonly session:GameSessionDto|null; readonly boardDefinition:unknown|null; readonly latestCommand?:OverlayPresentationCommandDto|null; readonly inventory:readonly InventoryItemDto[]; readonly missions:readonly MissionDto[]; readonly pawnAppearance:PawnAppearanceDto; readonly layout:unknown|null; readonly capabilities:{readonly arrivalEffects:boolean;readonly donations:boolean} }
 
 export const operatorApi = {
   health: '/health',
@@ -241,5 +251,6 @@ export const operatorApi = {
   donations: (channelId:string) => `${API_V1}/channels/${channelId}/donations`,
   operations: (channelId:string) => `${API_V1}/channels/${channelId}/operations`,
   obsTokens: (channelId:string) => `${API_V1}/channels/${channelId}/obs-tokens`,
+  pawnImage: (channelId:string) => `${API_V1}/channels/${channelId}/pawn-image`,
   overlayState: `${API_V1}/overlay/state`,
 } as const;

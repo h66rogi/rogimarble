@@ -8,7 +8,7 @@ import { validateBoardDefinition } from '@rogimarble/game-core/board';
 import boardPreset from '../../../../../../presets/streamer-board.json';
 import type { BoardDefinition } from '@rogimarble/game-core/board';
 import type { RunnableBoardVersionDto, SessionCommandDto } from '@rogimarble/contracts';
-import { api } from '../../../../lib/api';
+import { api, apiAssetUrl } from '../../../../lib/api';
 import type { OperatorCommand, OperatorSnapshot } from '../../../../lib/types';
 import { shouldAcceptSnapshot } from '../../../../lib/snapshot-order';
 import { Button } from '@/shared/components/ui/button';
@@ -17,6 +17,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { useRollPresentation } from '../../../../lib/use-roll-presentation';
 import { GameEffectsPanel } from './game-effects-panel';
+import { PawnImageControl } from './pawn-image-control';
 
 const board = boardPreset as unknown as BoardDefinition;
 
@@ -132,6 +133,11 @@ export function MarbleOperationsPanel({ view = 'full' }: { view?: 'full' | 'boar
   };
 
   const locked = busy || Boolean(pending);
+  const updatePawnAppearance = (pawnAppearance: OperatorSnapshot['pawnAppearance']) => {
+    if (!canonical.current) return;
+    canonical.current = { ...canonical.current, pawnAppearance };
+    setState(canonical.current);
+  };
 
   const controls = (
     <div className="marble-operator-controls space-y-4">
@@ -140,6 +146,7 @@ export function MarbleOperationsPanel({ view = 'full' }: { view?: 'full' | 'boar
         <Badge variant={state?.session?.status === 'running' ? 'default' : 'secondary'}>{state?.session?.status === 'running' ? '진행 중' : state?.session?.status === 'paused' ? '일시정지' : '세션 없음'}</Badge>
       </div>
       {error && <p className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">{error}</p>}
+      {state && <PawnImageControl appearance={state.pawnAppearance} disabled={locked} onChange={updatePawnAppearance} />}
       {pending && <div className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs"><strong>이전 명령 확인 필요</strong><p>같은 명령 ID로 결과를 확인하거나 안전하게 재시도합니다.</p><div className="flex gap-2"><Button size="sm" disabled={busy} onClick={() => { const requestSequence = ++sequence.current; mutationFence.current = requestSequence; setBusy(true); void api.reconcilePending().then((result) => { applySnapshot(result.snapshot, requestSequence, true); queuePresentation(result.command); setPending(null); }).catch((cause) => setError(cause.message)).finally(() => setBusy(false)); }}>결과 확인</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => { const requestSequence = ++sequence.current; mutationFence.current = requestSequence; setBusy(true); void api.retryPending().then((result) => { applySnapshot(result.snapshot, requestSequence, true); queuePresentation(result.command); setPending(null); }).catch((cause) => setError(cause.message)).finally(() => setBusy(false)); }}>같은 명령 재시도</Button></div></div>}
       {!state?.session && <div className="space-y-2"><p className="text-xs font-medium">새 세션</p>{boards.length ? boards.map((candidate) => <Button className="w-full" key={candidate.id} disabled={locked || !state?.capabilities?.sessionLifecycle} onClick={() => void start(candidate)}>{candidate.previewOnly ? `${candidate.name} · 효과 없는 검증 세션` : `${candidate.name} 시작`}</Button>) : <p className="text-xs text-muted-foreground">실행 가능한 보드가 없습니다.</p>}</div>}
       <label className="grid gap-1 text-xs font-medium">작업 사유<Input value={reason} onChange={(event) => setReason(event.target.value)} /></label>
@@ -165,7 +172,7 @@ export function MarbleOperationsPanel({ view = 'full' }: { view?: 'full' | 'boar
   );
 
   if (view === 'controls') return controls;
-  const boardView = <section className="min-w-0 rounded-lg border bg-card p-3">{boardError && <p className="mb-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">{boardError}</p>}<Board board={liveBoard} tokenCellId={presentation.cellId} moving={presentation.moving} dice={presentation.dice} effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} interactive selectedCellId={selectedCell} onCellSelect={setSelectedCell} /></section>;
+  const boardView = <section className="min-w-0 rounded-lg border bg-card p-3">{boardError && <p className="mb-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">{boardError}</p>}<Board board={liveBoard} tokenCellId={presentation.cellId} moving={presentation.moving} dice={presentation.dice} effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} pawnImageUrl={state?.pawnAppearance.image ? apiAssetUrl(state.pawnAppearance.image.url) : null} interactive selectedCellId={selectedCell} onCellSelect={setSelectedCell} /></section>;
   if (view === 'board') return boardView;
   return <>{boardView}{controlsRoot ? createPortal(<div className="space-y-4 p-4">{controls}</div>, controlsRoot) : <aside className="mt-4 rounded-lg border bg-card p-4 lg:hidden">{controls}</aside>}</>;
 }
