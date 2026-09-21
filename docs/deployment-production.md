@@ -44,7 +44,7 @@ sudo ./tools/ops/install-host.sh --data-uuid 'EXPECTED-UUID' --initialize-data \
 unit을 자동 enable/start하지 않으며, release checkout·secret·manifest 검증 뒤 운영자가 활성화한다.
 
 첫 bootstrap에서는 example을 복사해 `/etc/rogimarble/release-source.json`,
-`/etc/rogimarble/secrets-manager.json`, `/etc/rogimarble/backup.json`과
+`/etc/rogimarble/secrets-manager.json`, `/etc/rogimarble/registry.json`, `/etc/rogimarble/backup.json`과
 `/etc/rogimarble/runtime-overlay.json`을 root:root 0600으로 만들고 placeholder를 실제 검증된 public repository,
 EBS UUID, channel 및 image UID/GID로 바꾼다. secret 파일도 각각 root:root 0600으로 만든 뒤 첫 release를 수동 실행해
 검증한다. Secrets Manager runtime container에는 아래 여섯 key의 JSON SecretString을 AWSCURRENT로 먼저 넣는다.
@@ -155,9 +155,10 @@ directive로 만들며, 빈 값이면 directive 전체를 생략한다.
 /opt/rogimarble/app/tools/ops/deploy.sh --manifest /etc/rogimarble/release.json
 ```
 
-helper는 host flock 아래 manifest·checksum·mount·secret mode·Compose config를 확인한 뒤 public GHCR의 digest image를
-anonymous pull한다. EC2에는 사람의 GitHub token을 저장하지 않는다. 최초 publish 뒤 package visibility를 public으로
-바꾸는 단계가 완료되지 않았다면 배포는 pull 실패로 닫힌다.
+helper는 host flock 아래 manifest·checksum·mount·secret mode·Compose config를 확인한 뒤
+`/etc/rogimarble/registry.json`이 가리키는 전용 Secrets Manager 값 `{username,token}`을 instance role로 가져온다.
+root 0700 `/run/rogimarble/docker-auth`의 0600 Docker config는 digest pull 한 명령에만 `--config`로 전달하고 성공·실패
+모두 즉시 삭제한다. 사람의 PAT, 장기 login, 인증 실패 시 anonymous fallback은 허용하지 않는다.
 UID/GID는 선택한 immutable image에서 확인한 값이어야 한다. 활성 env를 바꾸지 않은 candidate env로
 PostgreSQL/Redis를 준비한 뒤 manifest로 검증한 host migration directory를 read-only mount하여 forward migration을
 일회성으로 실행한다. migration 성공 후 checksum이 검증된 helper와 systemd unit을 원자적으로 설치하고 설치본을
@@ -185,7 +186,7 @@ token이나 SSH deploy key를 두지 않는다. downloader는 configured public 
 release에서 `release-bundle.tar.gz`와 `.sha256`만 받고, tag가 `production-<40자 sourceSha>`와 정확히 일치해야
 진행한다. public Actions runs API에서 `.github/workflows/release.yml`이 같은 source SHA의 main push로 성공했는지도
 요구한다. archive checksum, 안전한 경로, build manifest exact fields를 확인한 뒤 root-owned
-`runtime-overlay.json`을 합친다. immutable GHCR package가 public이 아니거나 어느 검증이라도 실패하면 기존 앱을 유지한다.
+`runtime-overlay.json`을 합친다. private immutable GHCR pull이나 어느 검증이라도 실패하면 기존 앱을 유지한다.
 
 `/usr/local/lib/rogimarble/production-status.py`는 활성 release/source/image receipt, app unit, Compose container 상태,
 canonical readiness, data disk 사용량, 최신 backup 나이를 JSON으로 반환한다. collector/후원 연결 여부를 정상으로

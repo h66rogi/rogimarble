@@ -28,7 +28,7 @@ RUNTIME_FILES = {"deploy/Caddyfile.production", "deploy/postgres/init-roles.sh",
                  "deploy/systemd/rogimarble-backup.service", "deploy/systemd/rogimarble-backup.timer",
                  "tools/ops/release.py", "tools/ops/deploy.sh", "tools/ops/supervise.sh",
                  "tools/ops/prepare-secrets.sh", "tools/ops/install-host.sh", "tools/ops/fetch-release.py",
-                 "tools/ops/production-status.py", "tools/ops/backup-postgres.sh", "tools/ops/fetch-runtime-secrets.py", "tools/ops/upload-backup.py"}
+                 "tools/ops/production-status.py", "tools/ops/backup-postgres.sh", "tools/ops/fetch-runtime-secrets.py", "tools/ops/upload-backup.py", "tools/ops/load-registry-auth.py"}
 RUNTIME_KEYS = {"webDomain", "apiDomain", "acmeEmail", "channelId", "composeProjectName", "dataRoot",
                 "dataVolumeUuid", "postgresDb", "postgresAdminUser", "migrationDbUser", "appDbUser",
                 "apiUid", "apiGid", "webUid", "webGid", "postgresUid", "postgresGid", "redisUid", "redisGid", "caddyUid", "caddyGid"}
@@ -193,6 +193,7 @@ def installed_runtime_destinations(lib_root:Path,unit_root:Path)->dict[str,Path]
     "tools/ops/production-status.py":lib_root/"production-status.py","tools/ops/backup-postgres.sh":lib_root/"backup-postgres.sh",
     "tools/ops/fetch-runtime-secrets.py":lib_root/"fetch-runtime-secrets.py",
     "tools/ops/upload-backup.py":lib_root/"upload-backup.py",
+    "tools/ops/load-registry-auth.py":lib_root/"load-registry-auth.py",
     "deploy/systemd/rogimarble-app.service":unit_root/"rogimarble-app.service","deploy/systemd/rogimarble-secrets.service":unit_root/"rogimarble-secrets.service",
     "deploy/systemd/rogimarble-update.service":unit_root/"rogimarble-update.service","deploy/systemd/rogimarble-update.timer":unit_root/"rogimarble-update.timer",
     "deploy/systemd/rogimarble-backup.service":unit_root/"rogimarble-backup.service","deploy/systemd/rogimarble-backup.timer":unit_root/"rogimarble-backup.timer"}
@@ -234,7 +235,11 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
         manifest, env_file = preflight(manifest_path, runner, app_root,config_root,run_root, data_root)
         prepare_runtime(manifest,app_root,config_root,run_root,"candidate-release.env")
         compose = ["docker", "compose", "--env-file", str(env_file), "-f", str(app_root / COMPOSE_PATH)]
-        runner.run(compose + ["pull"])
+        registry=run_root/"docker-auth";shutil.rmtree(registry,ignore_errors=True)
+        try:
+            runner.run(["python3",str(app_root/"tools/ops/load-registry-auth.py"),"--metadata",str(config_root/"registry.json"),"--output",str(registry)])
+            runner.run(["docker","--config",str(registry),"compose","--env-file",str(env_file),"-f",str(app_root/COMPOSE_PATH),"pull"])
+        finally:shutil.rmtree(registry,ignore_errors=True)
         runner.run(compose + ["up", "-d", "--no-build", "--wait", "postgres", "redis"])
         runner.run(compose + ["run", "--rm", "--no-deps", "migrate"])
         # Only after a successful forward migration may systemd replace the application set.

@@ -26,6 +26,7 @@ while [ "$#" -gt 0 ];do
   esac
 done
 [ "$(id -u)" -eq 0 ]||{ echo 'must run as root' >&2;exit 1; }
+if ! python3 -c 'import boto3' >/dev/null 2>&1;then apt-get update;DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-boto3;fi
 [ -n "$data_uuid" ]||usage
 mount_identity=$(findmnt -n -o TARGET,UUID --target /srv/rogimarble 2>/dev/null||true)
 [ "$mount_identity" = "/srv/rogimarble $data_uuid" ]||{ echo 'refusing install: /srv/rogimarble UUID mismatch or not mounted exactly there' >&2;exit 1; }
@@ -41,6 +42,7 @@ install -m 0755 "$repo_dir/tools/ops/production-status.py" /usr/local/lib/rogima
 install -m 0755 "$repo_dir/tools/ops/backup-postgres.sh" /usr/local/lib/rogimarble/backup-postgres.sh
 install -m 0755 "$repo_dir/tools/ops/fetch-runtime-secrets.py" /usr/local/lib/rogimarble/fetch-runtime-secrets.py
 install -m 0755 "$repo_dir/tools/ops/upload-backup.py" /usr/local/lib/rogimarble/upload-backup.py
+install -m 0755 "$repo_dir/tools/ops/load-registry-auth.py" /usr/local/lib/rogimarble/load-registry-auth.py
 install -m 0644 "$repo_dir/deploy/systemd/rogimarble-secrets.service" /etc/systemd/system/rogimarble-secrets.service
 install -m 0644 "$repo_dir/deploy/systemd/rogimarble-app.service" /etc/systemd/system/rogimarble-app.service
 install -m 0644 "$repo_dir/deploy/systemd/rogimarble-update.service" /etc/systemd/system/rogimarble-update.service

@@ -37,7 +37,7 @@ class ReleaseTest(unittest.TestCase):
         (app / "deploy").mkdir(parents=True); (app / "packages/database/migrations").mkdir(parents=True)
         (app/".release-source-sha").write_text("b"*40+"\n",encoding="ascii")
         compose = app / "deploy/compose.production.yaml"; compose.write_text("services: {}\n", encoding="utf-8")
-        runtime_paths=("deploy/Caddyfile.production","deploy/postgres/init-roles.sh","deploy/systemd/rogimarble-app.service","deploy/systemd/rogimarble-secrets.service","deploy/systemd/rogimarble-update.service","deploy/systemd/rogimarble-update.timer","deploy/systemd/rogimarble-backup.service","deploy/systemd/rogimarble-backup.timer","tools/ops/release.py","tools/ops/deploy.sh","tools/ops/supervise.sh","tools/ops/prepare-secrets.sh","tools/ops/install-host.sh","tools/ops/fetch-release.py","tools/ops/production-status.py","tools/ops/backup-postgres.sh","tools/ops/fetch-runtime-secrets.py","tools/ops/upload-backup.py")
+        runtime_paths=("deploy/Caddyfile.production","deploy/postgres/init-roles.sh","deploy/systemd/rogimarble-app.service","deploy/systemd/rogimarble-secrets.service","deploy/systemd/rogimarble-update.service","deploy/systemd/rogimarble-update.timer","deploy/systemd/rogimarble-backup.service","deploy/systemd/rogimarble-backup.timer","tools/ops/release.py","tools/ops/deploy.sh","tools/ops/supervise.sh","tools/ops/prepare-secrets.sh","tools/ops/install-host.sh","tools/ops/fetch-release.py","tools/ops/production-status.py","tools/ops/backup-postgres.sh","tools/ops/fetch-runtime-secrets.py","tools/ops/upload-backup.py","tools/ops/load-registry-auth.py")
         for relative in runtime_paths:
             target=app/relative;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(relative+"\n",encoding="utf-8")
         migration = app / "packages/database/migrations/001_test.sql"; migration.write_text("SELECT 1;\n", encoding="utf-8")
@@ -98,6 +98,7 @@ class ReleaseTest(unittest.TestCase):
         migrate=next(i for i,v in enumerate(rendered) if " run --rm --no-deps migrate" in v);supervisor=next(i for i,v in enumerate(rendered) if v=="systemctl restart rogimarble-app.service")
         self.assertLess(pull,storage);self.assertLess(storage,migrate);self.assertLess(migrate,supervisor)
         self.assertTrue((run/"deployed-release.json").is_file())
+        self.assertFalse((run/"docker-auth").exists())
         self.assertEqual(digest(run/"lib/supervise.sh"),json.loads(manifest_path.read_text())["runtimeFiles"]["tools/ops/supervise.sh"])
         (run/"lib/supervise.sh").write_text("tampered\n")
         with self.assertRaisesRegex(ReleaseError,"installed runtime file checksum"):verify_installed_runtime(json.loads(manifest_path.read_text()),run/"lib",run/"units")
