@@ -45,6 +45,7 @@ test("published broadcast styles render six themes, four real fonts, and exact m
       dicePrice: { source: "rules", label: "주사위 딱 한 번", currencyLabel: "별" },
       widgets: [
         { id: "board", bounds: { x: 0, y: 0, width: 1, height: 1 }, z: 1 },
+        { id: "direction", bounds: { x: 0.68, y: 0.3, width: 0.15, height: 0.08 }, z: 3 },
         { id: "menu", bounds: { x: 0.365, y: 0.27, width: 0.27, height: 0.34 }, z: 4 },
         { id: "dice_price", bounds: { x: 0.39, y: 0.63, width: 0.22, height: 0.075 }, z: 4 },
       ],
@@ -87,7 +88,7 @@ test("published broadcast styles render six themes, four real fonts, and exact m
     await expect(surface).toHaveAttribute("data-board-font", fontId);
     await expect(page.locator('[data-broadcast-panel="menu"]')).toHaveAttribute("data-board-font", fontId);
     await page.evaluate(() => document.fonts.ready);
-    for (const selector of [".marble-board .cell-label", ".broadcast-panel__heading strong", ".broadcast-panel__price-label"])
+    for (const selector of [".marble-board .cell-label", ".broadcast-panel__heading strong", ".broadcast-panel__price-label", ".broadcast-hud-eyebrow", ".broadcast-hud-value"])
       await expect.poll(async () => (await renderedFontForBoardLabel(page, selector)).some(font => font.isCustomFont && font.familyName.includes(expectedFamily))).toBe(true);
   }
 

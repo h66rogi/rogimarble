@@ -33,8 +33,8 @@
       "sourcePath": "app/overlay/[token]/widgets/total/page.tsx",
       "targetPath": "apps/web/src/integrated-overlay/app/overlay/[token]/widgets/total/page.tsx",
       "sourceSha256": "d7273306798dc5bbe16fd23553d3452ca2bc8d74e6f70a4b24e4ea5403ba9df7",
-      "importedSha256": "2043e0c7c55c738b9b8cc8fe7e9b964f274ec331dbdc5688788ec476bc343794",
-      "adaptation": "Active original total-overlay entry directly adapted: normalized canvas measurement, widget geometry, z-order and render loop retained; server-authoritative Rogimarble board, dice, mission, inventory, direction, channel photo pawn and connection status. The default canvas fills 1920x1080; presentation epochs prevent stale dice after a compatible board transition."
+      "importedSha256": "badd91c2e3c20ebf2a0dfb2da02d8f4b33cbae911c7ec7e6185e262fcc9bbef7",
+      "adaptation": "Active original total-overlay entry directly adapted: normalized canvas measurement, widget geometry, z-order and render loop retained; server-authoritative Rogimarble board, dice, mission, inventory, direction, channel photo pawn, connection status, menu and dice-price panels. Theme and selected font apply to the board and all broadcast panels. The default canvas fills 1920x1080; presentation epochs prevent stale dice after a compatible board transition."
     },
     {
       "sourcePath": "domains/overlay/apis/lyrics.ts",
