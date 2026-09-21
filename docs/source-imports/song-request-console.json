@@ -1,0 +1,1230 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "dylabs/meloming-front",
+    "requestedRef": "515226a0^",
+    "resolvedCommit": "3346d2e14c7823ae9d748cdd9f704e886e06ee19"
+  },
+  "scope": "Complete song-request popup console dependency closure; no original Git history or unrelated root application.",
+  "authorization": "User explicitly requested the original console code and its dependencies as the implementation starting point.",
+  "files": [
+    {
+      "sourcePath": "src/app/(popup)/console/[user]/page.tsx",
+      "targetPath": "apps/web/src/app/(popup)/console/[user]/page.tsx",
+      "sourceSha256": "3a4e21081d4c38a7238cc07f214cbef42840ac3e66fde77a003d6dae418177cc",
+      "importedSha256": "3a4e21081d4c38a7238cc07f214cbef42840ac3e66fde77a003d6dae418177cc",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/app/(popup)/layout.tsx",
+      "targetPath": "apps/web/src/app/(popup)/layout.tsx",
+      "sourceSha256": "91c73904b6eba131dc33e6ba6ed1529f13b4694823c0bc1cd6d2f1653fc85ed0",
+      "importedSha256": "91c73904b6eba131dc33e6ba6ed1529f13b4694823c0bc1cd6d2f1653fc85ed0",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/app/globals.css",
+      "targetPath": "apps/web/src/app/globals.css",
+      "sourceSha256": "273092bc046fedef0bdf51434bc5baba849d3ca2c7afad906f6fe942156f8274",
+      "importedSha256": "15dc90bc8babc7692c30d1121fcf634973256ee9c51a69095dc8b6eec8418ae0",
+      "adaptation": "Self-host NanumSquareNeo; remove original font hosts; preserve layout rules."
+    },
+    {
+      "sourcePath": "src/domains/auth/apis/auth.ts",
+      "targetPath": "apps/web/src/domains/auth/apis/auth.ts",
+      "sourceSha256": "f27c1d639c43ead14c37e0b7fb17e4e487d01ec0ebed7b7522d1e202c130099f",
+      "importedSha256": "f27c1d639c43ead14c37e0b7fb17e4e487d01ec0ebed7b7522d1e202c130099f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/auth/hooks/use-auth.ts",
+      "targetPath": "apps/web/src/domains/auth/hooks/use-auth.ts",
+      "sourceSha256": "10b5c47c36eefadd9ab808c3ae865793678e40b3c62d9f649d1b2f85b67d1752",
+      "importedSha256": "10b5c47c36eefadd9ab808c3ae865793678e40b3c62d9f649d1b2f85b67d1752",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/auth/types/auth.ts",
+      "targetPath": "apps/web/src/domains/auth/types/auth.ts",
+      "sourceSha256": "1dfa4fa9440e95f2f3e5cc3d7a16722bd31e2d7948c5d01934beda5366e4e7e1",
+      "importedSha256": "1dfa4fa9440e95f2f3e5cc3d7a16722bd31e2d7948c5d01934beda5366e4e7e1",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/apis/artists.ts",
+      "targetPath": "apps/web/src/domains/channel/apis/artists.ts",
+      "sourceSha256": "4cad8fd17469a74503538b03ad5df6540254fdbeaccff868c6efec0165cd040d",
+      "importedSha256": "4cad8fd17469a74503538b03ad5df6540254fdbeaccff868c6efec0165cd040d",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/apis/categories.ts",
+      "targetPath": "apps/web/src/domains/channel/apis/categories.ts",
+      "sourceSha256": "a6f3f0cb0e93de9820f282d11b7c67ea0a543dd76120c37a2994e3cf3a68251e",
+      "importedSha256": "a6f3f0cb0e93de9820f282d11b7c67ea0a543dd76120c37a2994e3cf3a68251e",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/apis/channels.ts",
+      "targetPath": "apps/web/src/domains/channel/apis/channels.ts",
+      "sourceSha256": "640500d263da9f16d33ab30506bfb8f91ae4a1db54ba3b0a5f76ee885adb18fe",
+      "importedSha256": "640500d263da9f16d33ab30506bfb8f91ae4a1db54ba3b0a5f76ee885adb18fe",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/apis/live-status.ts",
+      "targetPath": "apps/web/src/domains/channel/apis/live-status.ts",
+      "sourceSha256": "dd914ab5df2d348881fd146461b383707ce92cfa5df0849a21b40ac2b3a81249",
+      "importedSha256": "dd914ab5df2d348881fd146461b383707ce92cfa5df0849a21b40ac2b3a81249",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/apis/overlay-layouts.ts",
+      "targetPath": "apps/web/src/domains/channel/apis/overlay-layouts.ts",
+      "sourceSha256": "5c3894ce6f2628e0d9a92415ba83330ea06a33a57289e8d4705cd9fd566d1d0e",
+      "importedSha256": "5c3894ce6f2628e0d9a92415ba83330ea06a33a57289e8d4705cd9fd566d1d0e",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/apis/overlay-theme.ts",
+      "targetPath": "apps/web/src/domains/channel/apis/overlay-theme.ts",
+      "sourceSha256": "00706b7adf4e2a2931254821baacb9907a2864f419014d7aa8c2f0ac674028c7",
+      "importedSha256": "00706b7adf4e2a2931254821baacb9907a2864f419014d7aa8c2f0ac674028c7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/apis/pricing.ts",
+      "targetPath": "apps/web/src/domains/channel/apis/pricing.ts",
+      "sourceSha256": "d56107ae3c7215d3111c414cd7c50c7dc6aec211cdd5b013e56ac20991548437",
+      "importedSha256": "d56107ae3c7215d3111c414cd7c50c7dc6aec211cdd5b013e56ac20991548437",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/apis/songs.ts",
+      "targetPath": "apps/web/src/domains/channel/apis/songs.ts",
+      "sourceSha256": "b37afa475896006e7d594bbe9c701201373bab5e583e04acd8ba373348b06f72",
+      "importedSha256": "b37afa475896006e7d594bbe9c701201373bab5e583e04acd8ba373348b06f72",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/atoms/channel-atom.ts",
+      "targetPath": "apps/web/src/domains/channel/atoms/channel-atom.ts",
+      "sourceSha256": "ff9686e33058d28b8fd36a5703e7415e8d04bf27f363595eba30f7ac89cfdd0c",
+      "importedSha256": "ff9686e33058d28b8fd36a5703e7415e8d04bf27f363595eba30f7ac89cfdd0c",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/management/management-header.tsx",
+      "targetPath": "apps/web/src/domains/channel/components/management/management-header.tsx",
+      "sourceSha256": "9da4ed0cca4f4d17c9ee63b9bc6dd92cc566af0264250efaa705cb67bb969dd3",
+      "importedSha256": "9da4ed0cca4f4d17c9ee63b9bc6dd92cc566af0264250efaa705cb67bb969dd3",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/SheetMusicCanvas.tsx",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/SheetMusicCanvas.tsx",
+      "sourceSha256": "8a813e8800ea555175c86cee9300f1fb9984cdc1977da5c4c5951e5d76391bb4",
+      "importedSha256": "8a813e8800ea555175c86cee9300f1fb9984cdc1977da5c4c5951e5d76391bb4",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/SheetMusicDropzone.tsx",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/SheetMusicDropzone.tsx",
+      "sourceSha256": "cfb76770555ce5a0b79be0a36b70f0565b6852ed3608667a80b2fb0a25d922ed",
+      "importedSha256": "cfb76770555ce5a0b79be0a36b70f0565b6852ed3608667a80b2fb0a25d922ed",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/SheetMusicSection.tsx",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/SheetMusicSection.tsx",
+      "sourceSha256": "99ae09719cd8f3c6ac832e730ea1a948f413a36da8a87cb22b2dac0f0f7c8ed7",
+      "importedSha256": "99ae09719cd8f3c6ac832e730ea1a948f413a36da8a87cb22b2dac0f0f7c8ed7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/SheetMusicThumbnailStrip.tsx",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/SheetMusicThumbnailStrip.tsx",
+      "sourceSha256": "0b98db75124ecc66430be27777dd73106c3476ea0d3d078d845a8ede93614b5a",
+      "importedSha256": "0b98db75124ecc66430be27777dd73106c3476ea0d3d078d845a8ede93614b5a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/SheetMusicToolbar.tsx",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/SheetMusicToolbar.tsx",
+      "sourceSha256": "0c1a26d334e88381b278eeeca1fddbd0ca25181d3ae589ba66221f887e9c0cef",
+      "importedSha256": "0c1a26d334e88381b278eeeca1fddbd0ca25181d3ae589ba66221f887e9c0cef",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/SheetMusicUploader.tsx",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/SheetMusicUploader.tsx",
+      "sourceSha256": "131f5b9e7a0038afc129505058af613e64eb6a8c60c74174499d12f8599db1cf",
+      "importedSha256": "131f5b9e7a0038afc129505058af613e64eb6a8c60c74174499d12f8599db1cf",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/SheetMusicViewer.tsx",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/SheetMusicViewer.tsx",
+      "sourceSha256": "5e81a55507f90d0053e04efe32a09937915df52dd5ef93a1954bdd14cd10a696",
+      "importedSha256": "5e81a55507f90d0053e04efe32a09937915df52dd5ef93a1954bdd14cd10a696",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/hooks/useLastViewState.ts",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/hooks/useLastViewState.ts",
+      "sourceSha256": "b37f3ac2000bc644e22d3239efbb191fbc5d10006ec8ce4bf55d49e0016cfe62",
+      "importedSha256": "b37f3ac2000bc644e22d3239efbb191fbc5d10006ec8ce4bf55d49e0016cfe62",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/hooks/useSheetMusicShortcuts.ts",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/hooks/useSheetMusicShortcuts.ts",
+      "sourceSha256": "6856d08b48bf77978e18081c166674f6820e5fcc7aeafbd73c301ab710adaa7b",
+      "importedSha256": "6856d08b48bf77978e18081c166674f6820e5fcc7aeafbd73c301ab710adaa7b",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/index.ts",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/index.ts",
+      "sourceSha256": "ec51fe8e4e26b18a3379e9d115bca1cdcaf16b5c662a90a77b6def883f938f9c",
+      "importedSha256": "ec51fe8e4e26b18a3379e9d115bca1cdcaf16b5c662a90a77b6def883f938f9c",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/utils/detectSheetMusicType.ts",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/utils/detectSheetMusicType.ts",
+      "sourceSha256": "e7292447a169920b243be583de793a518a9d931340dfb7d5fdca6733547755eb",
+      "importedSha256": "e7292447a169920b243be583de793a518a9d931340dfb7d5fdca6733547755eb",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/viewers/ImageViewer.tsx",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/viewers/ImageViewer.tsx",
+      "sourceSha256": "5726af9b29112ba385e995062ac8f451f6bb6fd129c305b95fcfac7d4bc1891c",
+      "importedSha256": "5726af9b29112ba385e995062ac8f451f6bb6fd129c305b95fcfac7d4bc1891c",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/viewers/MusicXmlViewer.tsx",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/viewers/MusicXmlViewer.tsx",
+      "sourceSha256": "39dc0d273813f73e544164c3c644bb7c5eeb322fa82ee800a4abd83fe6d0f0a3",
+      "importedSha256": "39dc0d273813f73e544164c3c644bb7c5eeb322fa82ee800a4abd83fe6d0f0a3",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/components/sheet-music/viewers/PdfViewer.tsx",
+      "targetPath": "apps/web/src/domains/channel/components/sheet-music/viewers/PdfViewer.tsx",
+      "sourceSha256": "8503aa189d6c14cdcc29764a457341a0e59d92c257cae84792d617cb073ef4ca",
+      "importedSha256": "8503aa189d6c14cdcc29764a457341a0e59d92c257cae84792d617cb073ef4ca",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/hooks/use-artists.ts",
+      "targetPath": "apps/web/src/domains/channel/hooks/use-artists.ts",
+      "sourceSha256": "2d4a4e1debbd449b260ee9b5bf14edceb48a4224bf70e28b1b287dc3cc82f155",
+      "importedSha256": "2d4a4e1debbd449b260ee9b5bf14edceb48a4224bf70e28b1b287dc3cc82f155",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/hooks/use-categories-management.ts",
+      "targetPath": "apps/web/src/domains/channel/hooks/use-categories-management.ts",
+      "sourceSha256": "69cfd833cc844eb529f5cb00f89f7f2534c47c1e9a5fa7aa3e7c41f3a2b553e2",
+      "importedSha256": "69cfd833cc844eb529f5cb00f89f7f2534c47c1e9a5fa7aa3e7c41f3a2b553e2",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/hooks/use-categories.ts",
+      "targetPath": "apps/web/src/domains/channel/hooks/use-categories.ts",
+      "sourceSha256": "c730a41fd342c72d736f8203800922d8778e2c6523d82800438f5b71b2a4e90a",
+      "importedSha256": "c730a41fd342c72d736f8203800922d8778e2c6523d82800438f5b71b2a4e90a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/hooks/use-channel.ts",
+      "targetPath": "apps/web/src/domains/channel/hooks/use-channel.ts",
+      "sourceSha256": "2763899558a4c2b96345ee93abe369c08946273b203b9541c36fb3f6e01c8f4d",
+      "importedSha256": "2763899558a4c2b96345ee93abe369c08946273b203b9541c36fb3f6e01c8f4d",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/hooks/use-live-statuses.ts",
+      "targetPath": "apps/web/src/domains/channel/hooks/use-live-statuses.ts",
+      "sourceSha256": "3aa8dc83459711029bef7a43693979c126434c0352126badd652674be397bce3",
+      "importedSha256": "3aa8dc83459711029bef7a43693979c126434c0352126badd652674be397bce3",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/hooks/use-my-channel.ts",
+      "targetPath": "apps/web/src/domains/channel/hooks/use-my-channel.ts",
+      "sourceSha256": "cce03fc2da177e8cbcb6ed01565e6b094e15110a0c3efbc0dbe4948006de36d2",
+      "importedSha256": "cce03fc2da177e8cbcb6ed01565e6b094e15110a0c3efbc0dbe4948006de36d2",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/hooks/use-overlay-layouts.ts",
+      "targetPath": "apps/web/src/domains/channel/hooks/use-overlay-layouts.ts",
+      "sourceSha256": "b59d4d5a478bc39d3a8a7658ac12a7cdda7888b31ad1fc2258538eb362c3c0ea",
+      "importedSha256": "b59d4d5a478bc39d3a8a7658ac12a7cdda7888b31ad1fc2258538eb362c3c0ea",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/hooks/use-overlay-theme.ts",
+      "targetPath": "apps/web/src/domains/channel/hooks/use-overlay-theme.ts",
+      "sourceSha256": "e698256f4fff929412cf96c1f8a698ed2b4d70e26476498822f10d765162ca1f",
+      "importedSha256": "e698256f4fff929412cf96c1f8a698ed2b4d70e26476498822f10d765162ca1f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/hooks/use-overlay-token.ts",
+      "targetPath": "apps/web/src/domains/channel/hooks/use-overlay-token.ts",
+      "sourceSha256": "9329a89f8e4cb6c9f6dabaac0efa46bc862b2376e3042ce1dd42d17fecb9c15b",
+      "importedSha256": "9329a89f8e4cb6c9f6dabaac0efa46bc862b2376e3042ce1dd42d17fecb9c15b",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/hooks/use-pricing-settings.ts",
+      "targetPath": "apps/web/src/domains/channel/hooks/use-pricing-settings.ts",
+      "sourceSha256": "b650e77c3e4d5013396eb4023f8900f1ffc2c27f6f072ebb2cb470248b1d3425",
+      "importedSha256": "b650e77c3e4d5013396eb4023f8900f1ffc2c27f6f072ebb2cb470248b1d3425",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/hooks/use-songs.ts",
+      "targetPath": "apps/web/src/domains/channel/hooks/use-songs.ts",
+      "sourceSha256": "c266a3472c29b38318e7934eaecc5dbea3b43aad97f5c3be9c7ec558068ebc56",
+      "importedSha256": "c266a3472c29b38318e7934eaecc5dbea3b43aad97f5c3be9c7ec558068ebc56",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/types/artist.ts",
+      "targetPath": "apps/web/src/domains/channel/types/artist.ts",
+      "sourceSha256": "9d493fb6404c268266ded7ddcff391c83d56bb8fa8fcd95c3036807e60e274b4",
+      "importedSha256": "9d493fb6404c268266ded7ddcff391c83d56bb8fa8fcd95c3036807e60e274b4",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/types/category.ts",
+      "targetPath": "apps/web/src/domains/channel/types/category.ts",
+      "sourceSha256": "0e2a9bdd1b720a42dcd7f27fb67507a353443899295ce81f89a6b499a2111cd5",
+      "importedSha256": "0e2a9bdd1b720a42dcd7f27fb67507a353443899295ce81f89a6b499a2111cd5",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/types/channel-tab.ts",
+      "targetPath": "apps/web/src/domains/channel/types/channel-tab.ts",
+      "sourceSha256": "513d21a7399de8637ddbabe8b07d4767e3341aebd82b56dd5315062cee629c1c",
+      "importedSha256": "97d2e38170734fff399184bcd771c284013d3d0577ed233e6499014e12bbb42a",
+      "adaptation": "Isolate original authentication, API, realtime, media, font or service URL transport; unsupported operations fail closed."
+    },
+    {
+      "sourcePath": "src/domains/channel/types/channel.ts",
+      "targetPath": "apps/web/src/domains/channel/types/channel.ts",
+      "sourceSha256": "baddbdf83fc7ffd8f55d1637967725631967c09bff969accf5606a44137684a0",
+      "importedSha256": "baddbdf83fc7ffd8f55d1637967725631967c09bff969accf5606a44137684a0",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/types/customization.ts",
+      "targetPath": "apps/web/src/domains/channel/types/customization.ts",
+      "sourceSha256": "4cab12b9af750107b9231b9a9c4d40401ca671cd05b248fcab1469792c7dd4f1",
+      "importedSha256": "4cab12b9af750107b9231b9a9c4d40401ca671cd05b248fcab1469792c7dd4f1",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/types/live-status.ts",
+      "targetPath": "apps/web/src/domains/channel/types/live-status.ts",
+      "sourceSha256": "5b46c23dfbae3dd102fc90de1aed2c40c2acaaf265227f340bba0030363ac074",
+      "importedSha256": "5b46c23dfbae3dd102fc90de1aed2c40c2acaaf265227f340bba0030363ac074",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/types/pricing.ts",
+      "targetPath": "apps/web/src/domains/channel/types/pricing.ts",
+      "sourceSha256": "5775e6f96253ade3bfe4078768cfbbec9c669491b138dc041005f7876f3f4b3a",
+      "importedSha256": "5775e6f96253ade3bfe4078768cfbbec9c669491b138dc041005f7876f3f4b3a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/types/serper.ts",
+      "targetPath": "apps/web/src/domains/channel/types/serper.ts",
+      "sourceSha256": "6b25c6c49f918df2016e40ac9e2bc3f1f432fc45808312a6992163a5bd86f619",
+      "importedSha256": "6b25c6c49f918df2016e40ac9e2bc3f1f432fc45808312a6992163a5bd86f619",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/types/song.ts",
+      "targetPath": "apps/web/src/domains/channel/types/song.ts",
+      "sourceSha256": "32f63528a3465f42524e531ee9bf9942cc7411c62340ddecf52ab9ff87acb39f",
+      "importedSha256": "32f63528a3465f42524e531ee9bf9942cc7411c62340ddecf52ab9ff87acb39f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/types/spotify.ts",
+      "targetPath": "apps/web/src/domains/channel/types/spotify.ts",
+      "sourceSha256": "fb601aa32dc49aa1d0a3581739b61d67eb89b4e91672295e307915d868708a37",
+      "importedSha256": "fb601aa32dc49aa1d0a3581739b61d67eb89b4e91672295e307915d868708a37",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/channel/utils/donation-amount-format.ts",
+      "targetPath": "apps/web/src/domains/channel/utils/donation-amount-format.ts",
+      "sourceSha256": "76f543fa8b849cd603b7cf0438b6a4ae1e980080ac1197580619a4b4ec57d3f4",
+      "importedSha256": "76f543fa8b849cd603b7cf0438b6a4ae1e980080ac1197580619a4b4ec57d3f4",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/clip/utils/youtube-api.ts",
+      "targetPath": "apps/web/src/domains/clip/utils/youtube-api.ts",
+      "sourceSha256": "f93f27c6ed093577e7dc24663b232d458cee589133dee385674d4a0ea57f10e4",
+      "importedSha256": "e5a60eb01e7c98854ba66bef94af0adcc95c6ce88b132a3b336dc55a2ba24c65",
+      "adaptation": "Isolate original authentication, API, realtime, media, font or service URL transport; unsupported operations fail closed."
+    },
+    {
+      "sourcePath": "src/domains/overlay/apis/channel-song-request-settings.ts",
+      "targetPath": "apps/web/src/domains/overlay/apis/channel-song-request-settings.ts",
+      "sourceSha256": "d7adeddbe165e88f673132765ecf97359cfc72457b736a8a7380d26bac81a7d9",
+      "importedSha256": "d7adeddbe165e88f673132765ecf97359cfc72457b736a8a7380d26bac81a7d9",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/apis/console-lyrics.ts",
+      "targetPath": "apps/web/src/domains/overlay/apis/console-lyrics.ts",
+      "sourceSha256": "f96e43fdf02eb9d151488593e6ce059310cea05b13e2ed939866b787e47ba923",
+      "importedSha256": "f96e43fdf02eb9d151488593e6ce059310cea05b13e2ed939866b787e47ba923",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/apis/gateway-playback.ts",
+      "targetPath": "apps/web/src/domains/overlay/apis/gateway-playback.ts",
+      "sourceSha256": "bcab9eb6f10d596408427b60c0386d1b1b48971169da1ac1566b1208cefa04c1",
+      "importedSha256": "bcab9eb6f10d596408427b60c0386d1b1b48971169da1ac1566b1208cefa04c1",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/apis/omakase.ts",
+      "targetPath": "apps/web/src/domains/overlay/apis/omakase.ts",
+      "sourceSha256": "8bfd6b3e58166aef88022e5dcdc2f4b20615da3a931333a37fec1c9189676ed3",
+      "importedSha256": "8bfd6b3e58166aef88022e5dcdc2f4b20615da3a931333a37fec1c9189676ed3",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/apis/public-session.ts",
+      "targetPath": "apps/web/src/domains/overlay/apis/public-session.ts",
+      "sourceSha256": "1eeabc475241f35acc610bd34763f4f6e1253e31c178e77d94c41071757d60e2",
+      "importedSha256": "1eeabc475241f35acc610bd34763f4f6e1253e31c178e77d94c41071757d60e2",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/apis/session.ts",
+      "targetPath": "apps/web/src/domains/overlay/apis/session.ts",
+      "sourceSha256": "3e4542eddeefbcd3e119303bf16d0a7de0db5b109ac21092428ff553eda6f876",
+      "importedSha256": "3e4542eddeefbcd3e119303bf16d0a7de0db5b109ac21092428ff553eda6f876",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/apis/song-requests.ts",
+      "targetPath": "apps/web/src/domains/overlay/apis/song-requests.ts",
+      "sourceSha256": "e38fbbb8f7f8718f01665d7cc55e5f65b77e6c19e139c413517a66699e71af15",
+      "importedSha256": "e38fbbb8f7f8718f01665d7cc55e5f65b77e6c19e139c413517a66699e71af15",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/console-karaoke-suggestions.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/console-karaoke-suggestions.tsx",
+      "sourceSha256": "cb2aa60a6dce2b49b937f1eea6f5cb969628b92d3f24edfa3a36c50157c99fef",
+      "importedSha256": "cb2aa60a6dce2b49b937f1eea6f5cb969628b92d3f24edfa3a36c50157c99fef",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/end-session-confirm-dialog.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/end-session-confirm-dialog.tsx",
+      "sourceSha256": "8e5d1c130a3525e1f192a68504f4f3619c49259dda4327eb841c824647a93919",
+      "importedSha256": "8e5d1c130a3525e1f192a68504f4f3619c49259dda4327eb841c824647a93919",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/live-console-content.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/live-console-content.tsx",
+      "sourceSha256": "c775dcd51110058d4b281f15e778bcc49e31cea611bc14cbf042be3e6be6a91c",
+      "importedSha256": "e09420a7924fb7f7c523f8c4491057d3c827020456c59af9534c99ec5c915f4d",
+      "adaptation": "Replace analytics import with local no-op; preserve original UI/handlers."
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/lyrics-panel.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/lyrics-panel.tsx",
+      "sourceSha256": "39880e8389a36ed65b15dc1d17335f308a231482b7fe266c9e798f27cbc068a2",
+      "importedSha256": "ef4ff65e6420bf6cd1139502561f7e497b001f1ddf706f4f871a285fc84ab02f",
+      "adaptation": "Replace analytics import with local no-op; preserve original UI/handlers."
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/onboarding/contextual-hint.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/onboarding/contextual-hint.tsx",
+      "sourceSha256": "e9ffdbea385c53a81e5fa63b63a05bbeb787b910809744ef60c95842e91f9285",
+      "importedSha256": "e9ffdbea385c53a81e5fa63b63a05bbeb787b910809744ef60c95842e91f9285",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/onboarding/feature-flow.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/onboarding/feature-flow.tsx",
+      "sourceSha256": "85f0e20e73179dbd8465e8e8b0d7f2fa77b601babbed5a8aef1287c1934b4710",
+      "importedSha256": "85f0e20e73179dbd8465e8e8b0d7f2fa77b601babbed5a8aef1287c1934b4710",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/onboarding/index.ts",
+      "targetPath": "apps/web/src/domains/overlay/components/onboarding/index.ts",
+      "sourceSha256": "dc57209a7a3b45ed6024c933d8c03773fc6fd5fd4c8d53e007dd1e15515b449a",
+      "importedSha256": "dc57209a7a3b45ed6024c933d8c03773fc6fd5fd4c8d53e007dd1e15515b449a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/onboarding/obs-setup-guide.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/onboarding/obs-setup-guide.tsx",
+      "sourceSha256": "30a20bd9938b6eaa55ad4cf0d5ad0101743bbada9f34c277fb22fae44aa32a3d",
+      "importedSha256": "30a20bd9938b6eaa55ad4cf0d5ad0101743bbada9f34c277fb22fae44aa32a3d",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/onboarding/quick-start-presets.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/onboarding/quick-start-presets.tsx",
+      "sourceSha256": "762239afba7fa4acbb898102fab9771e36fdd1a5800121eef36c560be9452f3f",
+      "importedSha256": "762239afba7fa4acbb898102fab9771e36fdd1a5800121eef36c560be9452f3f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/onboarding/setup-checklist.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/onboarding/setup-checklist.tsx",
+      "sourceSha256": "1c907cce1a1cda0ce09eb1e82a03229c093e3162c6be7aa03e62fd4894143727",
+      "importedSha256": "1c907cce1a1cda0ce09eb1e82a03229c093e3162c6be7aa03e62fd4894143727",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-copy-guide-dialog.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-copy-guide-dialog.tsx",
+      "sourceSha256": "e071ffc76f0354291828cb2e2d0cde62bc05db4e0fa490a567a9ee1624fd7371",
+      "importedSha256": "e071ffc76f0354291828cb2e2d0cde62bc05db4e0fa490a567a9ee1624fd7371",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-settings-content.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-settings-content.tsx",
+      "sourceSha256": "e37b78e9743ab69859accf3db9db5488e1bd1a6ebf9a2e1724b1ec2287826cee",
+      "importedSha256": "e37b78e9743ab69859accf3db9db5488e1bd1a6ebf9a2e1724b1ec2287826cee",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-unified-settings/AlertboxComingSoon.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-unified-settings/AlertboxComingSoon.tsx",
+      "sourceSha256": "1c57c113a2e0e584c551b6d058e3ef58772ae2f3186e07ee71c04918f07123d0",
+      "importedSha256": "1c57c113a2e0e584c551b6d058e3ef58772ae2f3186e07ee71c04918f07123d0",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-unified-settings/CanvasIframePreview.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-unified-settings/CanvasIframePreview.tsx",
+      "sourceSha256": "08ad4d6b49d61d0f7cc3ca594563b665c48e758e5b75fd4d5e6dac4e60cb48df",
+      "importedSha256": "08ad4d6b49d61d0f7cc3ca594563b665c48e758e5b75fd4d5e6dac4e60cb48df",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-unified-settings/OverlayUnifiedPage.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-unified-settings/OverlayUnifiedPage.tsx",
+      "sourceSha256": "70583e7bb90363bb4ecec64123a92847436b73fb86f5d380ea2f184ef129ab3d",
+      "importedSha256": "70583e7bb90363bb4ecec64123a92847436b73fb86f5d380ea2f184ef129ab3d",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-unified-settings/OverviewTabContent.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-unified-settings/OverviewTabContent.tsx",
+      "sourceSha256": "7e508f684dffbc0e108c760750920276b2e32a1279dbe864f1e200025b9e204e",
+      "importedSha256": "7e508f684dffbc0e108c760750920276b2e32a1279dbe864f1e200025b9e204e",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-unified-settings/StickyUrlCard.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-unified-settings/StickyUrlCard.tsx",
+      "sourceSha256": "b2d8878f302e2e1cff013b5c576ec162daf613a08945e22252892dc89b32b3e3",
+      "importedSha256": "b2d8878f302e2e1cff013b5c576ec162daf613a08945e22252892dc89b32b3e3",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-unified-settings/TabBar.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-unified-settings/TabBar.tsx",
+      "sourceSha256": "1aa4b5af27767e4cc50fb6c0ca592a17d90caef5cf1dc67cdcd0d2492be4ca87",
+      "importedSha256": "1aa4b5af27767e4cc50fb6c0ca592a17d90caef5cf1dc67cdcd0d2492be4ca87",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-unified-settings/ThemeConfigSection.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-unified-settings/ThemeConfigSection.tsx",
+      "sourceSha256": "81500baf2613963059ea76d33d71e989fe2f710f9ef34470f45e5ed40531ffd5",
+      "importedSha256": "81500baf2613963059ea76d33d71e989fe2f710f9ef34470f45e5ed40531ffd5",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-unified-settings/WidgetSettingsDialog.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-unified-settings/WidgetSettingsDialog.tsx",
+      "sourceSha256": "64b4f5058db250b58dbfb08351ee19860d9f3846b7e01fbdfede12d7ca1f2ba5",
+      "importedSha256": "64b4f5058db250b58dbfb08351ee19860d9f3846b7e01fbdfede12d7ca1f2ba5",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-unified-settings/dirty-guard.ts",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-unified-settings/dirty-guard.ts",
+      "sourceSha256": "15213469e2b6c09f204c1d1c8d3d0c80acf143c068ac239fc552b83291143a3c",
+      "importedSha256": "15213469e2b6c09f204c1d1c8d3d0c80acf143c068ac239fc552b83291143a3c",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-unified-settings/index.ts",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-unified-settings/index.ts",
+      "sourceSha256": "6e32ac0793da61beff6eb88b00cebea07edfc1c475fbec35429628224a4d47b8",
+      "importedSha256": "6e32ac0793da61beff6eb88b00cebea07edfc1c475fbec35429628224a4d47b8",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/overlay-unified-settings/tabs.ts",
+      "targetPath": "apps/web/src/domains/overlay/components/overlay-unified-settings/tabs.ts",
+      "sourceSha256": "63bb5c3e9db6900d93e09c4a0ec8b33475f863e9d75fb338907a764a63a23a6f",
+      "importedSha256": "63bb5c3e9db6900d93e09c4a0ec8b33475f863e9d75fb338907a764a63a23a6f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/pitch-shift-control.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/pitch-shift-control.tsx",
+      "sourceSha256": "d597a0f4eadf7b4c0ec7c3f020127286d7d13d8c00cd4d3fc1c4deba6ac93b0f",
+      "importedSha256": "d597a0f4eadf7b4c0ec7c3f020127286d7d13d8c00cd4d3fc1c4deba6ac93b0f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/pitch-shift-section.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/pitch-shift-section.tsx",
+      "sourceSha256": "9452616717f0f7361a05fa14bdba0a9ee75cc942ccb62f46019a7a3b2501d8a0",
+      "importedSha256": "9452616717f0f7361a05fa14bdba0a9ee75cc942ccb62f46019a7a3b2501d8a0",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/session-history-columns.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/session-history-columns.tsx",
+      "sourceSha256": "491e2bb26a7d00ba780c40a1df80f7e32445fe32a8a927536436618b986b946a",
+      "importedSha256": "491e2bb26a7d00ba780c40a1df80f7e32445fe32a8a927536436618b986b946a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/session-history-detail.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/session-history-detail.tsx",
+      "sourceSha256": "039dc8c893bc4b3c0c1fe75fc61e3285e5bd0bcfc21e917b51fd2cbe17a9a0a0",
+      "importedSha256": "039dc8c893bc4b3c0c1fe75fc61e3285e5bd0bcfc21e917b51fd2cbe17a9a0a0",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/session-history.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/session-history.tsx",
+      "sourceSha256": "fd2cf7c76e10919289b1bda5e5a2bacd8c72cd81472fd9cf892a528b44aa2ff3",
+      "importedSha256": "fd2cf7c76e10919289b1bda5e5a2bacd8c72cd81472fd9cf892a528b44aa2ff3",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/session-settings-fields.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/session-settings-fields.tsx",
+      "sourceSha256": "7112c7ef9a19626118d534ed00d24192197baddd10eecc1d02bd050b4ef2bbed",
+      "importedSha256": "7112c7ef9a19626118d534ed00d24192197baddd10eecc1d02bd050b4ef2bbed",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/shared/CommandReferenceList.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/shared/CommandReferenceList.tsx",
+      "sourceSha256": "e60d8ad29ccf9c9e3ed03f104d4d0fcb068dce9989ea64e0074532b56869ec35",
+      "importedSha256": "e60d8ad29ccf9c9e3ed03f104d4d0fcb068dce9989ea64e0074532b56869ec35",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/song-request-user-blocks-panel.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/song-request-user-blocks-panel.tsx",
+      "sourceSha256": "8f47bc3a7441eb84e2d62d7c844c233e22a385485c14eba5f1c4a893b3a5c2cb",
+      "importedSha256": "8f47bc3a7441eb84e2d62d7c844c233e22a385485c14eba5f1c4a893b3a5c2cb",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-management/FloatingSaveBar.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-management/FloatingSaveBar.tsx",
+      "sourceSha256": "45be94bfed1e4023233b640f078b7aaab6dc805188e77e47ef0ea5e5681f0ddb",
+      "importedSha256": "45be94bfed1e4023233b640f078b7aaab6dc805188e77e47ef0ea5e5681f0ddb",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-management/ThemePreview.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-management/ThemePreview.tsx",
+      "sourceSha256": "c435dc4671eb33541528cc526b3f8e37db0297d472df1dd7102568337ad26b77",
+      "importedSha256": "c435dc4671eb33541528cc526b3f8e37db0297d472df1dd7102568337ad26b77",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-management/ThemeTabContent.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-management/ThemeTabContent.tsx",
+      "sourceSha256": "df7b046fabaa2c55d683f121cfd2d4adb9195b7ec61151bea9cbe08af4acc19d",
+      "importedSha256": "df7b046fabaa2c55d683f121cfd2d4adb9195b7ec61151bea9cbe08af4acc19d",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-management/WidgetTabContent.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-management/WidgetTabContent.tsx",
+      "sourceSha256": "58ffe1afd0d8a64b1bedf84851c18581c62873f3b7ff6dbb053a0456817ea3e7",
+      "importedSha256": "58ffe1afd0d8a64b1bedf84851c18581c62873f3b7ff6dbb053a0456817ea3e7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-management/utils.ts",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-management/utils.ts",
+      "sourceSha256": "1f2d5297fa962b67b71ce7d805662e8c6a35942c2feaca5bfec62d3d4470d1c4",
+      "importedSha256": "1f2d5297fa962b67b71ce7d805662e8c6a35942c2feaca5bfec62d3d4470d1c4",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-selection/ThemeCard.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-selection/ThemeCard.tsx",
+      "sourceSha256": "02118c39d5b41a42b8baf112b8a2e089965b71d4b7b386c3d375aa8967e5922e",
+      "importedSha256": "02118c39d5b41a42b8baf112b8a2e089965b71d4b7b386c3d375aa8967e5922e",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-selection/ThemeFilter.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-selection/ThemeFilter.tsx",
+      "sourceSha256": "72e4008d4b7fb5b29421a862ddeba6b1c84fc56963b171765a9d342abf73a7a8",
+      "importedSha256": "72e4008d4b7fb5b29421a862ddeba6b1c84fc56963b171765a9d342abf73a7a8",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-selection/ThemeGrid.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-selection/ThemeGrid.tsx",
+      "sourceSha256": "128c91713db53ad5ad996f6f0f39d0efb5a2f5ceed4ac1a23f54e74a83468e41",
+      "importedSha256": "128c91713db53ad5ad996f6f0f39d0efb5a2f5ceed4ac1a23f54e74a83468e41",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-selection/WidgetOverridePanel.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-selection/WidgetOverridePanel.tsx",
+      "sourceSha256": "342b94129503384bd640fc43b4b57218300b0d2774bfd165f4184a523451a1f0",
+      "importedSha256": "342b94129503384bd640fc43b4b57218300b0d2774bfd165f4184a523451a1f0",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-selection/index.ts",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-selection/index.ts",
+      "sourceSha256": "b4549fa424b3c1b4790aac354ca9f6edad181683059caf5cc9bcd266124965c2",
+      "importedSha256": "b4549fa424b3c1b4790aac354ca9f6edad181683059caf5cc9bcd266124965c2",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-settings/dynamic-form/DynamicOptionForm.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-settings/dynamic-form/DynamicOptionForm.tsx",
+      "sourceSha256": "8c64c94ff171b03324dd8e6c6e876ba82ba5a7a57939d92f3d1685e670ef074f",
+      "importedSha256": "8c64c94ff171b03324dd8e6c6e876ba82ba5a7a57939d92f3d1685e670ef074f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-settings/dynamic-form/fields/ColorField.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-settings/dynamic-form/fields/ColorField.tsx",
+      "sourceSha256": "9d90b1c30689ad84869796bdbdb09f79f5d03e7041fba5ec1eab42f6f5f73bf6",
+      "importedSha256": "9d90b1c30689ad84869796bdbdb09f79f5d03e7041fba5ec1eab42f6f5f73bf6",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-settings/dynamic-form/fields/FontField.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-settings/dynamic-form/fields/FontField.tsx",
+      "sourceSha256": "49be5a0ed32a77b748e251235e464229702d379431f470f420c56bd269d91053",
+      "importedSha256": "edd3494d63970786d3dd334f99234a71921ee2cefbf002c6cd956a9a7cc47ea6",
+      "adaptation": "Isolate original authentication, API, realtime, media, font or service URL transport; unsupported operations fail closed."
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-settings/dynamic-form/fields/NumberField.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-settings/dynamic-form/fields/NumberField.tsx",
+      "sourceSha256": "0e4ba90b36013869106a4a0de42f2aaee8d0edbabd3229aa17c6246f15423a07",
+      "importedSha256": "0e4ba90b36013869106a4a0de42f2aaee8d0edbabd3229aa17c6246f15423a07",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-settings/dynamic-form/fields/RangeField.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-settings/dynamic-form/fields/RangeField.tsx",
+      "sourceSha256": "f3dd3ee75d544538485c907e66421a0b8631ef9664b53cff23fffedc36048267",
+      "importedSha256": "f3dd3ee75d544538485c907e66421a0b8631ef9664b53cff23fffedc36048267",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-settings/dynamic-form/fields/SelectField.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-settings/dynamic-form/fields/SelectField.tsx",
+      "sourceSha256": "8275dd9796893bebe968ee21db2471d8ecf9c2523e7c63a057df0db2ff2aa4e5",
+      "importedSha256": "8275dd9796893bebe968ee21db2471d8ecf9c2523e7c63a057df0db2ff2aa4e5",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-settings/dynamic-form/fields/TextField.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-settings/dynamic-form/fields/TextField.tsx",
+      "sourceSha256": "7db7676aa50ef1e01f0ccc22ad48be4968b1cb4f45332efb0947d026448ca7f8",
+      "importedSha256": "7db7676aa50ef1e01f0ccc22ad48be4968b1cb4f45332efb0947d026448ca7f8",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/theme-settings/dynamic-form/fields/ToggleField.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/theme-settings/dynamic-form/fields/ToggleField.tsx",
+      "sourceSha256": "5730a3d02582b4d8fb732870954e46ff19a0b2fcc2e001e7bb7c234f59518410",
+      "importedSha256": "5730a3d02582b4d8fb732870954e46ff19a0b2fcc2e001e7bb7c234f59518410",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/components/total-overlay-layout-settings.tsx",
+      "targetPath": "apps/web/src/domains/overlay/components/total-overlay-layout-settings.tsx",
+      "sourceSha256": "d210de386d407962d067e656614333eddf1aeeba39b9340a6589916bfccc400b",
+      "importedSha256": "d210de386d407962d067e656614333eddf1aeeba39b9340a6589916bfccc400b",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/constants/total-layout.ts",
+      "targetPath": "apps/web/src/domains/overlay/constants/total-layout.ts",
+      "sourceSha256": "308e100bddd173144d296203e21867c588eef38f59071ee404bddaa7d8ea34e6",
+      "importedSha256": "308e100bddd173144d296203e21867c588eef38f59071ee404bddaa7d8ea34e6",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/hooks/use-channel-song-request-settings.ts",
+      "targetPath": "apps/web/src/domains/overlay/hooks/use-channel-song-request-settings.ts",
+      "sourceSha256": "c8e9a58b86d81c4993e91d87e84f173a429463f65f2ed937467d1918a3badf33",
+      "importedSha256": "c8e9a58b86d81c4993e91d87e84f173a429463f65f2ed937467d1918a3badf33",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/hooks/use-console-lyrics.ts",
+      "targetPath": "apps/web/src/domains/overlay/hooks/use-console-lyrics.ts",
+      "sourceSha256": "f0d9878001cb22bb0fa754ce797d4fa45f9103b9864e3bdc97e464e764e2b58a",
+      "importedSha256": "f0d9878001cb22bb0fa754ce797d4fa45f9103b9864e3bdc97e464e764e2b58a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/hooks/use-omakase.ts",
+      "targetPath": "apps/web/src/domains/overlay/hooks/use-omakase.ts",
+      "sourceSha256": "df19cd7b3961f51becd613d5fd6558f752ef561a4c5357d33d71a0efa87a1733",
+      "importedSha256": "df19cd7b3961f51becd613d5fd6558f752ef561a4c5357d33d71a0efa87a1733",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/hooks/use-onboarding.ts",
+      "targetPath": "apps/web/src/domains/overlay/hooks/use-onboarding.ts",
+      "sourceSha256": "d5c0fd9ead829e0d4361c835710d4d94e45f8f98add3497f861885150208be73",
+      "importedSha256": "d5c0fd9ead829e0d4361c835710d4d94e45f8f98add3497f861885150208be73",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/hooks/use-overlay-socket.ts",
+      "targetPath": "apps/web/src/domains/overlay/hooks/use-overlay-socket.ts",
+      "sourceSha256": "66e8c52d0c001a5e3cc6594e2e4eb7f9304f2fb59780476fa62c4044b80943b9",
+      "importedSha256": "5541752d52427cf192189999da20723099d3c7684426a46e3350752de2e8647f",
+      "adaptation": "Isolate original authentication, API, realtime, media, font or service URL transport; unsupported operations fail closed."
+    },
+    {
+      "sourcePath": "src/domains/overlay/hooks/use-pitch-shift.ts",
+      "targetPath": "apps/web/src/domains/overlay/hooks/use-pitch-shift.ts",
+      "sourceSha256": "f1b6b49b8c7933103fea8526858e567f92b68053911f34119fa7c5c404cf4e8f",
+      "importedSha256": "f1b6b49b8c7933103fea8526858e567f92b68053911f34119fa7c5c404cf4e8f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/hooks/use-session.ts",
+      "targetPath": "apps/web/src/domains/overlay/hooks/use-session.ts",
+      "sourceSha256": "c08a68be6757aed301e155b510789d33e88de77d37fc4355dff82686860d9230",
+      "importedSha256": "c08a68be6757aed301e155b510789d33e88de77d37fc4355dff82686860d9230",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/overlay/hooks/use-song-requests.ts",
+      "targetPath": "apps/web/src/domains/overlay/hooks/use-song-requests.ts",
+      "sourceSha256": "588b85e206018fa8ebe7dce278cb71cb3fa845f19e1ffc312cb09652a1217369",
+      "importedSha256": "1974768e3f2f1392f810bfa9797c3dcb6fb15e6e53cf4086bd366230eff7c47a",
+      "adaptation": "Replace analytics import with local no-op; preserve original UI/handlers."
+    },
+    {
+      "sourcePath": "src/domains/overlay/hooks/use-youtube-player.ts",
+      "targetPath": "apps/web/src/domains/overlay/hooks/use-youtube-player.ts",
+      "sourceSha256": "363554eb3172f2a2085ffee4c08c6a2b9b7e6cd92672b1d6deec09604a061ea3",
+      "importedSha256": "7c5ee5867453e3a39b21447fd634786c97f23a2a0b2669e5096eae41c05e98b8",
+      "adaptation": "Isolate original authentication, API, realtime, media, font or service URL transport; unsupported operations fail closed."
+    },
+    {
+      "sourcePath": "src/domains/overlay/utils/is-cors-media-playback-url.ts",
+      "targetPath": "apps/web/src/domains/overlay/utils/is-cors-media-playback-url.ts",
+      "sourceSha256": "b8cbf0092bacde7081a2df5df1ccfc5875b88e909a93fbad83ee65a7b922f005",
+      "importedSha256": "85094c6bfe17019dc0a7d43182862a3a1e8077eb19aff7809ebc8c0b06453c9b",
+      "adaptation": "Isolate original authentication, API, realtime, media, font or service URL transport; unsupported operations fail closed."
+    },
+    {
+      "sourcePath": "src/domains/overlay/utils/session-format.ts",
+      "targetPath": "apps/web/src/domains/overlay/utils/session-format.ts",
+      "sourceSha256": "92ceb622c694a947a8bc6bb83529b9e9e674d397887a726361f6b50deedb30b4",
+      "importedSha256": "92ceb622c694a947a8bc6bb83529b9e9e674d397887a726361f6b50deedb30b4",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/sync/apis/sync-overlay-layouts.ts",
+      "targetPath": "apps/web/src/domains/sync/apis/sync-overlay-layouts.ts",
+      "sourceSha256": "c892111fd344dcca6d66bd806edaa35140cf37e92db3f493b7afffc5a94263b3",
+      "importedSha256": "c892111fd344dcca6d66bd806edaa35140cf37e92db3f493b7afffc5a94263b3",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/sync/hooks/use-sync-overlay-layouts.ts",
+      "targetPath": "apps/web/src/domains/sync/hooks/use-sync-overlay-layouts.ts",
+      "sourceSha256": "c76b5b7e93359d8ba144b99863c26185c0f88d789830d8ecb88a4c8efb6fd564",
+      "importedSha256": "c76b5b7e93359d8ba144b99863c26185c0f88d789830d8ecb88a4c8efb6fd564",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/user/apis/users.ts",
+      "targetPath": "apps/web/src/domains/user/apis/users.ts",
+      "sourceSha256": "4bb651408cc720ae1232bee88617f4971f00794bfcc228bed8dced27c2f2701b",
+      "importedSha256": "4bb651408cc720ae1232bee88617f4971f00794bfcc228bed8dced27c2f2701b",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/domains/user/types/user.ts",
+      "targetPath": "apps/web/src/domains/user/types/user.ts",
+      "sourceSha256": "77b97aa1409c5a001337a746b804273fc4917b6a704d251a5a5c06014247576d",
+      "importedSha256": "77b97aa1409c5a001337a746b804273fc4917b6a704d251a5a5c06014247576d",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/common/error-boundary.tsx",
+      "targetPath": "apps/web/src/shared/components/common/error-boundary.tsx",
+      "sourceSha256": "8607468503ea4f5949f05f4e619d5f145d8f91efeff5896e5cccfe1bfddbf79d",
+      "importedSha256": "8607468503ea4f5949f05f4e619d5f145d8f91efeff5896e5cccfe1bfddbf79d",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/common/settings-form.tsx",
+      "targetPath": "apps/web/src/shared/components/common/settings-form.tsx",
+      "sourceSha256": "07e65d5daa35e702408eead31565310da8e61e2e2d927ae5d6917c225eb4dde6",
+      "importedSha256": "07e65d5daa35e702408eead31565310da8e61e2e2d927ae5d6917c225eb4dde6",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/alert-dialog.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/alert-dialog.tsx",
+      "sourceSha256": "9d88b3a74b2ae6e91342e6e8eabcc90d25ef428c66276808f1ab086cc8ee7165",
+      "importedSha256": "9d88b3a74b2ae6e91342e6e8eabcc90d25ef428c66276808f1ab086cc8ee7165",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/alert.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/alert.tsx",
+      "sourceSha256": "34587ddb58f0a92a916f61fc36e2e63bdd0f4dcd3da28f12bc56c08512514def",
+      "importedSha256": "34587ddb58f0a92a916f61fc36e2e63bdd0f4dcd3da28f12bc56c08512514def",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/badge.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/badge.tsx",
+      "sourceSha256": "b3fa3210c516b1fd68bb6176a47d6de688b2902c53d8c73d0bd99cd2ca32e34d",
+      "importedSha256": "b3fa3210c516b1fd68bb6176a47d6de688b2902c53d8c73d0bd99cd2ca32e34d",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/button.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/button.tsx",
+      "sourceSha256": "2c17998c7bc51bb2731f7c50c64434afe6475c63576cb4d72813909d046892be",
+      "importedSha256": "2c17998c7bc51bb2731f7c50c64434afe6475c63576cb4d72813909d046892be",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/card.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/card.tsx",
+      "sourceSha256": "8454e1a21e8b842cc340eec08ca85bea984664da56c07b42bd48c8cd956676d0",
+      "importedSha256": "8454e1a21e8b842cc340eec08ca85bea984664da56c07b42bd48c8cd956676d0",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/checkbox.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/checkbox.tsx",
+      "sourceSha256": "abe93f025280fe79e9e6e640656241c2aca031800b7f6783a46d95f933f7b620",
+      "importedSha256": "abe93f025280fe79e9e6e640656241c2aca031800b7f6783a46d95f933f7b620",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/collapsible.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/collapsible.tsx",
+      "sourceSha256": "661444318605c90d19e47e4d21289a68b4c5f7f01782be70dafa80d3f7a4cd08",
+      "importedSha256": "661444318605c90d19e47e4d21289a68b4c5f7f01782be70dafa80d3f7a4cd08",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/command.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/command.tsx",
+      "sourceSha256": "ce301ff497e92be63569d5831f00c93a6d1aa70421a59dedfc18f913843df341",
+      "importedSha256": "ce301ff497e92be63569d5831f00c93a6d1aa70421a59dedfc18f913843df341",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/dialog.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/dialog.tsx",
+      "sourceSha256": "6dfc9b4cb42f8db07de8b798370ab5b0a2045785fdce5b91c1ab8dc8dcc3d8d1",
+      "importedSha256": "6dfc9b4cb42f8db07de8b798370ab5b0a2045785fdce5b91c1ab8dc8dcc3d8d1",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/dropdown-menu.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/dropdown-menu.tsx",
+      "sourceSha256": "93d1fc7e1e3216628b609a29ec1dca6e62329c3e610e77d72559e2e0b93aaed7",
+      "importedSha256": "93d1fc7e1e3216628b609a29ec1dca6e62329c3e610e77d72559e2e0b93aaed7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/input.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/input.tsx",
+      "sourceSha256": "ed1f55fbd6f4d355e38c6dd830807b142bd80f923ab156749ec98d988a10c5b6",
+      "importedSha256": "ed1f55fbd6f4d355e38c6dd830807b142bd80f923ab156749ec98d988a10c5b6",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/label.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/label.tsx",
+      "sourceSha256": "755e4646657fa7dcd33a459b441ff8f653e5c17988a8c2b078cf570f3ebe76ae",
+      "importedSha256": "755e4646657fa7dcd33a459b441ff8f653e5c17988a8c2b078cf570f3ebe76ae",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/popover.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/popover.tsx",
+      "sourceSha256": "91dc5440540a90403ab6a87dbd36503ac47a0411d3b2aa13fcb424cd61a8638e",
+      "importedSha256": "91dc5440540a90403ab6a87dbd36503ac47a0411d3b2aa13fcb424cd61a8638e",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/resizable.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/resizable.tsx",
+      "sourceSha256": "d0ce61cd02b356b35254ec1457f7d96c8ae4e10fbb877ca849c0a685a91e38b3",
+      "importedSha256": "d0ce61cd02b356b35254ec1457f7d96c8ae4e10fbb877ca849c0a685a91e38b3",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/scroll-area.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/scroll-area.tsx",
+      "sourceSha256": "6e610879df6e48553d35b8e4155afc8744503a9d856101b3d7465544230983e7",
+      "importedSha256": "6e610879df6e48553d35b8e4155afc8744503a9d856101b3d7465544230983e7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/segmented-control.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/segmented-control.tsx",
+      "sourceSha256": "b204d01872b2679871ed40bc5740748454906149279554e0bdd1acccc518523a",
+      "importedSha256": "b204d01872b2679871ed40bc5740748454906149279554e0bdd1acccc518523a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/select.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/select.tsx",
+      "sourceSha256": "5f71bc6c63d2e9a5c669ddb40b38ee1f6bb5eb00a98e061e9c2b36d2866d06fb",
+      "importedSha256": "5f71bc6c63d2e9a5c669ddb40b38ee1f6bb5eb00a98e061e9c2b36d2866d06fb",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/separator.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/separator.tsx",
+      "sourceSha256": "331f45cba09ce795fcd9367be77f3a4e6f38fdf8b86580c4e28a33c6e96e3f96",
+      "importedSha256": "331f45cba09ce795fcd9367be77f3a4e6f38fdf8b86580c4e28a33c6e96e3f96",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/sheet.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/sheet.tsx",
+      "sourceSha256": "edac6f6989364a7a9b5fe0a2635b286e2cce9e648f7f7a81d890ccf2f61aa73a",
+      "importedSha256": "edac6f6989364a7a9b5fe0a2635b286e2cce9e648f7f7a81d890ccf2f61aa73a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/skeleton.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/skeleton.tsx",
+      "sourceSha256": "a5d977355d7b8d194a069bec14585c6f11b14d545c35505100c88e9ea1095f28",
+      "importedSha256": "a5d977355d7b8d194a069bec14585c6f11b14d545c35505100c88e9ea1095f28",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/slider.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/slider.tsx",
+      "sourceSha256": "7964a0c0e910c134f0d0605aee108ca05b8422eb7b712823f5cdae58d9898076",
+      "importedSha256": "7964a0c0e910c134f0d0605aee108ca05b8422eb7b712823f5cdae58d9898076",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/switch.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/switch.tsx",
+      "sourceSha256": "785f78209a376994ab92d2c6aeeec3a60ae84b52a554000f468add1fecf05db2",
+      "importedSha256": "785f78209a376994ab92d2c6aeeec3a60ae84b52a554000f468add1fecf05db2",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/table.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/table.tsx",
+      "sourceSha256": "3a6726584814a768374472694f139b4434909e5c11a79bac61ac1efa6d2a885a",
+      "importedSha256": "3a6726584814a768374472694f139b4434909e5c11a79bac61ac1efa6d2a885a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/tabs.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/tabs.tsx",
+      "sourceSha256": "288a1cbda9db507af1e982171e4d7ec2001a0043df63bb2e7f64db0444caae5c",
+      "importedSha256": "288a1cbda9db507af1e982171e4d7ec2001a0043df63bb2e7f64db0444caae5c",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/textarea.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/textarea.tsx",
+      "sourceSha256": "854a1fc27cf8e07373bd94378ee091dbff146dbecaa1f6aa11cac25ee270276c",
+      "importedSha256": "854a1fc27cf8e07373bd94378ee091dbff146dbecaa1f6aa11cac25ee270276c",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/components/ui/tooltip.tsx",
+      "targetPath": "apps/web/src/shared/components/ui/tooltip.tsx",
+      "sourceSha256": "57229dda2a79a45dda31735592dea8acefa91bd56930d6a3e103a4808d4a53e0",
+      "importedSha256": "57229dda2a79a45dda31735592dea8acefa91bd56930d6a3e103a4808d4a53e0",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/constants/hangul.ts",
+      "targetPath": "apps/web/src/shared/constants/hangul.ts",
+      "sourceSha256": "e6e86afaa5528b500aff6079737c7baffb909c0ad0a1e9fe45c0b1664ec50c24",
+      "importedSha256": "e6e86afaa5528b500aff6079737c7baffb909c0ad0a1e9fe45c0b1664ec50c24",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/hooks/use-debounce.ts",
+      "targetPath": "apps/web/src/shared/hooks/use-debounce.ts",
+      "sourceSha256": "ae207441d2c7037f7ba764e71933f950b63696abfd541a0850609a4062c7c351",
+      "importedSha256": "ae207441d2c7037f7ba764e71933f950b63696abfd541a0850609a4062c7c351",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/hooks/use-feature-flag.ts",
+      "targetPath": "apps/web/src/shared/hooks/use-feature-flag.ts",
+      "sourceSha256": "e0644727c9646d8ba505ca2da7ad1cd63e0c0cb22eebedde8e998ebeb9cb7a7d",
+      "importedSha256": "403dda43149f0943c8249403887373c7c244a7a0287a2385302787df472e3ac7",
+      "adaptation": "Isolate original authentication, API, realtime, media, font or service URL transport; unsupported operations fail closed."
+    },
+    {
+      "sourcePath": "src/shared/lib/api-client.ts",
+      "targetPath": "apps/web/src/shared/lib/api-client.ts",
+      "sourceSha256": "600cf5344f8d9879c0c452c1d0a8380e9edd95c90b1ffd2750baf9460ff56a29",
+      "importedSha256": "f4dcc619838edb98d484a7c8a44027a5e8b29d1e822fbc1646d2be313bc02ea0",
+      "adaptation": "Isolate original authentication, API, realtime, media, font or service URL transport; unsupported operations fail closed."
+    },
+    {
+      "sourcePath": "src/shared/lib/api-error.ts",
+      "targetPath": "apps/web/src/shared/lib/api-error.ts",
+      "sourceSha256": "f031543bff5a18e19655778569a666d4ff9fc382581e1f59164299f37c237b96",
+      "importedSha256": "f031543bff5a18e19655778569a666d4ff9fc382581e1f59164299f37c237b96",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/lib/auth-events.ts",
+      "targetPath": "apps/web/src/shared/lib/auth-events.ts",
+      "sourceSha256": "ce776bfb05f020332386f60d9ce8fe6d95105011a1ed48a354aed6eb01bf1909",
+      "importedSha256": "ce776bfb05f020332386f60d9ce8fe6d95105011a1ed48a354aed6eb01bf1909",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/lib/axios-error.ts",
+      "targetPath": "apps/web/src/shared/lib/axios-error.ts",
+      "sourceSha256": "10e6eee297b1f1e05e86d417a97235c6aa9d4841d0823c3fc67c5a2f148e0d3f",
+      "importedSha256": "10e6eee297b1f1e05e86d417a97235c6aa9d4841d0823c3fc67c5a2f148e0d3f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/lib/feature-flags.ts",
+      "targetPath": "apps/web/src/shared/lib/feature-flags.ts",
+      "sourceSha256": "81cd69c55e5dfcf998f9e1e66cd17aa644c3398782490ce7ef5c9410449346a7",
+      "importedSha256": "81cd69c55e5dfcf998f9e1e66cd17aa644c3398782490ce7ef5c9410449346a7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/lib/id-auth-redirect.ts",
+      "targetPath": "apps/web/src/shared/lib/id-auth-redirect.ts",
+      "sourceSha256": "eb4fb0e2d226c74a3882ac8cc847f5983695c4e979d0e521bd36e0656dfa368e",
+      "importedSha256": "eb4fb0e2d226c74a3882ac8cc847f5983695c4e979d0e521bd36e0656dfa368e",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/lib/safe-redirect.ts",
+      "targetPath": "apps/web/src/shared/lib/safe-redirect.ts",
+      "sourceSha256": "854d332bc6b87b44f33b8276b448bd2497e62de05978c2080eb36dbc946d7101",
+      "importedSha256": "f81d011e4789069bc2c6ae6897847f822190e570752573d614304cd074c6c053",
+      "adaptation": "Isolate original authentication, API, realtime, media, font or service URL transport; unsupported operations fail closed."
+    },
+    {
+      "sourcePath": "src/shared/lib/service-routes.ts",
+      "targetPath": "apps/web/src/shared/lib/service-routes.ts",
+      "sourceSha256": "e7ee2dd623c153d8eafe1069d7f5f3f3f9ebd4874cc29f04935bf60c15b2c2a0",
+      "importedSha256": "4e36911774b2b0fbdbe2124ba15c5c325703b7eee135cac2a982f1698f668f69",
+      "adaptation": "Isolate original authentication, API, realtime, media, font or service URL transport; unsupported operations fail closed."
+    },
+    {
+      "sourcePath": "src/shared/lib/utils.ts",
+      "targetPath": "apps/web/src/shared/lib/utils.ts",
+      "sourceSha256": "8658adf3b28a8685aca491bd0445d65c67cb30d3a564b7bb5d0c5cba4c30ee1a",
+      "importedSha256": "8658adf3b28a8685aca491bd0445d65c67cb30d3a564b7bb5d0c5cba4c30ee1a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/providers/auth-refresh-listener.tsx",
+      "targetPath": "apps/web/src/shared/providers/auth-refresh-listener.tsx",
+      "sourceSha256": "862f4cd7145c4f4b9153016102ab1dacd0a0ede81e06d7c0d87a04f93cc8e532",
+      "importedSha256": "862f4cd7145c4f4b9153016102ab1dacd0a0ede81e06d7c0d87a04f93cc8e532",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/providers/query-provider.tsx",
+      "targetPath": "apps/web/src/shared/providers/query-provider.tsx",
+      "sourceSha256": "87ee356818928b40c36b5738b9c9dbdcd4c153791b6fdfea96f4fadd85bfdc78",
+      "importedSha256": "87ee356818928b40c36b5738b9c9dbdcd4c153791b6fdfea96f4fadd85bfdc78",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/providers/theme-provider.tsx",
+      "targetPath": "apps/web/src/shared/providers/theme-provider.tsx",
+      "sourceSha256": "03dbb33d93ab5483aa7987fc9d6a39d5cdfa60d2ea361095276235878e83f142",
+      "importedSha256": "03dbb33d93ab5483aa7987fc9d6a39d5cdfa60d2ea361095276235878e83f142",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/types/common.ts",
+      "targetPath": "apps/web/src/shared/types/common.ts",
+      "sourceSha256": "b8ce903cac7cddb0d540222f21acbcabc66507940a4e0743062a2fb167d2cc32",
+      "importedSha256": "b8ce903cac7cddb0d540222f21acbcabc66507940a4e0743062a2fb167d2cc32",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/styles/content-view.css",
+      "targetPath": "apps/web/src/shared/styles/content-view.css",
+      "sourceSha256": "eddfcf3e99b73693de2b1de29b95b2d1df47ef974dcb591d4682a2b9c593f745",
+      "importedSha256": "eddfcf3e99b73693de2b1de29b95b2d1df47ef974dcb591d4682a2b9c593f745",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "src/shared/styles/global-thin-header.css",
+      "targetPath": "apps/web/src/shared/styles/global-thin-header.css",
+      "sourceSha256": "0f8c95565cf98449c7fdcc806e96bf5160421f6d16698c284adff84fc941a537",
+      "importedSha256": "48e5dfe3dbebd6962c7be22f5b8dc9e8dc04b028b82d616d0c5700ed821f5c0a",
+      "adaptation": "Self-host NanumSquareNeo; remove original font hosts; preserve layout rules."
+    },
+    {
+      "sourcePath": "src/shared/styles/brand-header.css",
+      "targetPath": "apps/web/src/shared/styles/brand-header.css",
+      "sourceSha256": "1e96fefbcea801f390d2a293a810322bda33aa90d3db62782133c0753e693de9",
+      "importedSha256": "53b857762db70380125592edf852e77578a2884dcb646453541f6e257521fcde",
+      "adaptation": "Self-host NanumSquareNeo; remove original font hosts; preserve layout rules."
+    },
+    {
+      "sourcePath": "scripts/copy-pdfjs-assets.mjs",
+      "targetPath": "apps/web/scripts/copy-pdfjs-assets.mjs",
+      "sourceSha256": "0894f4d0c879d4fdfa6f9aad2dae3b1ba612b4801afa8ff5e9c616351153435b",
+      "importedSha256": "0894f4d0c879d4fdfa6f9aad2dae3b1ba612b4801afa8ff5e9c616351153435b",
+      "adaptation": "unchanged"
+    }
+  ]
+}

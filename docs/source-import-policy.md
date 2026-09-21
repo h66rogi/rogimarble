@@ -8,8 +8,10 @@
 대상은 독립 Git 저장소로 유지하며 원본의 커밋/태그/브랜치를 가져오지 않는다.
 
 참조 clone과 상세 조사 기록은 대상 레포 밖의 `_references/rogimarble/`에 둔다.
-현재 대상에 작성한 문서와 후원/보드 코어는 신규 작성물이다. 원본 구현 파일은
-아직 이식하지 않았다.
+문서와 후원/보드 코어는 신규 작성물이다. 신청곡 리모컨은 사용자 명시 요청에 따라
+`meloming-front`의 실제 원본 코드에서 시작한다. 반입 범위와 변경 경계는
+[리모컨 이식 기록](source-imports/song-request-console.md), 파일별 허용 목록은
+[원본 해시 manifest](source-imports/song-request-console.json)에 기록한다.
 `docs/assets/streamer-board-reference.png`는 사용자가 직접 제공한 참고 이미지의 변경 없는 사본이며,
 보드 프리셋은 그 칸 정보를 데이터로 옮긴 것이다. private 참고 레포의 이미지/코드를 가져온 것이 아니다.
 

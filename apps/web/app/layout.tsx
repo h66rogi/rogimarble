@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
-import './globals.css';
+import { QueryProvider } from '@/shared/providers/query-provider';
+import { ThemeProvider } from '@/shared/providers/theme-provider';
+import '../src/app/globals.css';
+import './legacy-surfaces.css';
 
 export const metadata: Metadata = {
   title: '주루마블 운영 콘솔',
@@ -7,5 +10,20 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ko"><body>{children}</body></html>;
+  return (
+    <html lang="ko" suppressHydrationWarning>
+      <body>
+        <QueryProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </QueryProvider>
+      </body>
+    </html>
+  );
 }

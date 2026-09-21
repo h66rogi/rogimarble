@@ -34,3 +34,6 @@ crash.log
 # Local preview state and generated credentials.
 deploy/.env
 deploy/.preview/
+
+# Generated from the pinned PDF.js package during the web build.
+apps/web/public/_pdfjs/

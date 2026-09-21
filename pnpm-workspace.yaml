@@ -2,4 +2,8 @@ packages:
   - apps/*
   - packages/*
 
+allowBuilds:
+  core-js: false
+  gl: false
+
 onlyBuiltDependencies: []
