@@ -1,0 +1,23 @@
+{
+  "webDomain": "marble.rogi.chat",
+  "apiDomain": "marble-api.rogi.chat",
+  "acmeEmail": "REPLACE_WITH_OPERATIONAL_EMAIL",
+  "channelId": "REPLACE_WITH_APPROVED_CHANNEL",
+  "composeProjectName": "rogimarble-prod",
+  "dataRoot": "/srv/rogimarble",
+  "dataVolumeUuid": "REPLACE_WITH_EBS_FILESYSTEM_UUID",
+  "postgresDb": "rogimarble",
+  "postgresAdminUser": "postgres",
+  "migrationDbUser": "rogimarble_migrate",
+  "appDbUser": "rogimarble_app",
+  "apiUid": 1000,
+  "apiGid": 1000,
+  "webUid": 1000,
+  "webGid": 1000,
+  "postgresUid": 999,
+  "postgresGid": 999,
+  "redisUid": 999,
+  "redisGid": 999,
+  "caddyUid": 1000,
+  "caddyGid": 1000
+}

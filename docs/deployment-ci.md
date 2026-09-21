@@ -1,0 +1,9 @@
+# CI and release publishing
+
+`ci.yml` runs without secrets for pull requests and non-main pushes. It installs locked dependencies, typechecks, tests, builds, and exercises the release helper tests. Pull-request code has no package or release write permission.
+
+A successful `main` push, or an explicit manual run while the workflow ref is `main`, runs the same gate before publishing `linux/amd64` API and web images to `ghcr.io/<owner>/rogimarble-api` and `ghcr.io/<owner>/rogimarble-web`. The web image is compiled with `NEXT_PUBLIC_API_BASE_URL=https://marble-api.rogi.chat` and `NEXT_PUBLIC_CHANNEL_ID=preview`. Repository variables `CADDY_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE` must each be reviewed immutable `repository@sha256:<digest>` references.
+
+The publisher creates public GitHub Release assets `release-bundle.tar.gz` and `release-bundle.tar.gz.sha256`, and also retains the same files in the `rogimarble-production-release` Actions artifact. `manifest.build.json` contains only build-owned checksums, source SHA, release ID, contract version, and immutable image references. Runtime non-secret host configuration is merged separately on the host. Secrets, tokens, account identifiers, host addresses, and deployment state are excluded. The host accepts only a successful `release.yml` run for `main`, verifies the release target/source SHA and both checksum layers, and pulls public GHCR packages anonymously by digest.
+
+A rerun never overwrites a published SHA tag, image tag, or Release asset. If `production-<sourceSha>` already exists, the workflow verifies its asset checksum and embedded source SHA and skips all publishing; malformed or conflicting existing assets fail the run. Published images carry OCI `org.opencontainers.image.source` and `org.opencontainers.image.revision` labels.

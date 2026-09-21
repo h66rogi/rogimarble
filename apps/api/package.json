@@ -1,0 +1,23 @@
+{
+  "name": "@rogimarble/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/apps/api/src/main.js",
+    "test:integration": "node --experimental-strip-types --test test/integration.test.ts",
+    "test:auth": "node ../../node_modules/.pnpm/node_modules/typescript/bin/tsc -p tsconfig.test.json --pretty false && node --test dist-test/apps/api/test/auth-shared.test.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-express": "^11.1.6",
+    "@rogimarble/contracts": "workspace:*",
+    "@rogimarble/database": "workspace:*",
+    "@rogimarble/game-core": "workspace:*",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  }
+}

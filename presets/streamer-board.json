@@ -1,0 +1,716 @@
+{
+  "schemaVersion": 1,
+  "id": "streamer-reference-board",
+  "name": "스트리머 전달 주루마블 판",
+  "canvas": {
+    "width": 778,
+    "height": 519,
+    "backgroundColor": "#ffffff"
+  },
+  "layout": {
+    "type": "perimeter_grid",
+    "columns": 9,
+    "rows": 6,
+    "gap": 6,
+    "padding": {
+      "top": 33,
+      "right": 46,
+      "bottom": 24,
+      "left": 36
+    }
+  },
+  "defaultDirection": "forward",
+  "startCellId": "cell-01",
+  "path": [
+    "cell-01",
+    "cell-02",
+    "cell-03",
+    "cell-04",
+    "cell-05",
+    "cell-06",
+    "cell-07",
+    "cell-08",
+    "cell-09",
+    "cell-10",
+    "cell-11",
+    "cell-12",
+    "cell-13",
+    "cell-14",
+    "cell-15",
+    "cell-16",
+    "cell-17",
+    "cell-18",
+    "cell-19",
+    "cell-20",
+    "cell-21",
+    "cell-22",
+    "cell-23",
+    "cell-24",
+    "cell-25",
+    "cell-26"
+  ],
+  "cells": [
+    {
+      "id": "cell-01",
+      "label": "출발 →",
+      "position": {
+        "type": "grid",
+        "row": 0,
+        "column": 0
+      },
+      "appearance": {
+        "shape": "circle",
+        "fill": "#ffffff",
+        "textColor": "#111111",
+        "borderColor": "#8e627a",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "none"
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-02",
+      "label": "술 한잔",
+      "position": {
+        "type": "grid",
+        "row": 0,
+        "column": 1
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffadd1",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "술 한잔",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-03",
+      "label": "안주 한입",
+      "position": {
+        "type": "grid",
+        "row": 0,
+        "column": 2
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffcee5",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "안주 한입",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-04",
+      "label": "100일 축하해",
+      "position": {
+        "type": "grid",
+        "row": 0,
+        "column": 3
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffadd1",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "100일 축하해",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-05",
+      "label": "다같이 한잔",
+      "position": {
+        "type": "grid",
+        "row": 0,
+        "column": 4
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffcee5",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "다같이 한잔",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-06",
+      "label": "뽀뽀 쪽",
+      "position": {
+        "type": "grid",
+        "row": 0,
+        "column": 5
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffadd1",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "뽀뽀 쪽",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-07",
+      "label": "죽빵",
+      "position": {
+        "type": "grid",
+        "row": 0,
+        "column": 6
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffcee5",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "죽빵",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-08",
+      "label": "사랑해",
+      "position": {
+        "type": "grid",
+        "row": 0,
+        "column": 7
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffadd1",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "사랑해",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-09",
+      "label": "무인도",
+      "position": {
+        "type": "grid",
+        "row": 0,
+        "column": 8
+      },
+      "appearance": {
+        "shape": "circle",
+        "fill": "#ffffff",
+        "textColor": "#111111",
+        "borderColor": "#8e627a",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "movement_lock",
+          "release": {
+            "type": "skip_rolls_or_doubles",
+            "count": 3,
+            "onDoubles": "move_sum"
+          }
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-10",
+      "label": "안주 한입",
+      "position": {
+        "type": "grid",
+        "row": 1,
+        "column": 8
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffadd1",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "안주 한입",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-11",
+      "label": "술 한잔",
+      "position": {
+        "type": "grid",
+        "row": 2,
+        "column": 8
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffcee5",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "술 한잔",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-12",
+      "label": "훈민정음 3분",
+      "position": {
+        "type": "grid",
+        "row": 3,
+        "column": 8
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffadd1",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "훈민정음 3분",
+          "shield": null,
+          "durationSeconds": 180
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-13",
+      "label": "술 적립",
+      "position": {
+        "type": "grid",
+        "row": 4,
+        "column": 8
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffcee5",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "counter_add",
+          "counterId": "drink-bank",
+          "quantity": 1
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-14",
+      "label": "세계여행",
+      "position": {
+        "type": "grid",
+        "row": 5,
+        "column": 8
+      },
+      "appearance": {
+        "shape": "circle",
+        "fill": "#ffffff",
+        "textColor": "#111111",
+        "borderColor": "#8e627a",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "choose_destination",
+          "selection": "both",
+          "allowedCellIds": null,
+          "onArrival": "trigger",
+          "timing": "next_turn",
+          "excludeCurrentCell": true
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-15",
+      "label": "윙크",
+      "position": {
+        "type": "grid",
+        "row": 5,
+        "column": 7
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffcee5",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "윙크",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-16",
+      "label": "술 한잔",
+      "position": {
+        "type": "grid",
+        "row": 5,
+        "column": 6
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffadd1",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "술 한잔",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-17",
+      "label": "안주 한입",
+      "position": {
+        "type": "grid",
+        "row": 5,
+        "column": 5
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffcee5",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "안주 한입",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-18",
+      "label": "다음턴 주사위두배",
+      "position": {
+        "type": "grid",
+        "row": 5,
+        "column": 4
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffadd1",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "modify_roll",
+          "uses": 1,
+          "modifier": {
+            "type": "movement_multiplier",
+            "factor": 2
+          }
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-19",
+      "label": "뒤로 두칸",
+      "position": {
+        "type": "grid",
+        "row": 5,
+        "column": 3
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffcee5",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "move_steps",
+          "steps": 2,
+          "direction": "against_current",
+          "onArrival": "trigger",
+          "onPass": "skip"
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-20",
+      "label": "다같이 한잔",
+      "position": {
+        "type": "grid",
+        "row": 5,
+        "column": 2
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffadd1",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "다같이 한잔",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-21",
+      "label": "꽝",
+      "position": {
+        "type": "grid",
+        "row": 5,
+        "column": 1
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffcee5",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "none"
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-22",
+      "label": "방향전환",
+      "position": {
+        "type": "grid",
+        "row": 5,
+        "column": 0
+      },
+      "appearance": {
+        "shape": "circle",
+        "fill": "#ffffff",
+        "textColor": "#111111",
+        "borderColor": "#8e627a",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "set_direction",
+          "direction": "toggle"
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-23",
+      "label": "술청산",
+      "position": {
+        "type": "grid",
+        "row": 4,
+        "column": 0
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffcee5",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "counter_settle",
+          "counterId": "drink-bank",
+          "message": "적립한 술 전부 한 번에 마시기",
+          "shield": null,
+          "settleOn": "mission_completion"
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-24",
+      "label": "애교 or 매도",
+      "position": {
+        "type": "grid",
+        "row": 3,
+        "column": 0
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffadd1",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "애교 or 매도",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-25",
+      "label": "예스 or 노",
+      "position": {
+        "type": "grid",
+        "row": 2,
+        "column": 0
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffcee5",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "예스 or 노",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    },
+    {
+      "id": "cell-26",
+      "label": "노래1절",
+      "position": {
+        "type": "grid",
+        "row": 1,
+        "column": 0
+      },
+      "appearance": {
+        "shape": "rounded_rectangle",
+        "fill": "#ffadd1",
+        "textColor": "#111111",
+        "borderColor": "#00000000",
+        "artwork": null
+      },
+      "onLand": [
+        {
+          "type": "mission",
+          "message": "노래1절",
+          "shield": null,
+          "durationSeconds": null
+        }
+      ],
+      "onPass": []
+    }
+  ],
+  "widgets": [],
+  "counters": [
+    {
+      "id": "drink-bank",
+      "label": "술 적립",
+      "unit": "잔",
+      "initialValue": 0
+    }
+  ],
+  "dice": {
+    "count": 2,
+    "sides": 6
+  }
+}

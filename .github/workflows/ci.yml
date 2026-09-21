@@ -1,0 +1,26 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: {node-version: 22.22.0}
+      - run: npm install --global pnpm@12.5.1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm --filter @rogimarble/web test
+      - run: pnpm --filter @rogimarble/api test:auth
+      - run: pnpm --filter @rogimarble/api test:integration
+      - run: pnpm build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://marble-api.rogi.chat
+          NEXT_PUBLIC_CHANNEL_ID: preview
+      - run: python3 tools/ops/test_release.py && python3 tools/ops/test_fetch_release.py

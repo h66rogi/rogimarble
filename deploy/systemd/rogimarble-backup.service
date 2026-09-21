@@ -1,0 +1,14 @@
+[Unit]
+Description=Create a basic Rogimarble PostgreSQL logical backup
+After=rogimarble-app.service
+Requires=rogimarble-app.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/rogimarble/backup-postgres.sh
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/rogimarble/backups

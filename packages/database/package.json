@@ -1,0 +1,16 @@
+{
+  "name": "@rogimarble/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "migrate": "node --experimental-strip-types src/migrate.ts",
+    "bootstrap-admin": "node --experimental-strip-types src/bootstrap-admin.ts",
+    "register-board": "node --experimental-strip-types src/register-board.ts",
+    "register-preview-board": "node --experimental-strip-types src/register-preview-board.ts",
+    "import-items": "node --experimental-strip-types src/import-items.ts",
+    "bind-external-operator": "node --experimental-strip-types src/bind-external-operator.ts"
+  },
+  "dependencies": { "pg": "^8.16.3" }
+}

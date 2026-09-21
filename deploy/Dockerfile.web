@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.7
+FROM node:22.22.0-alpine AS build
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm install --global pnpm@12.5.1
+WORKDIR /workspace
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY apps/web/package.json apps/web/package.json
+COPY packages/animation/package.json packages/animation/package.json
+COPY packages/asset-manifest/package.json packages/asset-manifest/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
+COPY packages/game-core/package.json packages/game-core/package.json
+COPY packages/overlay-ui/package.json packages/overlay-ui/package.json
+RUN pnpm install --frozen-lockfile
+COPY apps/web apps/web
+COPY packages/animation packages/animation
+COPY packages/asset-manifest packages/asset-manifest
+COPY packages/contracts packages/contracts
+COPY packages/game-core packages/game-core
+COPY packages/overlay-ui packages/overlay-ui
+COPY presets presets
+ARG NEXT_PUBLIC_API_BASE_URL=/api
+ARG NEXT_PUBLIC_CHANNEL_ID=preview
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL NEXT_PUBLIC_CHANNEL_ID=$NEXT_PUBLIC_CHANNEL_ID
+RUN pnpm --filter @rogimarble/web build
+
+FROM node:22.22.0-alpine AS runtime
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
+WORKDIR /app
+COPY --from=build --chown=node:node /workspace/apps/web/.next/standalone ./
+COPY --from=build --chown=node:node /workspace/apps/web/.next/static ./apps/web/.next/static
+USER node
+EXPOSE 3000
+CMD ["node", "apps/web/server.js"]

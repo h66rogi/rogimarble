@@ -1,0 +1,10 @@
+{
+  "name": "@rogimarble/game-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/donation-trigger.ts",
+    "./board": "./src/board-definition.ts"
+  }
+}

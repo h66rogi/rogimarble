@@ -1,0 +1,4 @@
+{
+  "repository": "PUBLIC_GITHUB_OWNER/rogimarble",
+  "workflowPath": ".github/workflows/release.yml"
+}

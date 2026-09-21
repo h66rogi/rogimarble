@@ -1,0 +1,23 @@
+[Unit]
+Description=Rogimarble production Compose supervisor
+After=docker.service network-online.target rogimarble-secrets.service rogimarble-container-imds-guard.service
+Wants=network-online.target
+Requires=docker.service rogimarble-secrets.service rogimarble-container-imds-guard.service
+RequiresMountsFor=/srv/rogimarble
+ConditionPathExists=/run/rogimarble/release.env
+
+[Service]
+Type=simple
+ExecStart=/usr/local/lib/rogimarble/supervise.sh
+ExecStop=/usr/bin/docker compose --env-file /run/rogimarble/release.env -f /opt/rogimarble/app/deploy/compose.production.yaml stop --timeout 45
+Restart=always
+RestartSec=10
+TimeoutStopSec=60
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/run/rogimarble
+
+[Install]
+WantedBy=multi-user.target

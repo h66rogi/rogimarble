@@ -1,0 +1,10 @@
+[Unit]
+Description=Schedule Rogimarble PostgreSQL logical backups
+
+[Timer]
+OnCalendar=*-*-* 18:20:00 UTC
+RandomizedDelaySec=20min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

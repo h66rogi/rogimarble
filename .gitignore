@@ -1,0 +1,36 @@
+node_modules/
+.next/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+__pycache__/
+*.pyc
+dist-test/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+.DS_Store
+Thumbs.db
+# Reference repositories and unsanitized import work never belong in this tree.
+/_references/
+/.references/
+/private-imports/
+/local-audit/
+# Infrastructure runtime inputs and state stay outside public Git.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+backend.hcl
+crash.log
+# Local preview state and generated credentials.
+deploy/.env
+deploy/.preview/

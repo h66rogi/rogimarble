@@ -1,0 +1,209 @@
+name: ${COMPOSE_PROJECT_NAME:?release manifest must set COMPOSE_PROJECT_NAME}
+
+x-runtime: &runtime
+  init: true
+  restart: "no"
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 256
+  logging:
+    driver: json-file
+    options: {max-size: 10m, max-file: "5"}
+
+services:
+  postgres:
+    image: ${IMAGE_POSTGRES:?digest required}
+    user: ${POSTGRES_UID:?required}:${POSTGRES_GID:?required}
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    shm_size: 256m
+    mem_limit: 512m
+    cpus: 1.0
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?required}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:?required}
+      POSTGRES_PASSWORD_FILE: /run/rogimarble-secrets/postgres_admin_password
+      MIGRATION_DB_USER: ${MIGRATION_DB_USER:?required}
+      APP_DB_USER: ${APP_DB_USER:?required}
+    volumes:
+      - type: bind
+        source: ${DATA_ROOT:?required}/postgres
+        target: /var/lib/postgresql/data
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${RUNTIME_SECRET_ROOT:?required}/postgres_admin_password
+        target: /run/rogimarble-secrets/postgres_admin_password
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${RUNTIME_SECRET_ROOT}/postgres_migration_password
+        target: /run/rogimarble-secrets/postgres_migration_password
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${RUNTIME_SECRET_ROOT}/postgres_app_password
+        target: /run/rogimarble-secrets/postgres_app_password
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${APP_ROOT:?required}/deploy/postgres/init-roles.sh
+        target: /docker-entrypoint-initdb.d/20-roles.sh
+        read_only: true
+        bind: {create_host_path: false}
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=67108864,mode=1777
+      - /run/postgresql:rw,noexec,nosuid,nodev,size=16777216,uid=${POSTGRES_UID},gid=${POSTGRES_GID},mode=0770
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    logging: {driver: json-file, options: {max-size: 10m, max-file: "5"}}
+
+  redis:
+    image: ${IMAGE_REDIS:?digest required}
+    user: ${REDIS_UID:?required}:${REDIS_GID:?required}
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 192m
+    cpus: 0.5
+    command: [redis-server, --appendonly, "yes", --appendfsync, everysec, --maxmemory-policy, noeviction]
+    volumes:
+      - type: bind
+        source: ${DATA_ROOT}/redis
+        target: /data
+        bind: {create_host_path: false}
+    tmpfs: [/tmp:rw,noexec,nosuid,nodev,size=16777216,mode=1777]
+    networks: [data]
+    healthcheck: {test: [CMD, redis-cli, ping], interval: 5s, timeout: 3s, retries: 30}
+    logging: {driver: json-file, options: {max-size: 10m, max-file: "5"}}
+
+  migrate:
+    <<: *runtime
+    image: ${IMAGE_API:?digest required}
+    user: ${API_UID:?required}:${API_GID:?required}
+    command: [node, --experimental-strip-types, packages/database/src/migrate.ts]
+    environment:
+      DATABASE_URL_FILE: /run/rogimarble-secrets/migration_database_url
+    volumes:
+      - type: bind
+        source: ${RUNTIME_SECRET_ROOT}/migration_database_url
+        target: /run/rogimarble-secrets/migration_database_url
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${APP_ROOT}/packages/database/migrations
+        target: /workspace/packages/database/migrations
+        read_only: true
+        bind: {create_host_path: false}
+    depends_on: {postgres: {condition: service_healthy}}
+    networks: [data]
+    tmpfs: [/tmp:rw,noexec,nosuid,nodev,size=16777216,mode=1777]
+    mem_limit: 512m
+    cpus: 0.5
+
+  api:
+    <<: *runtime
+    image: ${IMAGE_API:?digest required}
+    user: ${API_UID:?required}:${API_GID:?required}
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      DATABASE_URL_FILE: /run/rogimarble-secrets/api_database_url
+      SESSION_SECRET_FILE: /run/rogimarble-secrets/session_secret
+      COOKIE_SECURE: "true"
+      AUTH_MODE: rogichat_shared_cookie
+      ROGICHAT_COOKIE_NAME: __Secure-rogi_session
+      ROGICHAT_SESSION_URL: https://api.rogi.chat/v1/auth/session
+      WEB_ORIGIN: https://marble.rogi.chat
+    volumes:
+      - type: bind
+        source: ${RUNTIME_SECRET_ROOT}/api_database_url
+        target: /run/rogimarble-secrets/api_database_url
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${RUNTIME_SECRET_ROOT}/session_secret
+        target: /run/rogimarble-secrets/session_secret
+        read_only: true
+        bind: {create_host_path: false}
+    expose: ["4000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    networks: [edge, data]
+    tmpfs: [/tmp:rw,noexec,nosuid,nodev,size=33554432,mode=1777]
+    mem_limit: 384m
+    cpus: 1.0
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:4000/ready',{signal:AbortSignal.timeout(2500)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+
+  web:
+    <<: *runtime
+    image: ${IMAGE_WEB:?digest required}
+    user: ${WEB_UID:?required}:${WEB_GID:?required}
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      # NEXT_PUBLIC values are compiled into IMAGE_WEB and are verified by the release publisher.
+    expose: ["3000"]
+    networks: [edge]
+    tmpfs: [/tmp:rw,noexec,nosuid,nodev,size=33554432,mode=1777]
+    mem_limit: 384m
+    cpus: 1.0
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/healthz',{signal:AbortSignal.timeout(2500)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+
+  edge:
+    <<: *runtime
+    image: ${IMAGE_CADDY:?digest required}
+    user: ${CADDY_UID:?required}:${CADDY_GID:?required}
+    cap_add: [NET_BIND_SERVICE]
+    environment:
+      WEB_DOMAIN: ${WEB_DOMAIN:?required}
+      API_DOMAIN: ${API_DOMAIN:?required}
+      ACME_EMAIL: ${ACME_EMAIL:?required}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    depends_on:
+      api: {condition: service_healthy}
+      web: {condition: service_healthy}
+    volumes:
+      - type: bind
+        source: ${APP_ROOT}/deploy/Caddyfile.production
+        target: /etc/caddy/Caddyfile
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${DATA_ROOT}/caddy-data
+        target: /data
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${DATA_ROOT}/caddy-config
+        target: /config
+        bind: {create_host_path: false}
+    tmpfs: [/tmp:rw,noexec,nosuid,nodev,size=16777216,mode=1777]
+    networks: [edge]
+    mem_limit: 128m
+    cpus: 0.5
+    healthcheck: {test: [CMD, wget, --no-verbose, --tries=1, --spider, http://api:4000/health], interval: 10s, timeout: 3s, retries: 12}
+
+networks:
+  edge: {internal: false}
+  data: {internal: true}

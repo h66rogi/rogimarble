@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "multiRollEnabled": false,
+  "items": [
+    { "id": "drink-shield", "label": "한잔 실드" }
+  ],
+  "rules": [
+    {
+      "id": "roll-dice",
+      "label": "주사위 굴리기",
+      "amount": 33,
+      "enabled": true,
+      "action": { "type": "roll_dice", "rollCount": 1 }
+    },
+    {
+      "id": "snack-allowed",
+      "label": "안주 먹어",
+      "amount": 52,
+      "enabled": true,
+      "action": { "type": "mission", "message": "안주 먹어", "shield": null }
+    },
+    {
+      "id": "snack-denied",
+      "label": "안주 안돼",
+      "amount": 53,
+      "enabled": true,
+      "action": { "type": "mission", "message": "안주 안돼", "shield": null }
+    },
+    {
+      "id": "drink-required",
+      "label": "무조건 한잔해",
+      "amount": 100,
+      "enabled": true,
+      "action": { "type": "mission", "message": "무조건 한잔해", "shield": null }
+    },
+    {
+      "id": "grant-shield",
+      "label": "한잔 실드",
+      "amount": 101,
+      "enabled": true,
+      "action": { "type": "grant_item", "itemId": "drink-shield", "quantity": 1 }
+    },
+    {
+      "id": "drink-together",
+      "label": "같이 한잔",
+      "amount": 152,
+      "enabled": true,
+      "action": { "type": "mission", "message": "같이 한잔", "shield": { "itemId": "drink-shield", "quantity": 1 } }
+    },
+    {
+      "id": "choose-cell",
+      "label": "원하는 칸으로",
+      "amount": 486,
+      "enabled": true,
+      "action": { "type": "choose_destination", "selection": "both", "chatCommand": "!이동" }
+    }
+  ]
+}
