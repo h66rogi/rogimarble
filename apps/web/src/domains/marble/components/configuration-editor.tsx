@@ -18,7 +18,7 @@ export function ConfigurationEditor({kind}:{kind:ChannelConfigKind}){
   const [version,setVersion]=useState<ChannelConfigVersionDto|null>(null),[published,setPublished]=useState<ChannelConfigVersionDto|null>(null);
   const [document,setRawDocument]=useState<any>(structuredClone(blank[kind])),[dirty,setDirty]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
   const setDocument=(next:any)=>{setRawDocument(next);setDirty(true);};
-  const load=async()=>{setBusy(true);try{const state=await api.config(kind);setVersion(state.draft);setPublished(state.published);setRawDocument(structuredClone(state.draft?.document??state.published?.document??state.effectiveDocument??blank[kind]));setDirty(false);setMessage('');}catch(e){setMessage(textError(e));}finally{setBusy(false);}};
+  const load=async()=>{setBusy(true);try{const state=await api.config(kind);setVersion(state.draft);setPublished(state.published);setRawDocument(structuredClone(state.draft?.document??state.published?.document??blank[kind]));setDirty(false);setMessage('');}catch(e){setMessage(textError(e));}finally{setBusy(false);}};
   useEffect(()=>{void load();},[kind]);
   const run=async(task:()=>Promise<ChannelConfigVersionDto>)=>{setBusy(true);try{const next=await task();setVersion(next.status==='published'?null:next);if(next.status==='published')setPublished(next);setRawDocument(structuredClone(next.document));setDirty(false);setMessage(next.validationErrors.length?next.validationErrors.join(' · '):'저장했습니다.');}catch(e){setMessage(textError(e));}finally{setBusy(false);}};
   const save=()=>run(()=>version?api.updateConfigDraft(kind,version.id,version.revision,document):api.createConfigDraft(kind,document));

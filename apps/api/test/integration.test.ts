@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import pg from 'pg';
 
@@ -79,10 +80,11 @@ test('health, readiness, cookie session and CSRF fail closed',async()=>{
   assert.equal((await http.post('/v1/channels/test-channel/sessions',{},null)).status,403);
 });
 
-test('original effect board is rejected instead of silently degraded',()=>{
-  const output=command(process.execPath,['--experimental-strip-types','packages/database/src/register-board.ts','presets/streamer-board.json'],
-    {env:{DATABASE_URL:databaseUrl,BOARD_CHANNEL_ID:'test-channel',BOARD_OPERATOR_USERNAME:'admin'},allowFailure:true});
-  assert.match(output,/unsupported effect/);
+test('the initial effect board registers once through the shared runtime gate',()=>{
+  const env={DATABASE_URL:databaseUrl,BOARD_CHANNEL_ID:'test-channel',BOARD_OPERATOR_USERNAME:'admin'};
+  const first=command(process.execPath,['--experimental-strip-types','packages/database/src/register-board.ts','presets/streamer-board.json'],{env});
+  const second=command(process.execPath,['--experimental-strip-types','packages/database/src/register-board.ts','presets/streamer-board.json'],{env});
+  assert.match(first,/Validated board registered/);assert.equal(second,first);
 });
 
 test('malformed commands are rejected as 4xx',async()=>{
@@ -93,7 +95,7 @@ test('malformed commands are rejected as 4xx',async()=>{
 
 test('concurrent identical session creation is idempotent',async(t)=>{
   const http=client(await login());const boards=await (await http.get('/v1/channels/test-channel/board-versions/runnable')).json() as any[];
-  const body={commandId:randomUUID(),boardVersionId:boards[0].id,initialCellId:boards[0].initialCellId,direction:'forward'};
+  const body={commandId:randomUUID(),boardVersionId:boards.find((board:any)=>board.previewOnly)!.id,initialCellId:boards.find((board:any)=>board.previewOnly)!.initialCellId,direction:'forward'};
   const responses=await Promise.all([http.post('/v1/channels/test-channel/sessions',body),http.post('/v1/channels/test-channel/sessions',body)]);
   assert.deepEqual(responses.map(r=>r.status),[201,201]);const sessions=await Promise.all(responses.map(r=>r.json())) as any[];assert.equal(sessions[0].id,sessions[1].id);
   creationRequest=body;creationAck=sessions[0];
@@ -114,7 +116,7 @@ test('concurrent roll is applied once; scope and stale revision are rejected',as
 
 test('legacy 001 create acknowledgement is rejected as recoverable conflict',async()=>{
   const http=client(await login());
-  if(!creationRequest){const boards=await (await http.get('/v1/channels/test-channel/board-versions/runnable')).json() as any[];creationRequest={commandId:randomUUID(),boardVersionId:boards[0].id,initialCellId:boards[0].initialCellId,direction:'forward'};const created=await http.post('/v1/channels/test-channel/sessions',creationRequest);assert.equal(created.status,201);creationAck=await created.json();}
+  if(!creationRequest){const boards=await (await http.get('/v1/channels/test-channel/board-versions/runnable')).json() as any[];creationRequest={commandId:randomUUID(),boardVersionId:boards.find((board:any)=>board.previewOnly)!.id,initialCellId:boards.find((board:any)=>board.previewOnly)!.initialCellId,direction:'forward'};const created=await http.post('/v1/channels/test-channel/sessions',creationRequest);assert.equal(created.status,201);creationAck=await created.json();}
   const current=await http.get(`/v1/channels/test-channel/commands/${creationRequest.commandId}`);assert.equal(current.status,200);assert.deepEqual((await current.json() as any).result,creationAck);
   command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-v','ON_ERROR_STOP=1','-c',
     `UPDATE game_commands SET result=jsonb_build_object('sessionId',session_id) WHERE command_id='${creationRequest.commandId}';`]);
@@ -194,7 +196,7 @@ test('missions complete or waive exactly once and session lifecycle permits a cl
   const history=await http.get(`/v1/channels/test-channel/sessions/${oldSessionId}/missions`);assert.equal(history.status,200);assert.equal((await history.json() as any[]).length,3);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session,null);
   const boards=await (await http.get('/v1/channels/test-channel/board-versions/runnable')).json() as any[];
-  response=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId:boards[0].id,initialCellId:boards[0].initialCellId,direction:'forward'});assert.equal(response.status,201);
+  response=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId:boards.find((board:any)=>board.previewOnly)!.id,initialCellId:boards.find((board:any)=>board.previewOnly)!.initialCellId,direction:'forward'});assert.equal(response.status,201);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session.status,'running');assert.equal(state.session.previewOnly,true);assert.equal(state.inventory[0].quantity,0);assert.deepEqual(state.missions,[]);
 });
 
@@ -273,4 +275,60 @@ test('shared mode still issues and validates explicit local operator sessions',a
   command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-c',`UPDATE operators SET disabled_at=now() WHERE username='admin';`]);
   response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/session`,{headers:{cookie:auth.cookie}});assert.equal(response.status,401);
   command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-c',`UPDATE operators SET disabled_at=NULL WHERE username='admin';`]);
+});
+
+test('supported arrival effects persist counters, reservations, missions, modifiers, locks and chained movement',async()=>{
+  await stopApi();await startApi();
+  const db=new pg.Client({connectionString:databaseUrl});await db.connect();
+  await db.query(`UPDATE game_sessions SET status='ended' WHERE channel_id='test-channel' AND status<>'ended'`);
+  const board=JSON.parse(await readFile(new URL('../../../presets/streamer-board.json',import.meta.url),'utf8')) as any;
+  board.id=`effect-test-${randomUUID()}`;board.name='Effect integration board';board.dice={count:1,sides:2};
+  for(const cell of board.cells){cell.onLand=[];cell.onPass=[];}
+  board.cells[1].onLand=[{type:'counter_add',counterId:'drink-bank',quantity:1}];
+  board.cells[2].onLand=[{type:'mission',message:'effect mission',shield:null,durationSeconds:30}];
+  board.cells[3].onLand=[{type:'modify_roll',uses:1,modifier:{type:'movement_multiplier',factor:2}}];
+  board.cells[4].onLand=[{type:'movement_lock',release:{type:'skip_rolls',count:1}}];
+  board.cells[5].onLand=[{type:'counter_settle',counterId:'drink-bank',message:'settle snapshot',shield:null,settleOn:'mission_completion'}];
+  board.cells[6].onLand=[{type:'move_steps',steps:2,direction:'with_current',onArrival:'skip',onPass:'skip'}];
+  const boardVersionId=randomUUID();const operator=(await db.query(`SELECT id FROM operators WHERE username='admin'`)).rows[0].id;
+  await db.query(`INSERT INTO board_versions(id,channel_id,board_definition,status,supported_for_live,created_by) VALUES($1,'test-channel',$2,'validated',true,$3)`,[boardVersionId,board,operator]);
+  await db.end();
+  const http=client(await login()),created=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId,initialCellId:board.startCellId,direction:'forward'});assert.equal(created.status,201);
+  let state=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;const path=`/v1/channels/test-channel/sessions/${state.session.id}/commands`;
+  const land=async(cellId:string)=>{state=await (await http.get('/v1/channels/test-channel/operator-state')).json();const response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'set_position',reason:'effect integration',payload:{cellId,pauseAutomaticMovement:true,triggerArrivalEffects:true}});assert.equal(response.status,201);return response.json() as Promise<any>;};
+  await land(board.cells[1].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,1);assert.equal(state.counters[0].available,1);
+  await land(board.cells[2].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.missions.at(-1).message,'effect mission');assert.equal(state.missions.at(-1).durationSeconds,30);
+  await land(board.cells[3].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.deepEqual(state.rollModifiers.map((x:any)=>[x.factor,x.usesRemaining]),[[2,1]]);
+  const clearModifier={commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'clear_roll_modifier',reason:'operator correction',payload:{modifierId:state.rollModifiers[0].id}};
+  response=await http.post(path,clearModifier);assert.equal(response.status,201);const modifierAck=await response.json();response=await http.post(path,clearModifier);assert.equal(response.status,201);assert.deepEqual(await response.json(),modifierAck);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.deepEqual(state.rollModifiers,[]);assert.equal((await http.post(path,{...clearModifier,commandId:randomUUID(),expectedRevision:state.session.revision})).status,409);
+  await land(board.cells[4].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.movementLock.rollsRemaining,1);
+  const clearLock={commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'clear_movement_lock',reason:'operator correction',payload:{}};
+  response=await http.post(path,clearLock);assert.equal(response.status,201);const lockAck=await response.json();response=await http.post(path,clearLock);assert.equal(response.status,201);assert.deepEqual(await response.json(),lockAck);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.movementLock,null);assert.equal((await http.post(path,{...clearLock,commandId:randomUUID(),expectedRevision:state.session.revision})).status,409);
+  await land(board.cells[5].id);await land(board.cells[5].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].reserved,1);assert.equal(state.counters[0].available,0);const settlement=state.missions.find((x:any)=>x.message==='settle snapshot');assert.equal(settlement.quantity,1);
+  response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'adjust_counter',reason:'invalid correction',payload:{counterId:'drink-bank',quantity:0,expectedCounterRevision:state.counters[0].revision}});assert.equal(response.status,422);
+  response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'adjust_counter',reason:'operator correction',payload:{counterId:'drink-bank',quantity:2,expectedCounterRevision:state.counters[0].revision}});assert.equal(response.status,201);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,2);assert.equal(state.counters[0].available,1);
+  response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'complete_mission',reason:'settlement complete',payload:{missionId:settlement.id,expectedMissionRevision:0}});assert.equal(response.status,201);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,1);assert.equal(state.counters[0].reserved,0);
+  const moved=await land(board.cells[6].id);assert.equal((await moved).result.toCellId,board.path[(board.path.indexOf(board.cells[6].id)+2)%board.path.length]);
+});
+
+test('next-turn travel reserves exactly one turn and supports selection, pause, resume and cancellation',async()=>{
+  const db=new pg.Client({connectionString:databaseUrl});await db.connect();await db.query(`UPDATE game_sessions SET status='ended' WHERE channel_id='test-channel' AND status<>'ended'`);
+  const board=JSON.parse(await readFile(new URL('../../../presets/streamer-board.json',import.meta.url),'utf8')) as any;board.id=`travel-test-${randomUUID()}`;board.name='Travel integration board';board.dice={count:1,sides:2};
+  for(const cell of board.cells){cell.onLand=[];cell.onPass=[];}const travelCell=board.cells[1].id,destination=board.cells[8].id;
+  board.cells[1].onLand=[{type:'choose_destination',selection:'operator',allowedCellIds:[destination],onArrival:'skip',timing:'next_turn',excludeCurrentCell:true}];
+  const boardVersionId=randomUUID(),operator=(await db.query(`SELECT id FROM operators WHERE username='admin'`)).rows[0].id;await db.query(`INSERT INTO board_versions(id,channel_id,board_definition,status,supported_for_live,created_by) VALUES($1,'test-channel',$2,'validated',true,$3)`,[boardVersionId,board,operator]);await db.end();
+  const http=client(await login());let response=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId,initialCellId:board.startCellId,direction:'forward'});assert.equal(response.status,201);
+  let state:any;const refresh=async()=>state=await (await http.get('/v1/channels/test-channel/operator-state')).json();await refresh();const path=`/v1/channels/test-channel/sessions/${state.session.id}/commands`;
+  const send=async(type:string,payload:unknown)=>{await refresh();const result=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type,reason:'travel integration',payload});return result;};
+  const arrive=async()=>{const landed=await send('set_position',{cellId:travelCell,pauseAutomaticMovement:true,triggerArrivalEffects:true});assert.equal(landed.status,201);await refresh();return state.effectTasks.find((x:any)=>x.status==='pending');};
+  let task=await arrive();response=await send('choose_destination',{taskId:task.id,cellId:destination,expectedTaskRevision:task.revision});assert.equal(response.status,201);assert.equal((await response.json() as any).result.travelStatus,'waiting');
+  response=await send('resume',{});assert.equal(response.status,201);response=await send('roll_dice',{count:1});let result=(await response.json() as any).result;assert.equal(result.travelStatus,'moved');assert.deepEqual(result.dice,[]);assert.equal(result.toCellId,destination);
+  assert.equal((await send('choose_destination',{taskId:task.id,cellId:destination,expectedTaskRevision:1})).status,404);
+  task=await arrive();response=await send('resume',{});assert.equal(response.status,201);response=await send('roll_dice',{count:1});result=(await response.json() as any).result;assert.equal(result.travelStatus,'waiting');assert.ok(result.reservedTurnCommandId);assert.equal((await send('roll_dice',{count:1})).status,409);
+  await refresh();task=state.effectTasks.find((x:any)=>x.status==='pending');response=await send('pause',{});assert.equal(response.status,201);response=await send('choose_destination',{taskId:task.id,cellId:destination,expectedTaskRevision:task.revision});assert.equal(response.status,201);assert.equal((await response.json() as any).result.travelStatus,'waiting');response=await send('resume',{});result=(await response.json() as any).result;assert.equal(result.travelStatus,'moved');assert.equal(result.toCellId,destination);
+  task=await arrive();await send('resume',{});response=await send('roll_dice',{count:1});result=(await response.json() as any).result;const reserved=result.reservedTurnCommandId;await send('pause',{});await refresh();task=state.effectTasks.find((x:any)=>x.status==='pending');response=await send('cancel_destination',{taskId:task.id,expectedTaskRevision:task.revision});assert.equal(response.status,201);assert.equal((await response.json() as any).result.travelStatus,'waiting');response=await send('resume',{});result=(await response.json() as any).result;assert.equal(result.travelStatus,'returned');assert.equal(result.reservedTurnCommandId,reserved);assert.ok(result.dice.length>0);
 });

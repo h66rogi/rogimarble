@@ -4,7 +4,7 @@ export type SessionStatus = 'ready' | 'running' | 'paused' | 'ended';
 export type Direction = 'forward' | 'reverse';
 export type OperatorCommandType = 'create_session' | 'roll_dice' | 'set_direction' | 'set_position' |
   'pause' | 'resume' | 'end_session' | 'adjust_inventory' | 'create_mission' |
-  'complete_mission' | 'waive_mission' | 'use_shield';
+  'complete_mission' | 'waive_mission' | 'use_shield' | 'choose_destination' | 'cancel_destination' | 'adjust_counter' | 'clear_movement_lock' | 'clear_roll_modifier';
 export type OperatorCommandStatus = 'completed' | 'rejected';
 
 export interface LoginRequest { readonly username: string; readonly password: string }
@@ -54,7 +54,7 @@ export type SessionCommandRequest =
   | CommandBase<'set_position', {
       readonly cellId: string;
       readonly pauseAutomaticMovement: true;
-      readonly triggerArrivalEffects: false;
+      readonly triggerArrivalEffects: boolean;
     }>
   | CommandBase<'pause' | 'resume' | 'end_session', Record<string, never>>
   | CommandBase<'adjust_inventory', {
@@ -76,7 +76,12 @@ export type SessionCommandRequest =
       readonly missionId: string;
       readonly expectedMissionRevision: number;
       readonly expectedInventoryRevision: number;
-    }>;
+    }>
+  | CommandBase<'choose_destination', { readonly taskId: string; readonly cellId: string; readonly expectedTaskRevision: number }>
+  | CommandBase<'cancel_destination', { readonly taskId: string; readonly expectedTaskRevision: number }>
+  | CommandBase<'adjust_counter', { readonly counterId: string; readonly quantity: number; readonly expectedCounterRevision: number }>
+  | CommandBase<'clear_movement_lock', Record<string, never>>
+  | CommandBase<'clear_roll_modifier', { readonly modifierId: string }>;
 
 export interface RollResultDto {
   readonly dice: readonly number[];
@@ -85,7 +90,13 @@ export interface RollResultDto {
   readonly path: readonly string[];
   readonly fromCellId: string;
   readonly toCellId: string;
+  readonly effects?: readonly ArrivalEffectResultDto[];
 }
+export interface ArrivalEffectResultDto { readonly index:number; readonly cellId:string; readonly trigger:'pass'|'land'; readonly type:string; readonly result:unknown }
+export interface SessionCounterDto { readonly counterId:string; readonly label:string; readonly unit:string; readonly value:number; readonly reserved:number; readonly available:number; readonly revision:number }
+export interface SessionEffectTaskDto { readonly id:string; readonly type:'choice_mission'|'choose_destination'; readonly payload:unknown; readonly status:'pending'|'resolved'|'cancelled'; readonly revision:number; readonly createdAt:string }
+export interface SessionMovementLockDto { readonly releaseType:'operator'|'skip_rolls'|'skip_rolls_or_doubles'|'dice_faces'; readonly rollsRemaining:number|null; readonly release:unknown; readonly createdAt:string }
+export interface SessionRollModifierDto { readonly id:string; readonly type:'movement_multiplier'; readonly factor:number; readonly usesRemaining:number; readonly createdAt:string }
 
 export interface SessionCommandDto {
   readonly commandId: string;
@@ -116,6 +127,7 @@ export interface InventoryLedgerDto {
   readonly reason: string; readonly createdAt: string;
 }
 export interface MissionDto {
+  readonly durationSeconds?: number | null;
   readonly id: string; readonly message: string; readonly quantity: number;
   readonly status: 'pending' | 'completed' | 'waived' | 'shielded';
   readonly shield: { readonly itemId: string; readonly quantity: number } | null;
@@ -127,6 +139,10 @@ export interface OperatorStateDto {
   readonly boardDefinition: unknown | null;
   readonly inventory: readonly InventoryItemDto[];
   readonly missions: readonly MissionDto[];
+  readonly counters?: readonly SessionCounterDto[];
+  readonly effectTasks?: readonly SessionEffectTaskDto[];
+  readonly movementLock?: SessionMovementLockDto | null;
+  readonly rollModifiers?: readonly SessionRollModifierDto[];
   readonly capabilities: {
     readonly manualRoll: boolean;
     readonly setDirection: boolean;
@@ -171,7 +187,7 @@ export interface OverlayPresentationCommandDto { readonly commandId:string; read
 export type OverlayWidgetId='board'|'dice'|'current_mission'|'inventory'|'direction';
 export interface OverlayLayoutDto { readonly schemaVersion:1; readonly width:number; readonly height:number; readonly aspectRatio:'16:9'|'9:16'|'4:3'|'custom'; readonly background:string; readonly widgets:readonly {readonly id:OverlayWidgetId;readonly bounds:{readonly x:number;readonly y:number;readonly width:number;readonly height:number};readonly z:number}[] }
 export function validateOverlayLayout(value:unknown):asserts value is OverlayLayoutDto {if(!value||typeof value!=='object'||Array.isArray(value))throw new TypeError('overlay layout must be an object');const x=value as any;if(Object.keys(x).some(k=>!['schemaVersion','width','height','aspectRatio','background','widgets'].includes(k))||x.schemaVersion!==1)throw new TypeError('overlay layout schema is invalid');for(const key of ['width','height'])if(!Number.isInteger(x[key])||x[key]<1||x[key]>7680)throw new TypeError(`${key} must be 1-7680`);if(!['16:9','9:16','4:3','custom'].includes(x.aspectRatio))throw new TypeError('aspectRatio is unsupported');const ratios:Record<string,number>={'16:9':16/9,'9:16':9/16,'4:3':4/3};if(x.aspectRatio!=='custom'&&Math.abs(x.width/x.height-ratios[x.aspectRatio])>0.01)throw new TypeError('width and height must match aspectRatio');if(typeof x.background!=='string'||x.background.length>100)throw new TypeError('background must be text');if(!Array.isArray(x.widgets)||x.widgets.length>5)throw new TypeError('widgets must be an array of at most 5');const allowed=['board','dice','current_mission','inventory','direction'],ids=new Set<string>();for(const widget of x.widgets){if(!widget||typeof widget!=='object'||Object.keys(widget).some(k=>!['id','bounds','z'].includes(k))||!allowed.includes(widget.id)||ids.has(widget.id))throw new TypeError('widget id is invalid or duplicated');ids.add(widget.id);if(!Number.isSafeInteger(widget.z)||widget.z<0||widget.z>100)throw new TypeError('widget z must be 0-100');const b=widget.bounds;if(!b||Object.keys(b).some(k=>!['x','y','width','height'].includes(k)))throw new TypeError('widget bounds are invalid');for(const key of ['x','y','width','height'])if(typeof b[key]!=='number'||!Number.isFinite(b[key])||b[key]<0||b[key]>1)throw new TypeError('widget bounds must be finite normalized numbers');if(b.width===0||b.height===0||b.x+b.width>1||b.y+b.height>1)throw new TypeError('widget is outside layout');}}
-export interface OverlayStateDto { readonly channelId:string; readonly session:GameSessionDto|null; readonly boardDefinition:unknown|null; readonly latestCommand?:OverlayPresentationCommandDto|null; readonly inventory:readonly InventoryItemDto[]; readonly missions:readonly MissionDto[]; readonly layout:unknown|null; readonly capabilities:{readonly arrivalEffects:false;readonly donations:false} }
+export interface OverlayStateDto { readonly channelId:string; readonly session:GameSessionDto|null; readonly boardDefinition:unknown|null; readonly latestCommand?:OverlayPresentationCommandDto|null; readonly inventory:readonly InventoryItemDto[]; readonly missions:readonly MissionDto[]; readonly layout:unknown|null; readonly capabilities:{readonly arrivalEffects:boolean;readonly donations:false} }
 
 export const operatorApi = {
   health: '/health',

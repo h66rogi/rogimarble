@@ -6,6 +6,7 @@ import type { BoardDefinition } from '@rogimarble/game-core/board';
 import { validateOverlayLayout, type OverlayLayoutDto, type OverlayStateDto } from '@rogimarble/contracts';
 import { CanvasSizeNotice } from '@/integrated-overlay/domains/overlay/components/shared/CanvasSizeNotice';
 import { rollPlayback } from '@/integrated-overlay/roll-playback';
+import { useRollPresentation } from '@/lib/use-roll-presentation';
 
 type WidgetId = 'board' | 'dice' | 'current_mission' | 'inventory' | 'direction';
 type LayoutWidget = { id: WidgetId; enabled: boolean; x: number; y: number; w: number; h: number; z: number };
@@ -27,7 +28,6 @@ const DEFAULT_TOTAL_OVERLAY_LAYOUT: TotalLayout = {
 };
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
-const CELL_STEP_MS = 600;
 
 /** Original total-overlay merge contract, narrowed to Rogimarble widgets. */
 function mergeLayout(layout?: Record<string, unknown> | null): TotalLayout {
@@ -74,14 +74,8 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-  const [moving, setMoving] = useState(false);
-  const [displayedCellId, setDisplayedCellId] = useState<string | null>(null);
-  const [lastDice, setLastDice] = useState<readonly number[]>([]);
-  const lastSessionIdRef = useRef<string | null>(null);
   const observedCommandIdRef = useRef<string | null>(null);
-  const observedPresentationEpochRef = useRef<number | null>(null);
-  const playbackTimersRef = useRef<number[]>([]);
-  const activePlaybackTargetRef = useRef<string | null>(null);
+  const observedSessionRef = useRef<string | null>(null);
   const state = accepted?.state ?? null;
   const session = state?.session ?? null;
   const board = (state?.boardDefinition ?? previewBoard) as BoardDefinition;
@@ -89,6 +83,7 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
   const presentationKey = session ? `${session.id}:${session.sessionEpoch}:${session.presentationEpoch}` : 'none';
   const commandType = state?.latestCommand?.type ?? null;
   const playback = session ? rollPlayback(state?.latestCommand, board.path, session.currentCellId) : null;
+  const presentation = useRollPresentation({sessionKey:session?`${session.id}:${session.sessionEpoch}`:null,presentationEpoch:session?.presentationEpoch??null,authoritativeCellId:session?.currentCellId??board.path[0],boardPath:board.path});
   const currentMission = state?.missions.find((mission) => mission.status === 'pending') ?? null;
 
   useEffect(() => {
@@ -105,43 +100,20 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
   }, []);
 
   useEffect(() => {
-    const cancelPlayback = () => { playbackTimersRef.current.forEach(window.clearTimeout); playbackTimersRef.current = []; activePlaybackTargetRef.current = null; setMoving(false); };
-    if (!session) {
-      cancelPlayback(); lastSessionIdRef.current = null; observedCommandIdRef.current = null; observedPresentationEpochRef.current = null;
-      setDisplayedCellId(null); setLastDice([]); return;
-    }
+    if (!session) { observedSessionRef.current=null;observedCommandIdRef.current=null;return; }
     const command = state?.latestCommand ?? null;
-    if (lastSessionIdRef.current !== session.id) {
-      cancelPlayback(); lastSessionIdRef.current = session.id; observedCommandIdRef.current = command?.commandId ?? null;
-      observedPresentationEpochRef.current = session.presentationEpoch; setDisplayedCellId(session.currentCellId);
-      setLastDice(playback?.dice ?? []); return;
-    }
-    if (command?.commandId === observedCommandIdRef.current) {
-      if (activePlaybackTargetRef.current && activePlaybackTargetRef.current !== session.currentCellId) { cancelPlayback(); setDisplayedCellId(session.currentCellId); }
-      return;
-    }
+    const sessionKey=`${session.id}:${session.sessionEpoch}`;
+    if(observedSessionRef.current!==sessionKey){observedSessionRef.current=sessionKey;observedCommandIdRef.current=command?.commandId??null;return;}
+    if(command?.commandId===observedCommandIdRef.current)return;
     observedCommandIdRef.current = command?.commandId ?? null;
-    const presentationChanged = observedPresentationEpochRef.current !== session.presentationEpoch;
-    observedPresentationEpochRef.current = session.presentationEpoch;
-    if (command?.type === 'roll_dice' && playback) {
-      cancelPlayback(); setLastDice(playback.dice); setDisplayedCellId(playback.cells[0] ?? session.currentCellId); setMoving(true);
-      activePlaybackTargetRef.current = session.currentCellId;
-      playbackTimersRef.current = playback.cells.slice(1).map((cellId, index) => window.setTimeout(() => setDisplayedCellId(cellId), (index + 1) * CELL_STEP_MS));
-      if (playbackTimersRef.current.length) playbackTimersRef.current.push(window.setTimeout(() => { playbackTimersRef.current = []; activePlaybackTargetRef.current = null; setMoving(false); }, playback.cells.length * CELL_STEP_MS));
-      else { activePlaybackTargetRef.current = null; setMoving(false); }
-      return;
-    }
-    if (command?.type === 'set_position' || presentationChanged || activePlaybackTargetRef.current !== session.currentCellId) { cancelPlayback(); setDisplayedCellId(session.currentCellId); }
-  }, [session?.id, session?.presentationEpoch, session?.currentCellId, state?.latestCommand?.commandId]);
-
-  useEffect(() => () => { playbackTimersRef.current.forEach(window.clearTimeout); }, []);
+    if(command?.type==='roll_dice'&&command.result&&'dice'in command.result) presentation.play({commandId:command.commandId,sessionKey,presentationEpoch:command.presentationEpoch,result:command.result});
+  },[session?.id,session?.sessionEpoch,state?.latestCommand?.commandId]);
 
   const missingLiveBoard = status !== 'preview' && !!state && !state.boardDefinition;
   const waitingForSession = status !== 'preview' && !!state && !state.session;
   const displayStatus = missingLiveBoard && !waitingForSession ? 'error' : status;
   const label = waitingForSession ? '게임 시작 대기' : displayStatus === 'preview' ? 'PREVIEW · 정적 프리셋' : displayStatus === 'live' ? 'LIVE · polling' : displayStatus === 'stale' ? '연결 지연 · 마지막 상태' : displayStatus === 'connecting' ? '연결 중' : displayStatus === 'unauthorized' ? 'OBS 토큰 거부됨' : '오버레이 상태를 불러오지 못함';
-  const displayBelongsToSession = !!session && lastSessionIdRef.current === session.id;
-  const tokenCellId = missingLiveBoard ? previewBoard.path[0] : (displayBelongsToSession ? displayedCellId : null) ?? session?.currentCellId ?? board.path[0];
+  const tokenCellId = missingLiveBoard ? previewBoard.path[0] : presentation.cellId;
   const correctionKey = commandType === 'set_position' ? presentationKey : 'continuous-board';
   const shouldRenderWidgets = status === 'preview' || (!!state && !missingLiveBoard);
 
@@ -156,8 +128,8 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
         const left = fittedWidth * clamp01(widget.x);
         const top = fittedHeight * clamp01(widget.y);
         return <div key={widget.id} data-overlay-widget={widget.id} data-overlay-version="1" className="absolute" style={{ left, top, width, height, zIndex: widget.z ?? 1 }}>
-          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} tokenCellId={tokenCellId} moving={moving} dice={lastDice} fit /></div>}
-          {widget.id === 'dice' && <OverlayCard eyebrow="이번 주사위" value={lastDice.length ? lastDice.join(' + ') : '대기 중'} />}
+          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} tokenCellId={tokenCellId} moving={presentation.moving} dice={presentation.dice.length?presentation.dice:playback?.dice} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} /></div>}
+          {widget.id === 'dice' && <OverlayCard eyebrow="이번 주사위" value={presentation.effectPhase==='anticipation'?'굴리는 중…':(presentation.dice.length?presentation.dice:playback?.dice)?.join(' + ')||'대기 중'} />}
           {widget.id === 'current_mission' && <OverlayCard eyebrow="현재 미션" value={currentMission ? `${currentMission.message} × ${currentMission.quantity}` : '진행 중인 미션 없음'} />}
           {widget.id === 'inventory' && <OverlayCard eyebrow="보유 아이템" value={state?.inventory.length ? state.inventory.map((item) => `${item.name} ${item.quantity}`).join(' · ') : '없음'} align="left" />}
           {widget.id === 'direction' && <OverlayCard eyebrow="이동 방향" value={session?.direction === 'reverse' ? '역방향' : '정방향'} />}
@@ -172,8 +144,8 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
 }
 
 function OverlayCard({ eyebrow, value, align = 'center' }: { eyebrow: string; value: string; align?: 'left' | 'center' }) {
-  return <div className={`h-full w-full overflow-hidden rounded-2xl bg-black/70 px-4 py-3 text-white shadow-lg backdrop-blur ${align === 'left' ? 'text-left' : 'text-center'}`}>
-    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">{eyebrow}</div>
+  return <div className={`h-full w-full overflow-hidden rounded-2xl border border-rose-200/80 bg-white/95 px-4 py-3 text-rose-950 shadow-lg backdrop-blur ${align === 'left' ? 'text-left' : 'text-center'}`}>
+    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-rose-700/70">{eyebrow}</div>
     <div className="mt-1 line-clamp-3 text-sm font-bold leading-snug">{value}</div>
   </div>;
 }

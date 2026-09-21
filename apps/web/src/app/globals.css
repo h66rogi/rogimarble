@@ -8,6 +8,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --font-sans: "NanumSquareNeo", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   font-family: "NanumSquareNeo", -apple-system,
     BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI",
     "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji",
@@ -635,5 +636,6 @@ html[data-channel-talk-active="true"] {
 }
 
 /* Product font boundary: self-hosted official NanumSquareNeo, SIL OFL 1.1. */
-@font-face { font-family: "NanumSquareNeo"; src: url("/fonts/NanumSquareNeo-Variable.woff2") format("woff2"); font-style: normal; font-weight: 300 900; font-display: swap; }
-html, body { font-family: "NanumSquareNeo", system-ui, sans-serif; }
+@font-face { font-family: "NanumSquareNeo"; src: url("/fonts/NanumSquareNeo-Variable.woff2") format("woff2-variations"); font-style: normal; font-weight: 300 900; font-display: swap; }
+html, body { font-family: var(--font-sans); font-synthesis: none; }
+button, input, textarea, select { font-family: inherit; }

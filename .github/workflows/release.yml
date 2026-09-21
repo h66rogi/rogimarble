@@ -23,6 +23,7 @@ jobs:
       - run: pnpm typecheck && pnpm test
       - run: pnpm --filter @rogimarble/web test
       - run: pnpm --filter @rogimarble/api test:auth
+      - run: pnpm --filter @rogimarble/api test:effects
       - run: pnpm --filter @rogimarble/api test:integration
       - run: pnpm build
         env: {NEXT_PUBLIC_API_BASE_URL: 'https://marble-api.rogi.chat', NEXT_PUBLIC_CHANNEL_ID: preview}

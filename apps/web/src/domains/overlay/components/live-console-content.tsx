@@ -4487,12 +4487,12 @@ export function LiveConsoleContent({
       {/* 탭 콘텐츠 — 홈 영상 패널은 숨김 상태로 유지해 탭 전환/리사이즈 중 재생을 보존한다. */}
       <ResizablePanelGroup
         direction="horizontal"
-        autoSaveId="song-request-console-layout"
+        autoSaveId="jurumarble-console-layout-v2"
         className="flex-1 overflow-hidden"
       >
         <ResizablePanel
-          defaultSize={isDesktopLayout ? 50 : 100}
-          minSize={isDesktopLayout ? 35 : 100}
+          defaultSize={isDesktopLayout ? 64 : 100}
+          minSize={isDesktopLayout ? 45 : 100}
           order={1}
         >
         <main className="h-full overflow-hidden">
@@ -4524,7 +4524,7 @@ export function LiveConsoleContent({
                   (typeof managerLyricsText === 'string' &&
                     managerLyricsText.length > 0);
                 const upper = (
-                  <div className="h-full overflow-y-auto p-4 space-y-4">
+                  <div className="h-full overflow-y-auto p-3 md:p-5 space-y-4 bg-rose-50/30 dark:bg-background">
                 <MarbleOperationsPanel />
                 <div className="hidden">
                 {!isDesktopLayout && (
@@ -5742,7 +5742,7 @@ export function LiveConsoleContent({
         </ResizablePanel>
         {isDesktopLayout && activeTab === 'home' && <ResizableHandle withHandle />}
         {isDesktopLayout && activeTab === 'home' && (
-          <ResizablePanel defaultSize={50} minSize={32} maxSize={65} order={2}>
+          <ResizablePanel defaultSize={36} minSize={30} maxSize={55} order={2}>
             <aside className="h-full flex flex-col bg-background text-sm">
               <div id="marble-controls-root" className="flex-1 overflow-y-auto" />
               <div className="hidden">

@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/donation-trigger.ts",
-    "./board": "./src/board-definition.ts"
+    "./board": "./src/board-definition.ts",
+    "./runtime-support": "./src/runtime-support.ts"
   }
 }

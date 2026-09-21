@@ -1,13 +1,35 @@
 import type { OverlayPresentationCommandDto } from '@rogimarble/contracts';
 
 export type RollPlayback = { readonly dice: readonly number[]; readonly cells: readonly string[] };
+export type RollTimelineEvent = { readonly at:number; readonly phase:'reveal'|'stepping'|'cell'|'landing'|'idle'; readonly cellId?:string };
+
+export function buildRollTimeline(cells:readonly string[], reducedMotion=false):readonly RollTimelineEvent[]{
+  if(reducedMotion)return[];
+  if(cells.length-1>24)return[{at:420,phase:'reveal'},{at:1400,phase:'landing'},{at:1960,phase:'idle'}];
+  const events:RollTimelineEvent[]=[{at:420,phase:'reveal'},{at:840,phase:'stepping'}];
+  cells.slice(1).forEach((cellId,index)=>events.push({at:840+(index+1)*600,phase:'cell',cellId}));
+  const landingAt=840+Math.max(1,cells.length-1)*600+600;
+  events.push({at:landingAt,phase:'landing'},{at:landingAt+560,phase:'idle'});
+  return events;
+}
 
 /** Builds display-only playback from the server result. It never derives a roll locally. */
 export function rollPlayback(command: OverlayPresentationCommandDto | null | undefined, boardPath: readonly string[], finalCellId: string): RollPlayback | null {
   if (command?.type !== 'roll_dice' || !command.result || !('dice' in command.result) || !('path' in command.result)) return null;
-  const { dice, path, fromCellId, toCellId } = command.result;
+  const { dice, path, fromCellId, toCellId, effects } = command.result;
   if (!Array.isArray(dice) || !dice.every((value) => Number.isSafeInteger(value) && value > 0)) return null;
-  if (!Array.isArray(path) || !path.every((cell) => typeof cell === 'string' && boardPath.includes(cell))) return null;
-  if (typeof fromCellId !== 'string' || !boardPath.includes(fromCellId) || toCellId !== finalCellId || path.at(-1) !== finalCellId) return null;
-  return { dice, cells: [fromCellId, ...path] };
+  if(!Array.isArray(path))return null;
+  const effectPath=collectEffectPath(effects);
+  const fullPath=[...path,...effectPath];
+  if (!fullPath.every((cell) => typeof cell === 'string' && boardPath.includes(cell))) return null;
+  if (typeof fromCellId !== 'string' || !boardPath.includes(fromCellId) || toCellId !== finalCellId) return null;
+  if(fullPath.length?fullPath.at(-1)!==finalCellId:fromCellId!==finalCellId)return null;
+  return { dice, cells: [fromCellId, ...fullPath] };
+}
+
+function collectEffectPath(effects:unknown):string[]{
+  if(!Array.isArray(effects))return[];
+  const cells:string[]=[];
+  for(const effect of effects){if(!effect||typeof effect!=='object')continue;const result=(effect as {result?:unknown}).result;if(!result||typeof result!=='object')continue;const value=result as {path?:unknown;effects?:unknown};if(Array.isArray(value.path))cells.push(...value.path.filter((cell):cell is string=>typeof cell==='string'));cells.push(...collectEffectPath(value.effects));}
+  return cells;
 }

@@ -70,12 +70,19 @@ export const api = {
   command: async (sessionId: string, command: OperatorCommand, sessionEpoch: number) => {
     if (getPendingIntent()) throw new PendingCommandError();
     const base = { commandId: crypto.randomUUID(), sessionEpoch, expectedRevision: command.expectedRevision, reason: command.reason };
-    const body: SessionCommandRequest = command.type === 'roll'
+    const body: SessionCommandRequest = command.type === 'adjust_counter'
+      ? { ...base, type: 'adjust_counter', payload: { counterId: command.counterId, quantity: command.quantity, expectedCounterRevision: command.expectedCounterRevision } }
+      : command.type === 'clear_movement_lock' ? { ...base, type: 'clear_movement_lock', payload: {} }
+      : command.type === 'clear_roll_modifier' ? { ...base, type: 'clear_roll_modifier', payload: { modifierId: command.modifierId } }
+      : command.type === 'cancel_destination' ? { ...base, type: 'cancel_destination', payload: { taskId: command.taskId, expectedTaskRevision: command.expectedTaskRevision } }
+      : command.type === 'choose_destination'
+      ? { ...base, type: 'choose_destination', payload: { taskId: command.taskId, cellId: command.cellId, expectedTaskRevision: command.expectedTaskRevision } }
+      : command.type === 'roll'
       ? { ...base, type: 'roll_dice', payload: {} }
       : command.type === 'set_direction'
         ? { ...base, type: 'set_direction', payload: { direction: command.direction } }
         : command.type === 'correct_position'
-          ? { ...base, type: 'set_position', payload: { cellId: command.cellId, pauseAutomaticMovement: true, triggerArrivalEffects: false } }
+          ? { ...base, type: 'set_position', payload: { cellId: command.cellId, pauseAutomaticMovement: true, triggerArrivalEffects: command.triggerArrivalEffects ?? false } }
           : command.type === 'pause' || command.type === 'resume' || command.type === 'end_session'
             ? { ...base, type: command.type, payload: {} }
             : command.type === 'adjust_inventory'
@@ -126,5 +133,5 @@ async function retryIntent(pending: PendingIntent) {
 
 function channelId() { return process.env.NEXT_PUBLIC_CHANNEL_ID ?? 'demo-channel'; }
 function adaptState(value: OperatorStateDto): OperatorSnapshot {
-  return { revision: value.session?.revision ?? 0, session: value.session ? { id: value.session.id, status: value.session.status, channelName: value.session.channelId, sessionEpoch: value.session.sessionEpoch, boardVersionId: value.session.boardVersionId, presentationEpoch: value.session.presentationEpoch, previewOnly: value.session.previewOnly } : null, token: { cellId: value.session?.currentCellId ?? 'cell-01', direction: value.session?.direction ?? 'forward' }, dice: null, inventory: [...value.inventory], missions: [...value.missions], donations: [], queue: [], capabilities: value.capabilities, boardDefinition: value.boardDefinition };
+  return { revision: value.session?.revision ?? 0, session: value.session ? { id: value.session.id, status: value.session.status, channelName: value.session.channelId, sessionEpoch: value.session.sessionEpoch, boardVersionId: value.session.boardVersionId, presentationEpoch: value.session.presentationEpoch, previewOnly: value.session.previewOnly } : null, token: { cellId: value.session?.currentCellId ?? 'cell-01', direction: value.session?.direction ?? 'forward' }, dice: null, inventory: [...value.inventory], missions: [...value.missions], counters: value.counters ?? [], effectTasks: value.effectTasks ?? [], movementLock: value.movementLock ?? null, rollModifiers: value.rollModifiers ?? [], donations: [], queue: [], capabilities: value.capabilities, boardDefinition: value.boardDefinition };
 }
