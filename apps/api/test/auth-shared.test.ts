@@ -38,3 +38,27 @@ test('local CSRF bootstrap is stable for the same browser session and differs ac
   assert.equal(localCsrfToken('session-a'),localCsrfToken('session-a'));
   assert.notEqual(localCsrfToken('session-a'),localCsrfToken('session-b'));
 });
+
+
+test('file-based bootstrap leaves one database credential source and rejects ambiguous input',async()=>{
+  const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
+  const {tmpdir}=await import('node:os');
+  const {join}=await import('node:path');
+  const {loadSecret}=await import('../src/runtime-secrets.ts');
+  const {databaseUrl}=await import('../../../packages/database/src/index.ts');
+  const directory=mkdtempSync(join(tmpdir(),'marble-secret-test-'));
+  const previousUrl=process.env.DATABASE_URL,previousFile=process.env.DATABASE_URL_FILE;
+  try{
+    const file=join(directory,'database-url');writeFileSync(file,'postgresql://fixture:fixture@localhost/fixture\n',{mode:0o600});
+    delete process.env.DATABASE_URL;process.env.DATABASE_URL_FILE=file;
+    loadSecret('DATABASE_URL');
+    assert.equal(process.env.DATABASE_URL_FILE,undefined);
+    assert.equal(databaseUrl(),'postgresql://fixture:fixture@localhost/fixture');
+    loadSecret('DATABASE_URL');
+    assert.throws(()=>loadSecret('DATABASE_URL',{DATABASE_URL:'explicit',DATABASE_URL_FILE:file}),/Set only one/);
+  }finally{
+    if(previousUrl===undefined)delete process.env.DATABASE_URL;else process.env.DATABASE_URL=previousUrl;
+    if(previousFile===undefined)delete process.env.DATABASE_URL_FILE;else process.env.DATABASE_URL_FILE=previousFile;
+    rmSync(directory,{recursive:true,force:true});
+  }
+});

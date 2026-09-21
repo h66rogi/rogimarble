@@ -23,5 +23,5 @@ jobs:
         env:
           NEXT_PUBLIC_API_BASE_URL: https://marble-api.rogi.chat
           NEXT_PUBLIC_CHANNEL_ID: preview
-      - run: python3 tools/ops/test_release.py && python3 tools/ops/test_fetch_release.py && python3 tools/ops/test_runtime_secrets.py && python3 tools/ops/test_backup.py && python3 tools/ops/test_registry_auth.py && python3 tools/release/test-validate-compose.py
+      - run: python3 tools/ops/test_release.py && python3 tools/ops/test_fetch_release.py && python3 tools/ops/test_runtime_secrets.py && python3 tools/ops/test_backup.py && python3 tools/ops/test_registry_auth.py && python3 tools/ops/test_production_status.py && python3 tools/release/test-validate-compose.py
       - run: python3 tools/release/validate-compose.py

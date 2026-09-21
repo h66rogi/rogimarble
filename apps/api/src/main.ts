@@ -1,9 +1,8 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { readFileSync } from 'node:fs';
+import { loadSecret } from './runtime-secrets.ts';
 import { AppModule } from './app.module.ts';
 
-function loadSecret(name:string):void{const fileName=`${name}_FILE`;if(process.env[name]&&process.env[fileName])throw new Error(`Set only one of ${name} or ${fileName}`);if(process.env[fileName])process.env[name]=readFileSync(process.env[fileName]!,'utf8').trim();}
 loadSecret('DATABASE_URL');loadSecret('SESSION_SECRET');
 if(!process.env.DATABASE_URL) throw new Error('DATABASE_URL or DATABASE_URL_FILE is required');
 if(!process.env.SESSION_SECRET||Buffer.byteLength(process.env.SESSION_SECRET)<32) throw new Error('SESSION_SECRET must contain at least 32 bytes');

@@ -5,18 +5,18 @@
 
 ## 확인한 배포 환경
 
-- 신규 EC2 두 대: rogimarble 한 대, rogi-collector 한 대. 기존 rogichat과 별도 VPC를 사용한다.
+- 신규 `t8i.medium` EC2 두 대를 생성했다: rogimarble 한 대, rogi-collector 한 대. 기존 rogichat과 별도 VPC를 사용한다.
 - Mac mini에 Tailscale SSH로 접속했고 기존 AWS 자격의 서울 리전 접근을 확인했다. 자격은 Mac에 유지한다.
 - Ubuntu Server 24.04 LTS x86_64의 Canonical AMI를 AWS API로 조회했다. 실제 AMI/account 입력은 Mac의 private 배포 디렉터리에만 보관한다.
 - 기존 S3 state 저장소의 버전 관리·암호화·public access block을 확인했다. 기존 state를 복사하지 않고 network/marble/collector별 새로운 key를 준비했다.
 - Mac의 전역 Terraform을 변경하지 않고 프로젝트 전용 Terraform 1.16.2를 공식 checksum과 대조해 설치했다.
 - 웹은 `marble.rogi.chat`, API는 `marble-api.rogi.chat`이다. 기존 rogi.chat DNS는 Cloudflare 패턴을 사용하므로 Route 53 zone을 새로 만들지 않는다.
-- AWS 리소스 생성, DNS 변경, 이미지 발행, Git push는 아직 수행하지 않았다.
+- 두 호스트의 별도 data EBS를 마운트했고 cloud-init, SSM, Docker 준비 상태를 확인했다. 실제 식별자와 주소는 private 운영 입력에만 둔다.
+- 두 public source 저장소에는 private 원본 전체나 원본 Git 이력을 넣지 않았다. source audit와 CI를 통과한 코드에서 두 제품의 private GHCR 이미지 6개를 immutable digest로 발행했다.
+- immutable GitHub OIDC subject를 반영한 exact role trust를 적용했고, 두 제품에서 실제 role assume과 임시 registry credential을 사용한 private digest pull이 성공했다.
 
-Mac에서 실제 AWS 자격과 분리된 S3 backend로 network saved plan을 생성했다. VPC·subnet·인터넷 게이트웨이·
-route table·route·연결의 **6개 생성, 변경 0, 삭제 0**이다. 조회용 plan은 state lock 쓰기도 비활성화했고
-apply하지 않았다. 제품 두 root의 실제 plan은 network 적용 후 실제 ID를 받아 생성해야 한다.
-제품 root는 현재 mock provider로 검증했으며 이를 실제 EC2 plan으로 대신하지 않는다.
+Mac의 실제 AWS 자격과 분리된 S3 backend를 사용해 network와 두 제품 root를 적용했다. Terraform mock 검증과
+EBS 삭제/교체 guard도 유지한다. 실제 tfvars, state, plan, account·resource 식별자는 저장소에 넣지 않는다.
 
 ## 초기 용량과 비용 기준
 
@@ -58,14 +58,14 @@ issuer의 account partition 생성 키/정책이 바뀌면 기존 binding을 확
 제공한다. issuer의 공유 쿠키 발급 변경은 이 레포에서 배포하지 않았다. 따라서 실제 공유 쿠키 로그인은
 아직 통합 검증 전이며, mock 검사를 실서비스 로그인 성공으로 표시하지 않는다.
 
-## 준비 중인 실행 경로
+## 현재 실행 상태와 남은 경로
 
-1. 세 Terraform root와 EBS 삭제/교체 거부 검사를 검증한다. 실제 plan과 환경 입력은 private 디렉터리에 저장한다.
-2. network → marble → collector 순서로 적용할 계획을 검토한다. collector 입력은 실제 생성된 marble SG를 참조한다.
-3. SSM으로 호스트를 확인하고 데이터 EBS의 최초 초기화/마운트를 명시적으로 수행한다. 기존 filesystem은 다시 포맷하지 않는다.
-4. 검토한 source commit으로 private GHCR 이미지를 발행하고 digest·Compose·migration checksum을 묶은 public metadata release bundle을 만든다.
-5. 성공한 main release의 `private-deploy`가 OIDC로 제한된 AWS role을 맡아 packages-read job token을 전용 Secrets Manager에 잠시 쓰고, parameter 없는 제품 고정 SSM document로 배포를 시작한다. 호스트는 임시 root-only Docker config로 digest를 pull한다. workflow 종료 때 secret 값을 비우며 사람 PAT나 지속 registry login은 두지 않는다.
-6. marble의 고정 주소를 두 도메인에 연결하고 TLS·공유 인증·운영자 binding·서버 저장을 확인한다.
+1. network → marble → collector 인프라와 두 호스트, data EBS mount, SSM/Docker 준비를 완료했다.
+2. 검토한 source commit에서 private GHCR 이미지 6개와 checksummed public metadata release bundle을 발행했다.
+3. exact immutable OIDC subject의 제한된 AWS role, job token의 임시 Secrets Manager 전달, 고정 SSM document와 실제 private digest pull을 확인했다.
+4. 첫 production Compose에서 flow-style tmpfs option이 별도 mount로 파싱되는 문제를 확인해 항목을 quote했고, parsed Compose의 모든 tmpfs target이 절대 경로인지 검사하는 CI 회귀를 추가했다. 이 수정이 포함된 최신 release의 실제 기동 확인은 대기 중이다.
+5. rogichat DNS 변경 PR은 merge됐지만 현재 Atlantis는 version-only 상태이고 별도 운영 PR은 draft다. 따라서 canonical DNS/TLS 경로는 아직 준비 완료로 표시하지 않는다.
+6. DNS/TLS 뒤 공유 issuer cookie 발급, operator binding, 서버 저장을 실제 브라우저에서 검증해야 한다.
 7. 실제 재부팅·기동 실패·배포 실패·백업/복구를 검증한 뒤 사용자 피드백 URL을 안내한다.
 
 주기 updater는 public Release metadata와 배포 receipt의 health/no-op 상태를 자격 없이 확인한다. 새 private image 배포는
@@ -79,10 +79,10 @@ job token이 살아 있는 `private-deploy` 실행이 담당한다. 실패 시 t
 
 ## 이번 변경의 검증
 
-- 세 Terraform root의 validate와 mock provider 테스트 각 1개 통과. 실제 AWS network plan도 별도로 통과했다.
+- 세 Terraform root의 validate와 mock provider 테스트를 통과했고 실제 AWS network와 두 제품 root를 적용했다.
 - 두 제품의 EBS plan guard에서 생성/수정 허용, 삭제·양방향 교체·module 주소·잘못된 plan 거부를 검증했다.
 - Marble 배포 모의 테스트 6개: checksum, migration 실패, 실행 순서, 재부팅 환경 복원, 변경 이미지 재생성 검증.
 - API 인증 테스트 5개와 API TypeScript 빌드, 웹 명령/인증 테스트 7개와 typecheck 통과.
 - Collector의 manifest 변조·누락 SQL·runtime 입력, 배포 순서, 마이그레이션 트랜잭션·실패 전파를 가짜 명령 실행으로 검증했다.
-- 공개 후보 파일 114개(marble)·75개(collector)의 gitleaks 검사에서 탐지 0건, 양 레포 문서의 로컬 링크 누락 0건을 확인했다. 첫 commit/push는 아직 수행하지 않았다.
-- 로컬 Docker/앱을 재기동하지 않았다. 이 변경 이후 실제 PostgreSQL·systemd·EC2 부팅 및 공유 로그인 검증은 아직 하지 않았다.
+- public source audit와 CI가 통과했으며 private 원본 전체와 원본 이력을 반입하지 않았다. 발행된 6개 application image는 private GHCR에 있다.
+- 두 EC2의 cloud-init/SSM/Docker, EBS mount, OIDC role assume와 private pull은 실제 확인했다. tmpfs 수정 release의 application 기동, canonical TLS, 공유 로그인/operator binding, PostgreSQL·systemd 재부팅 및 복구 검증은 아직 남아 있다.

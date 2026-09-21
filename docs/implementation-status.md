@@ -10,7 +10,7 @@
 | sol_web | apps/web, overlay-ui, animation, asset-manifest | 관리 화면·26칸 보드·격리 체험·Lottie/정적 OBS, 운영 폼 | 안전성 단위 5개와 실제 브라우저 통합 13개 통과 |
 | sol_backend | apps/api/gateway, contracts/database/game-core | 제품 API 계약·인증·PG 저장·수동 명령·재고·미션 | 실제 PG/HTTP 회귀 12개와 001 호환성 추가 회귀 통과 |
 | sol_deploy | root 설정/lock, deploy, tools/ops, infrastructure, source-imports → collector | 설치/빌드·Compose·초기 배포, collector 독립 실행과 계약 생성 | 로컬 기동 및 Go/TS wire 양방향 검증 통과 |
-| Operator | 통합·리뷰·검증·진행 기록·대상 환경 연결 | 사용자 확인 URL과 현재 기능/제한, 배포 결과 | 로컬 종료, Mac mini Tailscale SSH/AWS 접근 확인, EC2 배포 준비 |
+| Operator | 통합·리뷰·검증·진행 기록·대상 환경 연결 | 사용자 확인 URL과 현재 기능/제한, 배포 결과 | 두 EC2/EBS·SSM/Docker와 private image pull 확인, 최신 앱 기동·DNS/TLS 대기 |
 
 공유 package install/lock은 sol_deploy가 소유한다. 앱별 package.json은 각 구현자가 관리하며 계약을 직접 협의한다.
 동일 파일을 동시에 수정하지 않는다. 원본 private 전체/이력 반입 금지는 그대로 적용한다.
@@ -29,9 +29,10 @@
 
 Linux Node 22.23.2, npm 10.9.8, Go 1.27.1, Docker 29.8.0 daemon을 확인했다.
 pnpm 12.5.1과 제품 의존성을 lockfile로 고정했다. 앱 이미지 빌드와 로컬 PG/HTTP 확인을 수행했다.
-실제 OBS·SOOP·EC2 운영 검증은 아직 수행하지 않았다.
-신규 EC2 두 대, `marble.rogi.chat`과 `marble-api.rogi.chat`, Mac mini의 AWS 자격 사용으로 확정했다.
-Tailscale SSH와 AWS 서울 리전 접근을 확인했다. 아직 외부 배포 완료 URL은 없다.
+실제 OBS·SOOP와 최신 release의 EC2 application 운영 검증은 아직 수행하지 않았다.
+신규 `t8i.medium` EC2 두 대와 별도 data EBS를 생성·마운트했고 SSM, cloud-init, Docker 준비를 확인했다.
+private GHCR application image 6개를 발행했으며 exact OIDC trust를 통한 실제 private pull도 통과했다.
+`marble.rogi.chat`과 `marble-api.rogi.chat`의 DNS 운영 변경은 아직 완료되지 않아 외부 배포 완료 URL은 없다.
 
 ## 검증 기록
 
@@ -58,12 +59,12 @@ Tailscale SSH와 AWS 서울 리전 접근을 확인했다. 아직 외부 배포 
 - 모바일 390px에서 document 가로 넘침 0, 보드 전용 scroll로 우측 칸 접근 확인. OBS 1280×720에서
   scrollbar 없이 전체 판이 들어가며 body 배경이 실제 투명색/배경 이미지 없음인지 Chromium에서 확인했다.
   이는 OBS 프로그램 자체의 실방송 품질 검증은 아니다.
-- Git 공개 후보 rogimarble 83개·rogi-collector 47개를 별도 임시 디렉터리에서 gitleaks 검사해 0건 확인.
-  ignored 환경 값·의존성·빌드
-  산출물은 공개 후보가 아니다. 첫 커밋/공개 ref 검사는 아직 수행할 단계가 아니다.
+- public source audit와 CI에서 committed history를 redacted secret scan했고 private 원본 전체와 원본 Git 이력을
+  반입하지 않았다. ignored 환경 값·의존성·빌드 산출물은 공개 source 범위가 아니다.
 - 문서 13개의 로컬 링크 누락 0개.
 
-현재 Git 이력/원격 공개와 클라우드 리소스 변경은 수행하지 않았다. 이 로컬 preview는 운영 릴리스가 아니다.
+public source 저장소와 private GHCR release를 만들고 클라우드 기반을 적용했다. private 원본 전체와 원본 Git 이력은
+반입하지 않았다. 이 로컬 preview 검증 기록 자체를 운영 릴리스 성공으로 간주하지 않는다.
 
 ## 운영 명령 확장의 통합 결과
 
@@ -94,12 +95,13 @@ Tailscale SSH와 AWS 서울 리전 접근을 확인했다. 아직 외부 배포 
 
 이 결과는 첫 출시 전체 완료가 아닌, 피드백 가능한 수동 운영 구현이다. 전체 후원 내역·대기열·운영 이력 UI,
 보드 전체 효과, 규칙/아이템/보드 웹 편집, 실시간 OBS gateway, 실제 SOOP connector/journal/gRPC/inbox,
-제품 간 통합, 실제 EC2 배포·백업/복구·실방송 검증은 원래 구현 계획의 필수 범위로 남아 있다.
+제품 간 통합, 최신 release의 EC2 application 기동, canonical TLS, 백업/복구·실방송 검증은 원래 구현 계획의 필수 범위로 남아 있다.
 운영 IaC·Compose·공유 인증 연결은 [EC2 배포 준비 상태](deployment-readiness.md)에서 별도로 추적한다.
 
 ## EC2 준비 작업의 추가 검증
 
-Mac mini Tailscale SSH 및 AWS 서울 리전 접근을 확인했다. 실제 network plan은 6개 생성/변경 0/삭제 0이며
-아직 apply하지 않았다. 세 Terraform root의 validate/mock, 두 EBS plan guard fixture suite,
+Mac mini Tailscale SSH 및 AWS 서울 리전 접근을 확인했고 network와 두 제품 root를 적용했다. 두 EC2와 data EBS mount,
+cloud-init/SSM/Docker, OIDC role assume와 private GHCR pull을 실제 확인했다. 세 Terraform root의 validate/mock, 두 EBS plan guard fixture suite,
 배포 모의 검사 6개, API 인증 5개/API 빌드, 웹 검사 7개/typecheck와 collector 배포 정적·모의 검사를 통과했다.
-DB·systemd·EC2 실제 기동 검증과 issuer의 공유 쿠키 발급/로그인 확인은 별도로 남아 있다.
+첫 Compose의 tmpfs 파싱 오류를 수정한 최신 release 기동과 DB/systemd 재부팅, canonical TLS,
+issuer 공유 쿠키 발급·operator binding/로그인 확인은 별도로 남아 있다.
