@@ -12,7 +12,7 @@ const config: NextConfig = {
           "script-src 'self' 'unsafe-inline'",
           "style-src 'self' 'unsafe-inline'",
           "font-src 'self'",
-          "img-src 'self' data: blob:",
+          "img-src 'self' data: blob: https://marble-api.rogi.chat/v1/pawn-assets/",
           "connect-src 'self' https://marble-api.rogi.chat",
           "media-src 'self' blob:",
           "worker-src 'self' blob:",
