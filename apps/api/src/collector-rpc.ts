@@ -10,6 +10,7 @@ export interface CollectorStatus {
   qualityReasons:string[]; earliestCursor?:CollectorCursor; currentCursor?:CollectorCursor;
   recoveryRevision:string; lastReceivedAt?:{seconds:string;nanos:number};
 }
+export interface BroadcastStatus { channelId:string; state:string; title:string; displayName:string; broadcastId:string; checkedAt:{seconds:string;nanos:number}; cached:boolean }
 export interface CollectorConnection {
   target:string; serverName:string; caFile:string; certFile:string; keyFile:string;
   consumerId:string; collectorChannelId:string; gameChannelId:string;
@@ -42,6 +43,7 @@ export class CollectorRpc {
     return new Promise((resolve,reject)=>this.client[method](this.scoped(body),{deadline:Date.now()+10000},(error:ServiceError|null,result:T)=>error?reject(error):resolve(result)));
   }
   status(){return this.call<CollectorStatus>('getCollectionStatus',{});}
+  checkBroadcast(targetChannelId:string){return this.call<BroadcastStatus>('checkBroadcast',{targetChannelId});}
   list(cursor:CollectorCursor,recoveryRevision:string){return this.call<{donations:any[];recoveryRevision:string}>('listDonations',{afterCursor:cursor,recoveryRevision,limit:100});}
   ack(cursor:CollectorCursor,recoveryRevision:string){return this.call<{acceptedCursor:CollectorCursor;recoveryRevision:string}>('ackDonations',{cursor,recoveryRevision});}
   chat(afterCursor?:{streamGeneration:string;streamId:string}) :ClientReadableStream<any>{return this.client.watchChat(this.scoped(afterCursor?{afterCursor}:{}));}

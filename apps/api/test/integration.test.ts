@@ -362,3 +362,19 @@ test('collector donation ingestion runs against the integration PostgreSQL datab
   });
   assert.equal(result.status,0,result.stderr||result.stdout);
 });
+
+test('collector management uses sessions, CSRF and current channel permissions',async()=>{
+  const path='/v1/channels/test-channel/collector',body={targetChannelId:'fixture-broadcast'};
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}${path}`)).status,401);
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}${path}/broadcast-check`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})).status,401);
+  const http=client(await login());const response=await http.get(path);assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'no-store');
+  const state=await response.json() as any;assert.equal(state.enabled,false);assert.equal(state.canCheckBroadcast,false);
+  assert.equal((await http.post(path+'/broadcast-check',body,null)).status,403);
+  assert.equal((await http.post(path+'/broadcast-check',body)).status,503);
+  assert.equal((await http.get('/v1/channels/unrelated-channel/collector')).status,403);
+  assert.equal((await http.post('/v1/channels/unrelated-channel/collector/broadcast-check',body)).status,403);
+  for(const username of ['viewer','channel-viewer']){
+    const readOnly=client(await login(username));const status=await readOnly.get(path);assert.equal(status.status,200);assert.equal((await status.json() as any).canCheckBroadcast,false);
+    assert.equal((await readOnly.post(path+'/broadcast-check',body)).status,403);
+  }
+});
