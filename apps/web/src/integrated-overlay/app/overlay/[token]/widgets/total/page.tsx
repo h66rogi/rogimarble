@@ -20,10 +20,11 @@ const DEFAULT_TOTAL_OVERLAY_LAYOUT: TotalLayout = {
   background: 'transparent',
   widgets: [
     { id: 'board', enabled: true, x: 0.015, y: 0.025, w: 0.97, h: 0.95, z: 1 },
-    { id: 'dice', enabled: true, x: 0.41, y: 0.39, w: 0.18, h: 0.12, z: 3 },
-    { id: 'current_mission', enabled: true, x: 0.24, y: 0.82, w: 0.52, h: 0.1, z: 3 },
-    { id: 'inventory', enabled: true, x: 0.78, y: 0.08, w: 0.19, h: 0.24, z: 3 },
-    { id: 'direction', enabled: true, x: 0.03, y: 0.08, w: 0.18, h: 0.07, z: 3 },
+    // The board already owns the authoritative dice/Lottie presentation.
+    { id: 'dice', enabled: false, x: 0.41, y: 0.39, w: 0.18, h: 0.12, z: 3 },
+    { id: 'current_mission', enabled: true, x: 0.32, y: 0.64, w: 0.36, h: 0.075, z: 3 },
+    { id: 'inventory', enabled: true, x: 0.56, y: 0.28, w: 0.14, h: 0.07, z: 3 },
+    { id: 'direction', enabled: true, x: 0.3, y: 0.28, w: 0.14, h: 0.07, z: 3 },
   ],
 };
 
