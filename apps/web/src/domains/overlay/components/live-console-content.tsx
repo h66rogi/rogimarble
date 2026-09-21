@@ -4165,6 +4165,7 @@ export function LiveConsoleContent({
             <Badge variant={marbleState?.session?.status === 'running' ? 'default' : 'secondary'}>
               {marbleState?.session ? `${marbleState.session.status === 'running' ? '진행 중' : marbleState.session.status === 'paused' ? '일시정지' : '준비'} · 변경 ${marbleState.revision}` : '세션 없음'}
             </Badge>
+            {marbleState ? <>
             <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
               <a href="/account">계정 관리</a>
             </Button>
@@ -4180,6 +4181,7 @@ export function LiveConsoleContent({
             >
               로그아웃
             </Button>
+            </> : <Button variant="ghost" size="sm" className="h-7 text-xs" asChild><a href="/login">로그인</a></Button>}
             <div className="hidden">
             {/* 신청곡 모드 시작/종료 + 일시정지/재개 */}
             {isLive ? (
@@ -4524,6 +4526,7 @@ export function LiveConsoleContent({
                 const upper = (
                   <div className="h-full overflow-y-auto p-4 space-y-4">
                 <MarbleOperationsPanel />
+                <div className="hidden">
                 {!isDesktopLayout && (
                   <CommandReferenceList
                     requestCommand={activeSession?.settings?.requestCommand ?? '!신청'}
@@ -4652,6 +4655,7 @@ export function LiveConsoleContent({
                     ) : null
                   }
                 />
+                </div>
                   </div>
                 );
 
@@ -5912,7 +5916,10 @@ export function LiveConsoleContent({
                 <div className="h-3 w-px bg-border" />
               </>
             )}
-            <LiveStatusIndicator isLive={isLive} />
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className={`size-2 rounded-full ${marbleState ? 'bg-green-500' : 'bg-muted-foreground'}`} />
+              <span>{marbleState ? '서버 연결됨' : '연결 확인 중'}</span>
+            </div>
             <div className="h-3 w-px bg-border" />
             <span className="text-xs text-muted-foreground tabular-nums">
               {marbleState?.session ? `${marbleState.token.cellId} · ${marbleState.token.direction === 'forward' ? '정방향' : '역방향'}` : '세션 시작 대기'}

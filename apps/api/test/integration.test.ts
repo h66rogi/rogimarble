@@ -200,6 +200,7 @@ test('missions complete or waive exactly once and session lifecycle permits a cl
 
 test('versioned configuration, honest donation feed and revocable OBS snapshot are persisted',async()=>{
   const http=client(await login());
+  const itemConfig=await (await http.get('/v1/channels/test-channel/config/items')).json() as any;assert.equal(itemConfig.effectiveDocument[0].id,'drink-shield');
   const rules={schemaVersion:1,multiRollEnabled:false,items:[{id:'drink-shield',label:'한잔 실드'}],rules:[{id:'roll',label:'주사위',amount:33,enabled:true,action:{type:'roll_dice',rollCount:1}}]};
   let response=await http.post('/v1/channels/test-channel/config/rules',{document:rules});assert.equal(response.status,201);
   let version=await response.json() as any;assert.equal(version.status,'draft');
@@ -249,6 +250,16 @@ test('password change keeps the current session and revokes other sessions',asyn
   assert.equal((await client(first).get('/v1/auth/session')).status,200);
   assert.equal((await client(second).get('/v1/auth/session')).status,401);
   const response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/login`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:'password-user',password:nextPassword})});assert.equal(response.status,200);
+});
+
+test('array item configuration round-trips as JSON and publishes active definitions',async()=>{
+  const http=client(await login()),path='/v1/channels/test-channel/config/items';
+  const document=[{id:'drink-shield',label:'Editable shield',maxQuantity:100}];
+  let response=await http.post(path,{document});assert.equal(response.status,201);let version=await response.json() as any;assert.deepEqual(version.document,document);
+  response=await http.put(`${path}/${version.id}`,{expectedRevision:version.revision,document});assert.equal(response.status,200);version=await response.json();assert.deepEqual(version.document,document);
+  response=await http.post(`${path}/${version.id}/validate`,{expectedRevision:version.revision});version=await response.json();assert.equal(version.status,'validated');
+  response=await http.post(`${path}/${version.id}/publish`,{expectedRevision:version.revision});assert.equal(response.status,201);
+  const state=await (await http.get(path)).json() as any;assert.deepEqual(state.published.document,document);assert.deepEqual(state.effectiveDocument,document);
 });
 
 test('shared mode still issues and validates explicit local operator sessions',async()=>{

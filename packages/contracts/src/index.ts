@@ -161,7 +161,7 @@ export interface ChannelConfigVersionDto {
   readonly document: unknown; readonly validationErrors: readonly string[];
   readonly createdAt: string; readonly updatedAt: string; readonly publishedAt: string|null;
 }
-export interface ChannelConfigStateDto { readonly draft: ChannelConfigVersionDto|null; readonly published: ChannelConfigVersionDto|null }
+export interface ChannelConfigStateDto { readonly draft: ChannelConfigVersionDto|null; readonly published: ChannelConfigVersionDto|null; readonly effectiveDocument?: unknown }
 export interface DonationEventDto { readonly id:string; readonly sessionId:string|null; readonly donorDisplayName:string; readonly amount:number; readonly message:string|null; readonly ruleId:string|null; readonly result:'matched'|'no_match'|'failed'|'pending'; readonly resultDetail:unknown; readonly occurredAt:string }
 export interface DonationPageDto { readonly items:readonly DonationEventDto[]; readonly nextCursor:string|null; readonly collectionConnected:false }
 export interface OperationPageDto { readonly items:readonly unknown[]; readonly nextCursor:string|null }

@@ -16,3 +16,5 @@
 .marble-board .token-static { position: absolute; left: 50%; top: 57%; width: 36%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: #fa478c; border: 2px solid #5c1f45; box-shadow: inset 0 2px 3px #ffffff75; }
 .marble-board .token-animation.is-moving .token-static { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .marble-board .token-wrapper.is-moving { transition: none; } }
+/* The OBS document is transparent outside the configured canvas. */
+html:has([data-total-overlay-source]), body:has([data-total-overlay-source]) { background: transparent !important; }
