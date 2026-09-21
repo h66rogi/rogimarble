@@ -1,8 +1,8 @@
-import { operatorApi, type GameSessionDto, type LoginResponse, type OperatorStateDto, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
+import { operatorApi, type ChannelConfigKind, type ChannelConfigStateDto, type ChannelConfigVersionDto, type DonationPageDto, type GameSessionDto, type IssuedObsTokenDto, type LoginResponse, type ObsTokenDto, type OperationPageDto, type OperatorStateDto, type OverlayStateDto, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
 import type { OperatorCommand, OperatorSnapshot } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
-export interface AuthConfig { mode: 'local' | 'shared'; loginUrl: string | null }
+export interface AuthConfig { mode: 'local' | 'shared'; loginUrl: string | null; localLoginEnabled?: boolean }
 
 export class ApiError extends Error {
   readonly status: number;
@@ -25,7 +25,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     credentials: 'include',
     headers: { 'content-type': 'application/json', ...(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('rogimarble.csrf') ? { 'X-CSRF-Token': sessionStorage.getItem('rogimarble.csrf')! } : {}), ...init?.headers },
   });
-  if (!response.ok) throw new ApiError((await response.text()) || '요청을 처리하지 못했습니다.', response.status);
+  if (!response.ok) {
+    const raw = await response.text();
+    let message = '';
+    try {
+      const payload = JSON.parse(raw) as { message?: string | string[] };
+      message = Array.isArray(payload.message) ? payload.message.join(', ') : payload.message ?? '';
+    } catch {
+      message = '';
+    }
+    throw new ApiError(message || '요청을 처리하지 못했습니다.', response.status);
+  }
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
@@ -33,8 +44,20 @@ export const api = {
   login: async (username: string, password: string) => { const result = await request<LoginResponse>(operatorApi.login, { method: 'POST', body: JSON.stringify({ username, password }) }); sessionStorage.setItem('rogimarble.csrf', result.csrfToken); return result; },
   authConfig: () => request<AuthConfig>('/v1/auth/config', { cache: 'no-store' }),
   bootstrapSession: async () => { const result = await request<LoginResponse>('/v1/auth/session', { cache: 'no-store' }); sessionStorage.setItem('rogimarble.csrf', result.csrfToken); return result; },
+  changePassword: (currentPassword: string, newPassword: string) => request<void>('/v1/auth/password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
+  logout: async () => { await request<void>('/v1/auth/logout', { method: 'POST' }); if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('rogimarble.csrf'); },
   snapshot: async () => adaptState(await request<OperatorStateDto>(operatorApi.operatorState(channelId()), { cache: 'no-store' })),
   runnableBoards: () => request<readonly RunnableBoardVersionDto[]>(operatorApi.runnableBoards(channelId()), { cache: 'no-store' }),
+  config: (kind: ChannelConfigKind) => request<ChannelConfigStateDto>(operatorApi.config(channelId(), kind), { cache: 'no-store' }),
+  createConfigDraft: (kind: ChannelConfigKind, document: unknown) => request<ChannelConfigVersionDto>(operatorApi.config(channelId(), kind), { method: 'POST', body: JSON.stringify({ document }) }),
+  updateConfigDraft: (kind: ChannelConfigKind, versionId: string, expectedRevision: number, document: unknown) => request<ChannelConfigVersionDto>(`${operatorApi.config(channelId(), kind)}/${versionId}`, { method: 'PUT', body: JSON.stringify({ expectedRevision, document }) }),
+  validateConfig: (kind: ChannelConfigKind, versionId: string, expectedRevision: number) => request<ChannelConfigVersionDto>(`${operatorApi.config(channelId(), kind)}/${versionId}/validate`, { method: 'POST', body: JSON.stringify({ expectedRevision }) }),
+  publishConfig: (kind: ChannelConfigKind, versionId: string, expectedRevision: number) => request<ChannelConfigVersionDto>(`${operatorApi.config(channelId(), kind)}/${versionId}/publish`, { method: 'POST', body: JSON.stringify({ expectedRevision }) }),
+  donations: (filters: { donor?: string; result?: string; cursor?: string } = {}) => request<DonationPageDto>(`${operatorApi.donations(channelId())}?${new URLSearchParams({ limit: '50', ...filters })}`, { cache: 'no-store' }),
+  operations: (cursor?: string) => request<OperationPageDto>(`${operatorApi.operations(channelId())}?${new URLSearchParams({ limit: '50', ...(cursor ? { cursor } : {}) })}`, { cache: 'no-store' }),
+  obsTokens: () => request<readonly ObsTokenDto[]>(operatorApi.obsTokens(channelId()), { cache: 'no-store' }),
+  issueObsToken: (label: string) => request<IssuedObsTokenDto>(operatorApi.obsTokens(channelId()), { method: 'POST', body: JSON.stringify({ label }) }),
+  revokeObsToken: (tokenId: string) => request<void>(`${operatorApi.obsTokens(channelId())}/${tokenId}`, { method: 'DELETE' }),
   createSession: async (board: RunnableBoardVersionDto) => {
     if (getPendingIntent()) throw new PendingCommandError();
     const commandId = crypto.randomUUID();
@@ -72,7 +95,15 @@ export const api = {
   pending: getPendingIntent,
   reconcilePending: async () => { const pending = getPendingIntent(); if (!pending) throw new ApiError('확인할 명령이 없습니다.', 404); return reconcileIntent(pending); },
   retryPending: async () => { const pending = getPendingIntent(); if (!pending) throw new ApiError('재시도할 명령이 없습니다.', 404); return retryIntent(pending); },
-  overlay: (token: string) => request<OperatorSnapshot>('/v1/overlay/state', { cache: 'no-store', headers: { Authorization: `Bearer ${token}` } }),
+  overlay: async (token: string) => {
+    const response = await fetch(`${API_BASE}/v1/overlay/state`, {
+      cache: 'no-store',
+      credentials: 'omit',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new ApiError('OBS 상태를 불러오지 못했습니다.', response.status);
+    return response.json() as Promise<OverlayStateDto>;
+  },
 };
 
 async function reconcileIntent(pending: PendingIntent) {
@@ -95,5 +126,5 @@ async function retryIntent(pending: PendingIntent) {
 
 function channelId() { return process.env.NEXT_PUBLIC_CHANNEL_ID ?? 'demo-channel'; }
 function adaptState(value: OperatorStateDto): OperatorSnapshot {
-  return { revision: value.session?.revision ?? 0, session: value.session ? { id: value.session.id, status: value.session.status, channelName: value.session.channelId, sessionEpoch: value.session.sessionEpoch, boardVersionId: value.session.boardVersionId, presentationEpoch: value.session.presentationEpoch, previewOnly: value.session.previewOnly } : null, token: { cellId: value.session?.currentCellId ?? 'cell-01', direction: value.session?.direction ?? 'forward' }, dice: null, inventory: [...value.inventory], missions: [...value.missions], donations: [], queue: [], capabilities: value.capabilities };
+  return { revision: value.session?.revision ?? 0, session: value.session ? { id: value.session.id, status: value.session.status, channelName: value.session.channelId, sessionEpoch: value.session.sessionEpoch, boardVersionId: value.session.boardVersionId, presentationEpoch: value.session.presentationEpoch, previewOnly: value.session.previewOnly } : null, token: { cellId: value.session?.currentCellId ?? 'cell-01', direction: value.session?.direction ?? 'forward' }, dice: null, inventory: [...value.inventory], missions: [...value.missions], donations: [], queue: [], capabilities: value.capabilities, boardDefinition: value.boardDefinition };
 }

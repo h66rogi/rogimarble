@@ -1,0 +1,18 @@
+/* Board presentation belongs to the board component, not the console shell. */
+.marble-board { width: 100%; max-width: 100%; min-width: 0; }
+.marble-board .board-scroll-hint { display: none; }
+.marble-board .board-stage { position: relative; width: 100%; overflow: hidden; border-radius: 12px; }
+.marble-board.is-fitted { height: 100%; container-type: size; display: grid; place-items: center; }
+.marble-board.is-fitted .board-stage { width: min(100cqw, calc(100cqh * var(--board-aspect))); }
+.marble-board .board-svg { display: block; width: 100%; height: 100%; }
+.marble-board .board-cell[role="button"] { cursor: pointer; }
+.marble-board .board-cell:focus-visible { outline: 2px solid var(--ring, #777); }
+.marble-board .cell-label { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 12px; line-height: 1.12; font-weight: 800; word-break: keep-all; }
+.marble-board .center-widget { position: absolute; inset: 29% 25%; border: 1px dashed #ddd; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #666; background: #ffffffcc; }
+.marble-board .center-widget strong { color: #222; font-size: clamp(16px, 3vw, 38px); margin-top: 6px; }
+.marble-board .token-wrapper { position: absolute; width: 9%; aspect-ratio: 1; transform: translate(-50%, -57%); filter: drop-shadow(0 5px 5px #7b315c30); pointer-events: none; }
+.marble-board .token-wrapper.is-moving { transition: left .55s cubic-bezier(.22,.8,.25,1), top .55s cubic-bezier(.22,.8,.25,1); }
+.marble-board .token-animation, .marble-board .token-lottie { position: absolute; inset: 0; width: 100%; height: 100%; }
+.marble-board .token-static { position: absolute; left: 50%; top: 57%; width: 36%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: #fa478c; border: 2px solid #5c1f45; box-shadow: inset 0 2px 3px #ffffff75; }
+.marble-board .token-animation.is-moving .token-static { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .marble-board .token-wrapper.is-moving { transition: none; } }

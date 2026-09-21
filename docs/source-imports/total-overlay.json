@@ -1,0 +1,1246 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "dylabs/meloming-overlay",
+    "resolvedCommit": "540dd2abae09d177095896c2483ca904e24f8c82"
+  },
+  "scope": "Integrated total-overlay entry dependency closure and implicit Next layout/provider/CSS context; no original Git history or unrelated routes.",
+  "authorization": "User explicitly requested the actual integrated overlay codebase as the implementation starting point.",
+  "entry": "app/overlay/[token]/widgets/total/page.tsx",
+  "files": [
+    {
+      "sourcePath": "app/globals.css",
+      "targetPath": "apps/web/src/integrated-overlay/app/globals.css",
+      "sourceSha256": "e608b5c5fdb94b728efb6bfc8ca5ea4d3a4442a1017fb83a11265dafd4bb282f",
+      "importedSha256": "e608b5c5fdb94b728efb6bfc8ca5ea4d3a4442a1017fb83a11265dafd4bb282f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "app/layout.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/app/layout.tsx",
+      "sourceSha256": "3ea6903a20731e29a92cfc1d65087857c894e4c6571319102ba638469d190a74",
+      "importedSha256": "d3e7f2bdccfa63b889a2f3bee31403c5c66da325e30a461d63d62d9795c7d725",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "app/overlay.css",
+      "targetPath": "apps/web/src/integrated-overlay/app/overlay.css",
+      "sourceSha256": "8db6e35c6d4fc1db2171235e9e5cff1f4c2faa7d73503cc8d729c66257a0da79",
+      "importedSha256": "8db6e35c6d4fc1db2171235e9e5cff1f4c2faa7d73503cc8d729c66257a0da79",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "app/overlay/[token]/widgets/total/page.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/app/overlay/[token]/widgets/total/page.tsx",
+      "sourceSha256": "d7273306798dc5bbe16fd23553d3452ca2bc8d74e6f70a4b24e4ea5403ba9df7",
+      "importedSha256": "4650c062b001c07a6c4110e2ef4f38180c7ad4e8326d620958658026caa80d7e",
+      "adaptation": "Active original total-overlay entry directly adapted: normalized canvas measurement, widget geometry, z-order and render loop retained; song-request widgets replaced by server-authoritative Rogimarble board, dice, mission, inventory, direction and connection status widgets."
+    },
+    {
+      "sourcePath": "domains/overlay/apis/lyrics.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/apis/lyrics.ts",
+      "sourceSha256": "a4653b0cd9f782bd456cf3543ed077797edab3b39931c552c628f036c8a8f43a",
+      "importedSha256": "5a2dae0aeefe2f98e8fb3aa797938d90f4ad5ad9088a3734f2f6bd07f6868261",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/apis/overlay.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/apis/overlay.ts",
+      "sourceSha256": "fddd6e5262efb9ac1820fb2cec07d66a6c09f6fc753e2520f012b725ccfd3ff4",
+      "importedSha256": "7d41c1d0c1dfc52b0e563443ddb8e0ec1c6d652f52671c1761afe54af0c55e99",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/CustomCssInjector.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/CustomCssInjector.tsx",
+      "sourceSha256": "fff1a2b71cd4041b10cbce073cf9afeb3188f2f3e7c854ceb29762130e896a17",
+      "importedSha256": "fff1a2b71cd4041b10cbce073cf9afeb3188f2f3e7c854ceb29762130e896a17",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/components/TextStrokeWrapper.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/TextStrokeWrapper.tsx",
+      "sourceSha256": "ef95d4e6a7293eda81415deda831f14223c6038c1f377c60c1a753b987b37014",
+      "importedSha256": "4643f552b27e6b2a0ef1dce93aa0fca99bd419b032fff520574b1eab024b8b8d",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/now-playing/NowPlayingApple.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/now-playing/NowPlayingApple.tsx",
+      "sourceSha256": "c2e8087019f54bb78efa7dd3b04cc43787558521fa38b8aa83434e0dfb16ef38",
+      "importedSha256": "419f882996cee1db3c254df158f1bbace707b5a5b4c65e8e605237d46c8bf992",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/now-playing/NowPlayingBillboard.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/now-playing/NowPlayingBillboard.tsx",
+      "sourceSha256": "adabc47bedf9fa2cf337f2b0c48b7794e92825b79845bb454a4572bd246f3b14",
+      "importedSha256": "25a361c3f4c4dbc05910f116335e932c107f9deb3055680d978555137a3f57c8",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/now-playing/NowPlayingSpotify.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/now-playing/NowPlayingSpotify.tsx",
+      "sourceSha256": "b9ab2486a7a00db9d545167c63b3a0ef37db41e286229cfb6672e84e485c060c",
+      "importedSha256": "633a884bea5bcb993014aa988ec19481238910f1124324f7ccde076a193d70b3",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/now-playing/types.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/now-playing/types.ts",
+      "sourceSha256": "e62ce4d1feca8d720724eef7562d33c62946fbda4a92c5b131fa4a7c4973a864",
+      "importedSha256": "e62ce4d1feca8d720724eef7562d33c62946fbda4a92c5b131fa4a7c4973a864",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/components/queue/QueueWidgetBillboard.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/queue/QueueWidgetBillboard.tsx",
+      "sourceSha256": "faf16eafe912bb79484b25541064aee9c884a4b8ad8fd47e08949461552f12a5",
+      "importedSha256": "2b7af8de80467da122d13e1b267e463aabd6e9fa1bb998110218bf50844767a3",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/queue/QueueWidgetSpotify.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/queue/QueueWidgetSpotify.tsx",
+      "sourceSha256": "fa33338b30829ffea070c98416147783299029b1e2df6dcda4288f39c04e4ab2",
+      "importedSha256": "8fdfbba41b18144d2352e1af755d093aa36dc695e6c6f397520497949046c560",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/queue/QueueWidgetView.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/queue/QueueWidgetView.tsx",
+      "sourceSha256": "11f623187c6e87d986ab69dce419c30a71a2ada7e06def45f577c2eec452baba",
+      "importedSha256": "0749133d0fdc8a562a67720bb3fb47c973d06ef71b5dce5df8b91b7d168acde6",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/random-slot/RandomSlotMachine.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/random-slot/RandomSlotMachine.tsx",
+      "sourceSha256": "4b33a45f461c18bc70380a56cbf9b66a4d373e7577614803fc33a9f3c14e3001",
+      "importedSha256": "bfea23d9afb972f6aa305570d5598292646cbfef5f1a7317b031b41c0890c901",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/setlist/SetlistAutoScroll.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/setlist/SetlistAutoScroll.tsx",
+      "sourceSha256": "de49f2ce3a12254eb110ef9699da1e7e67718df41aaa7334926abad18244a1e6",
+      "importedSha256": "de49f2ce3a12254eb110ef9699da1e7e67718df41aaa7334926abad18244a1e6",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/components/setlist/SetlistBody.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/setlist/SetlistBody.tsx",
+      "sourceSha256": "0727d627c52821dcbe8168613c061896778fb6d00e65ec5960c8e0ff7025bc07",
+      "importedSha256": "81b1bb052d5b116a745e6290c805bc94187970cb86f745c570076fb7526df1eb",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/setlist/SetlistHeader.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/setlist/SetlistHeader.tsx",
+      "sourceSha256": "708a209fab9714d1d890df2ad8d83ed2b74bdf74d0d63b33177f78f7dbcf8ce1",
+      "importedSha256": "d29810fa03e754b290fdf7c5ba808cbbab31981d1863afaf3520f235b7207959",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/setlist/SetlistNowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/setlist/SetlistNowPlaying.tsx",
+      "sourceSha256": "039bb8635a655f1c0a992b843267490b706045e3087d343c725c9155da5715df",
+      "importedSha256": "735172f795df29cface8afadec769901c25909d7d39886087ab7e2c499ed3a7c",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/setlist/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/setlist/index.ts",
+      "sourceSha256": "47d8766b1ac66c3f81722d30dd02aff6187a5b12fcb300bf37b42d93be11a94d",
+      "importedSha256": "47d8766b1ac66c3f81722d30dd02aff6187a5b12fcb300bf37b42d93be11a94d",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/components/shared/AutoScrollContainer.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/shared/AutoScrollContainer.tsx",
+      "sourceSha256": "b6fe84f0c137ff47565e27611bd9829658579906422ca12b4fc04c0e941f6b5e",
+      "importedSha256": "b6fe84f0c137ff47565e27611bd9829658579906422ca12b4fc04c0e941f6b5e",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/components/shared/CanvasSizeNotice.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/shared/CanvasSizeNotice.tsx",
+      "sourceSha256": "b4e868ff799855ebfb5f005b8bd717b4201ce8405b7b1c5bbcb076d8418f93bc",
+      "importedSha256": "b4e868ff799855ebfb5f005b8bd717b4201ce8405b7b1c5bbcb076d8418f93bc",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/components/shared/ChatMessageContent.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/shared/ChatMessageContent.tsx",
+      "sourceSha256": "1833cabe57942d9c99d49e5f8ef2e61c628dc30dfc47c40c5be40239b8cf4eb7",
+      "importedSha256": "1833cabe57942d9c99d49e5f8ef2e61c628dc30dfc47c40c5be40239b8cf4eb7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/components/shared/OverlayToastLayer.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/shared/OverlayToastLayer.tsx",
+      "sourceSha256": "559ec96fff9821221fb2ba0f133f0a6f827e9884e364fc83c306c3915955f533",
+      "importedSha256": "56ec2ba5f318eaf113d491ef61c8aaa5e1eb9e933888fe90752037741fe82339",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/components/songbook-qr/SongbookQrWidget.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/songbook-qr/SongbookQrWidget.tsx",
+      "sourceSha256": "05c08d8ba7ef091df7c746ee8172f02e31286f9820e9e7fdad6488521e8ff65d",
+      "importedSha256": "1c44304ba5abaf7b7f6d891dac2409ff63d0e2c2d7f13100d8fc186627e01c83",
+      "adaptation": "Original service fallback host replaced with the public Rogimarble origin; widget remains dormant."
+    },
+    {
+      "sourcePath": "domains/overlay/constants/layout-types.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/constants/layout-types.ts",
+      "sourceSha256": "92853f52980d5965bcbd5660cf13dde645ed5d5fd2cc6301d32345129ecd2e7f",
+      "importedSha256": "92853f52980d5965bcbd5660cf13dde645ed5d5fd2cc6301d32345129ecd2e7f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/constants/realtime-sync.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/constants/realtime-sync.ts",
+      "sourceSha256": "b5f9af95c063ea60c9d5f527024a807cb3d9d8b19ed5e9270fc9392ca5be4da7",
+      "importedSha256": "b5f9af95c063ea60c9d5f527024a807cb3d9d8b19ed5e9270fc9392ca5be4da7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/constants/total-layout.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/constants/total-layout.ts",
+      "sourceSha256": "0096ee341ab71b4ebca7494fbd98f580cc080c8a72475681dea7ce68fe29689e",
+      "importedSha256": "0096ee341ab71b4ebca7494fbd98f580cc080c8a72475681dea7ce68fe29689e",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/contexts/chat-messages-context.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/contexts/chat-messages-context.tsx",
+      "sourceSha256": "6792e570a3b29dea8c462470740157c99085b0d82eb037b4911fd2e4d6cb4138",
+      "importedSha256": "8a8712652f605e1048546defd26ad6063c9b68a570ce0499553e8f51af006131",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/contexts/playback-progress-context.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/contexts/playback-progress-context.tsx",
+      "sourceSha256": "8978d250a98912f5e47c02ebfc13b74c56c3e08c5172577e7c446d67398c6fe9",
+      "importedSha256": "8978d250a98912f5e47c02ebfc13b74c56c3e08c5172577e7c446d67398c6fe9",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/data/soop-emoticons.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/data/soop-emoticons.ts",
+      "sourceSha256": "ee8dfb6d28f0be4133f28a27fddc21a2fa5b546793145e008ab84d00bf413675",
+      "importedSha256": "ee8dfb6d28f0be4133f28a27fddc21a2fa5b546793145e008ab84d00bf413675",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/hooks/use-anchor-state.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/hooks/use-anchor-state.ts",
+      "sourceSha256": "a24917dd3d9b23c5e76f16da95fab1eecd9a11be7420cbc879e36b7e0cb488e9",
+      "importedSha256": "abefe42f3dbba6eb7532f60203b5b1715f1ffb7ddc7e1fe7a40b8fca3f0dd290",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/hooks/use-overlay-socket.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/hooks/use-overlay-socket.ts",
+      "sourceSha256": "3482ce2047cd295cd98694c8e3c254b4222e6ff6526472be38130a514520c104",
+      "importedSha256": "7cbd690dcabfcdbb671e0b6026751fcd9a3dce205dc427ce8c55f262d52e250c",
+      "adaptation": "Original Socket.IO implementation retained but disabled because Rogimarble gateway realtime is not implemented; polling is authoritative."
+    },
+    {
+      "sourcePath": "domains/overlay/hooks/use-overlay.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/hooks/use-overlay.ts",
+      "sourceSha256": "c7aa271a5287a7ad7fbd0edfa3adf9224601849fd393a55aee1e15137cc2c3f3",
+      "importedSha256": "075a42717dbb5dd89726d0289926937b6d36db4ac5ec7111f47d1f2293d0c6ed",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/hooks/use-snapshot-reader.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/hooks/use-snapshot-reader.ts",
+      "sourceSha256": "38877d0e16ae757dd46d4000ac21ef6414de6bfef1be4be9977a048b60688fb7",
+      "importedSha256": "a977529ec33ef0cd9d98143dbade4279e91d86b287326f850224100853f9f8a3",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/hooks/use-sync-id-refetch.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/hooks/use-sync-id-refetch.ts",
+      "sourceSha256": "64be65d938dc684183257ad989a8774ef29ab2e76f89deab12110b453281e2f1",
+      "importedSha256": "64be65d938dc684183257ad989a8774ef29ab2e76f89deab12110b453281e2f1",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/hooks/use-widget-custom-css.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/hooks/use-widget-custom-css.ts",
+      "sourceSha256": "a50d34e5cca2332401553857eb227f18d57765d366ddb4dafd83908057a2d205",
+      "importedSha256": "a50d34e5cca2332401553857eb227f18d57765d366ddb4dafd83908057a2d205",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/selectors/snapshot-to-overlay-data.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/selectors/snapshot-to-overlay-data.ts",
+      "sourceSha256": "69e5b8dde25b416783862a3f3285bfc4db5585f1a794ad168b37e794235aca00",
+      "importedSha256": "e045be651527cb6660dfd2398ded48a9a6032b8b2b5be6ab8ae30bfadec78bcc",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/state/playback-reconciler.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/state/playback-reconciler.ts",
+      "sourceSha256": "22f7de406f4bc52b9cb5004d705a036f0583bd29815f20f3da952d2ea237c9c4",
+      "importedSha256": "f2e65f8ce5dcf403bbeb732abe40d4624eaa0b50100ea39032b450836c035014",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/3d-depth/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/3d-depth/Chatbox.tsx",
+      "sourceSha256": "5811a7705f189a1da9a1dc2e8d7e1c13737c2498711b6d1bb4f436a09dfae9d1",
+      "importedSha256": "5811a7705f189a1da9a1dc2e8d7e1c13737c2498711b6d1bb4f436a09dfae9d1",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/3d-depth/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/3d-depth/Lyrics.tsx",
+      "sourceSha256": "497829807f821449b8f5a16d162a848d456e933cebacc6cebab4a8e324b59d3e",
+      "importedSha256": "497829807f821449b8f5a16d162a848d456e933cebacc6cebab4a8e324b59d3e",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/3d-depth/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/3d-depth/NowPlaying.tsx",
+      "sourceSha256": "b86b74b66ddec5bc4bbac9f6ef6846bd23369600cf694419acc1d85dab141ed4",
+      "importedSha256": "b86b74b66ddec5bc4bbac9f6ef6846bd23369600cf694419acc1d85dab141ed4",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/3d-depth/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/3d-depth/Queue.tsx",
+      "sourceSha256": "ded89e2c4c6af8bcc37a4a852fe20b47072ceeccc8fdf204ce5ea4fbf295e5c7",
+      "importedSha256": "ded89e2c4c6af8bcc37a4a852fe20b47072ceeccc8fdf204ce5ea4fbf295e5c7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/3d-depth/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/3d-depth/Setlist.tsx",
+      "sourceSha256": "ef2614462aaaf05b816cd1a28b24108f3771ee994100dd08f57995a736a86559",
+      "importedSha256": "7deddb712128818a58fcc648a8fdc4e2491c3c9216aa3982c9e6fdfd5d8b1277",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/3d-depth/animations.css",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/3d-depth/animations.css",
+      "sourceSha256": "c72635bd7d569239a17f488099c8dd67bf7b84242975bcbf0e5dae368b9ca2d7",
+      "importedSha256": "c72635bd7d569239a17f488099c8dd67bf7b84242975bcbf0e5dae368b9ca2d7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/3d-depth/config.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/3d-depth/config.ts",
+      "sourceSha256": "af8f0794ed8d759145f553dd9247b4df88ad27f3fc556b1608c242c5f96f517f",
+      "importedSha256": "af8f0794ed8d759145f553dd9247b4df88ad27f3fc556b1608c242c5f96f517f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/3d-depth/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/3d-depth/index.ts",
+      "sourceSha256": "8643b3ddd7d6ab144e1820fc0ccc2de669777026ca890493db5d6d1965c4037f",
+      "importedSha256": "8643b3ddd7d6ab144e1820fc0ccc2de669777026ca890493db5d6d1965c4037f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/apple/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/apple/Chatbox.tsx",
+      "sourceSha256": "24c796f6a8085cabc77bd4e1abc05d03558a92e19f907ee129228a0044483c00",
+      "importedSha256": "1532c5e0cffd650bf84826d30444c5badb50b4afa4401700930eac935b6ba4c9",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/apple/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/apple/Lyrics.tsx",
+      "sourceSha256": "37845c79fcee238d6311f6c23c8953d5ffa85c208501f5ee04dc13557aae3e37",
+      "importedSha256": "37845c79fcee238d6311f6c23c8953d5ffa85c208501f5ee04dc13557aae3e37",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/apple/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/apple/NowPlaying.tsx",
+      "sourceSha256": "bd8b8f1ebed2121d602e106231970c0068e39e37b772521909c41d4ffe741634",
+      "importedSha256": "bd8b8f1ebed2121d602e106231970c0068e39e37b772521909c41d4ffe741634",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/apple/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/apple/Queue.tsx",
+      "sourceSha256": "f51e642160bbe70bc075b28b2cae038bcd36c67a6b9b443e3d6c64ad34c51ced",
+      "importedSha256": "f51e642160bbe70bc075b28b2cae038bcd36c67a6b9b443e3d6c64ad34c51ced",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/apple/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/apple/Setlist.tsx",
+      "sourceSha256": "8989dec495a60951be3858fc401c29c928ca5f8807d82aca26f039d764b448bc",
+      "importedSha256": "1b03f658c051d789159337dcd4a7f2a776742caaf625d660237ece90243c65ee",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/apple/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/apple/index.ts",
+      "sourceSha256": "b084e7a2b07e68190f173f3ef6884399bc4316b18f8c0472cde34abf1c16575d",
+      "importedSha256": "b084e7a2b07e68190f173f3ef6884399bc4316b18f8c0472cde34abf1c16575d",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/billboard/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/billboard/Chatbox.tsx",
+      "sourceSha256": "057e9573dcbdca0782481e564ab0a0d60a3a5d2063605a1ed50a6e816267c561",
+      "importedSha256": "f9d99bb9bbc9dd21459f8fa25fa4ad8987320d8be0c1ce3c4c5a30798eee9591",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/billboard/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/billboard/Lyrics.tsx",
+      "sourceSha256": "8ef19f876f0ca42c560cbf881cd860768fcd02c6dac2d0e8bcf8627532129d0a",
+      "importedSha256": "8ef19f876f0ca42c560cbf881cd860768fcd02c6dac2d0e8bcf8627532129d0a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/billboard/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/billboard/NowPlaying.tsx",
+      "sourceSha256": "a0d059aeadf4b9e5639c6009858203c467e69dc057f96eb6dacf5ea27475a9d1",
+      "importedSha256": "a0d059aeadf4b9e5639c6009858203c467e69dc057f96eb6dacf5ea27475a9d1",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/billboard/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/billboard/Queue.tsx",
+      "sourceSha256": "c23b0b5a30646b4365089824017306534b15bb304fd02efb5b1cf7bb82235fa0",
+      "importedSha256": "c23b0b5a30646b4365089824017306534b15bb304fd02efb5b1cf7bb82235fa0",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/billboard/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/billboard/Setlist.tsx",
+      "sourceSha256": "1b377a75d6cd57b125ba083087a87e8f52cf234335594fa47665a373bffdb1e2",
+      "importedSha256": "bd06bb2368fa11936dd70d80473f821c0622f06bc6d4e9647a034303afa4f791",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/billboard/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/billboard/index.ts",
+      "sourceSha256": "2404154129360c9d3b2ca249a84c4ca83cc0d16a3d2bb4000e93dbba81cb4920",
+      "importedSha256": "2404154129360c9d3b2ca249a84c4ca83cc0d16a3d2bb4000e93dbba81cb4920",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/brutalist/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/brutalist/Chatbox.tsx",
+      "sourceSha256": "fc063721220d42c77cbb110c8896926ae7b0b67a8b0dccdb4e2d70de7cedb53b",
+      "importedSha256": "fc063721220d42c77cbb110c8896926ae7b0b67a8b0dccdb4e2d70de7cedb53b",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/brutalist/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/brutalist/Lyrics.tsx",
+      "sourceSha256": "49a1a40e2e6dff78e0ca7430c76a0f56ec09bf857da96d890dafd33f74f470c7",
+      "importedSha256": "49a1a40e2e6dff78e0ca7430c76a0f56ec09bf857da96d890dafd33f74f470c7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/brutalist/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/brutalist/NowPlaying.tsx",
+      "sourceSha256": "ef699d94135c40080f735ca6bee1578319febe4f8282b40f0ac6dceea83a42c6",
+      "importedSha256": "ef699d94135c40080f735ca6bee1578319febe4f8282b40f0ac6dceea83a42c6",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/brutalist/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/brutalist/Queue.tsx",
+      "sourceSha256": "fd3471e6060cdd70da616cd77a125efc592eccf12fbd1de22893b763cdff9a66",
+      "importedSha256": "fd3471e6060cdd70da616cd77a125efc592eccf12fbd1de22893b763cdff9a66",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/brutalist/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/brutalist/Setlist.tsx",
+      "sourceSha256": "3bdffca229a947f6967eb0909489f5f5d7d0b7d008c75336ca7013a22ecc7ad9",
+      "importedSha256": "5caa20c72e4354e450fb0e080876265a235ba6d85dee066680a0c5dc7e5b2f28",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/brutalist/animations.css",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/brutalist/animations.css",
+      "sourceSha256": "035da80fededa5fd0e792e9e3c37ba1ed29e3794c6138fb447b3e2c1b61f62bb",
+      "importedSha256": "035da80fededa5fd0e792e9e3c37ba1ed29e3794c6138fb447b3e2c1b61f62bb",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/brutalist/config.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/brutalist/config.ts",
+      "sourceSha256": "e8ed989556190ded021d42d5a172fbed45ceea4005c1f5bfdfe33215bfc2df2a",
+      "importedSha256": "e8ed989556190ded021d42d5a172fbed45ceea4005c1f5bfdfe33215bfc2df2a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/brutalist/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/brutalist/index.ts",
+      "sourceSha256": "3f970612198b93c4e96046033d3201a6865f35d000c6363cf2ff654ff2a6c836",
+      "importedSha256": "3f970612198b93c4e96046033d3201a6865f35d000c6363cf2ff654ff2a6c836",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/concert-poster/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/concert-poster/Chatbox.tsx",
+      "sourceSha256": "f803e7c4f9a48cbf4fe527af11f40c4e9db586ef183e4bd87d11d1f5496d1aa9",
+      "importedSha256": "f803e7c4f9a48cbf4fe527af11f40c4e9db586ef183e4bd87d11d1f5496d1aa9",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/concert-poster/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/concert-poster/Lyrics.tsx",
+      "sourceSha256": "1dfaafbadcbf1b82acc421955c6588597b09017fc9c2499e32c4f24dbca3fb52",
+      "importedSha256": "1dfaafbadcbf1b82acc421955c6588597b09017fc9c2499e32c4f24dbca3fb52",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/concert-poster/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/concert-poster/NowPlaying.tsx",
+      "sourceSha256": "083c9f1b15988f69300c7082af510e40dd0dd8b3aad4818c579867d7fdf87525",
+      "importedSha256": "083c9f1b15988f69300c7082af510e40dd0dd8b3aad4818c579867d7fdf87525",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/concert-poster/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/concert-poster/Queue.tsx",
+      "sourceSha256": "787831a69211838a4ee6a2f2d6d13ddee14384b56a179fb2dcd6d380247d5fa2",
+      "importedSha256": "787831a69211838a4ee6a2f2d6d13ddee14384b56a179fb2dcd6d380247d5fa2",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/concert-poster/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/concert-poster/Setlist.tsx",
+      "sourceSha256": "1c5f27171d38668952d44229946ee88db25f33e8e3259c4211d14c103fba61b2",
+      "importedSha256": "7aac076f9108ce785a283de1b70fc5cfa5f3e8c6714a458f1e6e77661426311b",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/concert-poster/animations.css",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/concert-poster/animations.css",
+      "sourceSha256": "d98f3b68309d85256608bc1d283d6a09a1b699a61afd749553ce03658c87fc15",
+      "importedSha256": "d98f3b68309d85256608bc1d283d6a09a1b699a61afd749553ce03658c87fc15",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/concert-poster/config.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/concert-poster/config.ts",
+      "sourceSha256": "cd15eb8efba767453ece1a2f296e5a84733394e14952c7922042c1cdd82549c7",
+      "importedSha256": "cd15eb8efba767453ece1a2f296e5a84733394e14952c7922042c1cdd82549c7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/concert-poster/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/concert-poster/index.ts",
+      "sourceSha256": "b0826a839fe9737534c6215b380d6015afd19c0044c25deb30e0bb1d051cf158",
+      "importedSha256": "b0826a839fe9737534c6215b380d6015afd19c0044c25deb30e0bb1d051cf158",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/glassmorphism/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/glassmorphism/Chatbox.tsx",
+      "sourceSha256": "ecd512a5015b5911debb72bdcf2fe9559c68c6eb2dd76bf0a3919a619386a9c4",
+      "importedSha256": "ecd512a5015b5911debb72bdcf2fe9559c68c6eb2dd76bf0a3919a619386a9c4",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/glassmorphism/LiquidGlassFilter.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/glassmorphism/LiquidGlassFilter.tsx",
+      "sourceSha256": "517469e8929e92c7b64c4a05057bd44500d9021486ee3286e21431fc941c12ba",
+      "importedSha256": "517469e8929e92c7b64c4a05057bd44500d9021486ee3286e21431fc941c12ba",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/glassmorphism/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/glassmorphism/Lyrics.tsx",
+      "sourceSha256": "e194593b508ac0b46ca37c625354ad396938badc03d95c97b4d11531e372fe6f",
+      "importedSha256": "e194593b508ac0b46ca37c625354ad396938badc03d95c97b4d11531e372fe6f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/glassmorphism/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/glassmorphism/NowPlaying.tsx",
+      "sourceSha256": "19fd44a3076f16cbd730a75b6955e6c02c08cbc0a67ebc6d7588af36acfe0a17",
+      "importedSha256": "19fd44a3076f16cbd730a75b6955e6c02c08cbc0a67ebc6d7588af36acfe0a17",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/glassmorphism/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/glassmorphism/Queue.tsx",
+      "sourceSha256": "db1a79d8a751d463e418ecc3884fbbe0a9c4e03082d60c7147d1523c616e8c71",
+      "importedSha256": "db1a79d8a751d463e418ecc3884fbbe0a9c4e03082d60c7147d1523c616e8c71",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/glassmorphism/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/glassmorphism/Setlist.tsx",
+      "sourceSha256": "74803d7f7e537a05e85340b441e84c5076b21fb4fe2b055eda91abaad8289f7c",
+      "importedSha256": "01a324abc51db9710289ce8630fc187f7b8665f1a4b3e3567c27e27df7a45870",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/glassmorphism/animations.css",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/glassmorphism/animations.css",
+      "sourceSha256": "07ae7e1794c10fa07e57044763cf654f592ce84ce26cf83a55b12f7e5f0269a2",
+      "importedSha256": "07ae7e1794c10fa07e57044763cf654f592ce84ce26cf83a55b12f7e5f0269a2",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/glassmorphism/config.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/glassmorphism/config.ts",
+      "sourceSha256": "faf89979a8d4cda80667f61a06cb681d37b6848e662b2cf0fddba3352a4e4f1e",
+      "importedSha256": "faf89979a8d4cda80667f61a06cb681d37b6848e662b2cf0fddba3352a4e4f1e",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/glassmorphism/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/glassmorphism/index.ts",
+      "sourceSha256": "4c53600cba0b22265965dc22104334d236c2340ac53e32e37df9d596a3e6e0ca",
+      "importedSha256": "4c53600cba0b22265965dc22104334d236c2340ac53e32e37df9d596a3e6e0ca",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/hand-drawn/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/hand-drawn/Chatbox.tsx",
+      "sourceSha256": "a626633f3abfbea0e5f32eaea8b23e0a8180bdf25074d590ab2be9ec7a7b941d",
+      "importedSha256": "a626633f3abfbea0e5f32eaea8b23e0a8180bdf25074d590ab2be9ec7a7b941d",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/hand-drawn/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/hand-drawn/Lyrics.tsx",
+      "sourceSha256": "39027c6196da927f948d9267054f132f2cde5d4f64b86a9d6da11403a11fb224",
+      "importedSha256": "39027c6196da927f948d9267054f132f2cde5d4f64b86a9d6da11403a11fb224",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/hand-drawn/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/hand-drawn/NowPlaying.tsx",
+      "sourceSha256": "3adb3e7b9b16b28a51b6e2f63c7491592d5b99515fd492b4a1b1826a8ec98389",
+      "importedSha256": "3adb3e7b9b16b28a51b6e2f63c7491592d5b99515fd492b4a1b1826a8ec98389",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/hand-drawn/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/hand-drawn/Queue.tsx",
+      "sourceSha256": "53dabe0769f5fb666f9d326f8b488bc2a1715fabfe1da358dcce14b4ac21261b",
+      "importedSha256": "53dabe0769f5fb666f9d326f8b488bc2a1715fabfe1da358dcce14b4ac21261b",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/hand-drawn/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/hand-drawn/Setlist.tsx",
+      "sourceSha256": "9ce2dd1c79ad483cdb3b94b4351db726748ce39b2a3bdfc8829d90c0d4e5d554",
+      "importedSha256": "d4561137cab0e5ef4b5f3699153288f4de96d0599e41b6f595703f9fd94ad6f5",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/hand-drawn/animations.css",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/hand-drawn/animations.css",
+      "sourceSha256": "e3ec2344fa7694271faee213e32140812b34affd21b01dd61d585a3031211bde",
+      "importedSha256": "e3ec2344fa7694271faee213e32140812b34affd21b01dd61d585a3031211bde",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/hand-drawn/config.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/hand-drawn/config.ts",
+      "sourceSha256": "5e3b898646d569fe554d7c94f667a709f9192a13bcd38ed8aad09e19ea7313f9",
+      "importedSha256": "5e3b898646d569fe554d7c94f667a709f9192a13bcd38ed8aad09e19ea7313f9",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/hand-drawn/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/hand-drawn/index.ts",
+      "sourceSha256": "db863cce9c45c123d94bc514ec07c7bca611d69dac53ea2ec1e1341114e31fc4",
+      "importedSha256": "db863cce9c45c123d94bc514ec07c7bca611d69dac53ea2ec1e1341114e31fc4",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/kawaii/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/kawaii/Chatbox.tsx",
+      "sourceSha256": "7312cf7772d4c09b1fb41f9a7b400d722bf8c5768e540ab14bf87ed8f6a8e1a4",
+      "importedSha256": "7312cf7772d4c09b1fb41f9a7b400d722bf8c5768e540ab14bf87ed8f6a8e1a4",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/kawaii/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/kawaii/Lyrics.tsx",
+      "sourceSha256": "7bc360e52f3e90aa3f689b2d2225846e0471c71a5076251f5e8cc2d87d100768",
+      "importedSha256": "7bc360e52f3e90aa3f689b2d2225846e0471c71a5076251f5e8cc2d87d100768",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/kawaii/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/kawaii/NowPlaying.tsx",
+      "sourceSha256": "29019cdf90b7121a41986730d8c397cc27f6b3057d3f938175a5534fd738fba6",
+      "importedSha256": "29019cdf90b7121a41986730d8c397cc27f6b3057d3f938175a5534fd738fba6",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/kawaii/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/kawaii/Queue.tsx",
+      "sourceSha256": "30cd60078344b1d3294e3ebf3b668455bd148c9c472bcb568396d1a9868d4eb5",
+      "importedSha256": "30cd60078344b1d3294e3ebf3b668455bd148c9c472bcb568396d1a9868d4eb5",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/kawaii/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/kawaii/Setlist.tsx",
+      "sourceSha256": "9ec51962334ae8511eb90eb60e8fed1145ea60c5efff749a5a5c4ef5c9d75ba8",
+      "importedSha256": "28d7e404d9e9e21b734e17997c01ebfafcc15327f4db75bb68f7580c06ec14ac",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/kawaii/animations.css",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/kawaii/animations.css",
+      "sourceSha256": "0cc6c9568b2f524d0413889c931de9397672b2f9b6fa5ac5c428c17976eb51bf",
+      "importedSha256": "0cc6c9568b2f524d0413889c931de9397672b2f9b6fa5ac5c428c17976eb51bf",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/kawaii/config.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/kawaii/config.ts",
+      "sourceSha256": "50160caf79457b9956574621bc6db04f5004e3936192fd2d9071af01ae372e4e",
+      "importedSha256": "50160caf79457b9956574621bc6db04f5004e3936192fd2d9071af01ae372e4e",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/kawaii/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/kawaii/index.ts",
+      "sourceSha256": "a69a3ac0323fffc52dc42e84957da15c245e3240293e9a3e287b7f7931031112",
+      "importedSha256": "a69a3ac0323fffc52dc42e84957da15c245e3240293e9a3e287b7f7931031112",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/korean-traditional/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/korean-traditional/Chatbox.tsx",
+      "sourceSha256": "5bdd42f52c85838cdcd1e305c1768df2a66b7fc7d0f276463555feb00588796c",
+      "importedSha256": "5bdd42f52c85838cdcd1e305c1768df2a66b7fc7d0f276463555feb00588796c",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/korean-traditional/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/korean-traditional/Lyrics.tsx",
+      "sourceSha256": "06ef18c7e4a970a9157746a98bb39dc677774f379799c3ab0d13c7f1b9835cb8",
+      "importedSha256": "06ef18c7e4a970a9157746a98bb39dc677774f379799c3ab0d13c7f1b9835cb8",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/korean-traditional/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/korean-traditional/NowPlaying.tsx",
+      "sourceSha256": "9a5280f48ed071b11d52992d2b19bce7a9313e5afa7fccbddca2d1e3d38882a7",
+      "importedSha256": "9a5280f48ed071b11d52992d2b19bce7a9313e5afa7fccbddca2d1e3d38882a7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/korean-traditional/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/korean-traditional/Queue.tsx",
+      "sourceSha256": "4df49f8c91303a3c4d73eea9aa16852bcf768710d125852e0965348927d1e10d",
+      "importedSha256": "4df49f8c91303a3c4d73eea9aa16852bcf768710d125852e0965348927d1e10d",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/korean-traditional/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/korean-traditional/Setlist.tsx",
+      "sourceSha256": "71c9ed8a84b3d9639f5cd3e178168efc156f5cbc7140ee3714213c852122c086",
+      "importedSha256": "2359649ddbf9cf0869ec793686eebc566f2d0941b6e8c554d3a16f18ab8c162f",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/korean-traditional/animations.css",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/korean-traditional/animations.css",
+      "sourceSha256": "457d0d61ce05c3df745a1f6eca88a51b33ddf08fb9c7610ec251a6559dc6ec69",
+      "importedSha256": "457d0d61ce05c3df745a1f6eca88a51b33ddf08fb9c7610ec251a6559dc6ec69",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/korean-traditional/config.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/korean-traditional/config.ts",
+      "sourceSha256": "26d3301dea6c60b44a3c2dd24d0dcf3adf55bcec550a65a42df5ec998c0e3328",
+      "importedSha256": "26d3301dea6c60b44a3c2dd24d0dcf3adf55bcec550a65a42df5ec998c0e3328",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/korean-traditional/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/korean-traditional/index.ts",
+      "sourceSha256": "c13f02b1057952b78d815afeaa660256d7bc159db4e9136284681d7e5b2c1196",
+      "importedSha256": "c13f02b1057952b78d815afeaa660256d7bc159db4e9136284681d7e5b2c1196",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/neon-cyberpunk/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/neon-cyberpunk/Chatbox.tsx",
+      "sourceSha256": "5aeccd33190bbda9638c8176453dcbf4dbe9fdc537feef5a4f6afe7eb7e3caf1",
+      "importedSha256": "5aeccd33190bbda9638c8176453dcbf4dbe9fdc537feef5a4f6afe7eb7e3caf1",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/neon-cyberpunk/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/neon-cyberpunk/Lyrics.tsx",
+      "sourceSha256": "a5063039b40cd0b53f13a2a6841a6ba1df7f54ca1fdb5c749bbbab6e27fbc97a",
+      "importedSha256": "a5063039b40cd0b53f13a2a6841a6ba1df7f54ca1fdb5c749bbbab6e27fbc97a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/neon-cyberpunk/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/neon-cyberpunk/NowPlaying.tsx",
+      "sourceSha256": "d7da05ba5f10e81b7fd4a44703e5a38a6237fd1ae9840b0f6e64dd63fa1c00fb",
+      "importedSha256": "d7da05ba5f10e81b7fd4a44703e5a38a6237fd1ae9840b0f6e64dd63fa1c00fb",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/neon-cyberpunk/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/neon-cyberpunk/Queue.tsx",
+      "sourceSha256": "335da4595421fb7ca1212669f18fd395088cbeea00fb5c6c7282db5231b8c1d2",
+      "importedSha256": "335da4595421fb7ca1212669f18fd395088cbeea00fb5c6c7282db5231b8c1d2",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/neon-cyberpunk/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/neon-cyberpunk/Setlist.tsx",
+      "sourceSha256": "7e8a8105ac6efd3ba972594ada2966dc1dbcc3fe43828d3308dbb58ad76aa7fa",
+      "importedSha256": "7ecf8c27fcede02d094b272a48c71df60a9820062bac2c9cb732ea45659f6be4",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/neon-cyberpunk/animations.css",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/neon-cyberpunk/animations.css",
+      "sourceSha256": "ac33cd577dc75758b2188da9a852884fbea9676904fd488904a180250caee393",
+      "importedSha256": "ac33cd577dc75758b2188da9a852884fbea9676904fd488904a180250caee393",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/neon-cyberpunk/config.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/neon-cyberpunk/config.ts",
+      "sourceSha256": "0aa9c63c060b005d8c1ec5744f9199f3e0ada71f99aad16aaff41e8728b67fdf",
+      "importedSha256": "0aa9c63c060b005d8c1ec5744f9199f3e0ada71f99aad16aaff41e8728b67fdf",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/neon-cyberpunk/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/neon-cyberpunk/index.ts",
+      "sourceSha256": "e59d7d110720dbb4d3aaa1b48a9262dfeb06712288ec433434cc5aeaa2919c16",
+      "importedSha256": "e59d7d110720dbb4d3aaa1b48a9262dfeb06712288ec433434cc5aeaa2919c16",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/registry.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/registry.ts",
+      "sourceSha256": "aa16299c1ba36fe23ba334e908bab1b9b719ceb1c59ee9f6df0580cc19987693",
+      "importedSha256": "aa16299c1ba36fe23ba334e908bab1b9b719ceb1c59ee9f6df0580cc19987693",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/retro-pixel/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/retro-pixel/Chatbox.tsx",
+      "sourceSha256": "35c648ce2e5ae72a5ef822a30764ad678ee67ae3ede8875ee1775a592e791f19",
+      "importedSha256": "35c648ce2e5ae72a5ef822a30764ad678ee67ae3ede8875ee1775a592e791f19",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/retro-pixel/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/retro-pixel/Lyrics.tsx",
+      "sourceSha256": "3ea63fc537127c05eeb6232462409633be8a03bf5d0a60e4749838ab2120a8d7",
+      "importedSha256": "3ea63fc537127c05eeb6232462409633be8a03bf5d0a60e4749838ab2120a8d7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/retro-pixel/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/retro-pixel/NowPlaying.tsx",
+      "sourceSha256": "35246ce21aafaf1e5d00d0bf1f5537c53846698171abedb3ff00164a9db669d0",
+      "importedSha256": "35246ce21aafaf1e5d00d0bf1f5537c53846698171abedb3ff00164a9db669d0",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/retro-pixel/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/retro-pixel/Queue.tsx",
+      "sourceSha256": "705acef665ae9fa89ec9f76dafad0944e59bc8da5a281c583f3885c6a2ae137f",
+      "importedSha256": "705acef665ae9fa89ec9f76dafad0944e59bc8da5a281c583f3885c6a2ae137f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/retro-pixel/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/retro-pixel/Setlist.tsx",
+      "sourceSha256": "e2bc5e3cd3a64f210bc3197768e0562c1fc74c16761fdffe78c1afe724407d88",
+      "importedSha256": "c0a92579941cf3ec2dcde7c597b7a783f9c79814e7fc34b74b2219ee51bf25bb",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/retro-pixel/animations.css",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/retro-pixel/animations.css",
+      "sourceSha256": "6c496b088226d87f2c3919bad2904439a61c48729260d8063c2a24c5e3cfe816",
+      "importedSha256": "6c496b088226d87f2c3919bad2904439a61c48729260d8063c2a24c5e3cfe816",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/retro-pixel/config.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/retro-pixel/config.ts",
+      "sourceSha256": "3d7c32431003f7bbe809522d8577f2397b881a8fca4e460785eaf956b0f7d4da",
+      "importedSha256": "3d7c32431003f7bbe809522d8577f2397b881a8fca4e460785eaf956b0f7d4da",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/retro-pixel/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/retro-pixel/index.ts",
+      "sourceSha256": "89df7d72fa3124c3a2166aa336be7c0df32749a8e6e49c945efa8171e5d65d65",
+      "importedSha256": "89df7d72fa3124c3a2166aa336be7c0df32749a8e6e49c945efa8171e5d65d65",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/PlainLyricsBody.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/PlainLyricsBody.tsx",
+      "sourceSha256": "a7d5851f68bb9e0503b78fb298d0de072668d19ce7f9d786180712d91c1270d7",
+      "importedSha256": "a7d5851f68bb9e0503b78fb298d0de072668d19ce7f9d786180712d91c1270d7",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/SharedLyricsWidget.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/SharedLyricsWidget.tsx",
+      "sourceSha256": "c45403f6c61d1454b420cc293cf49710bfd40448a622457115f27e9149221c23",
+      "importedSha256": "c45403f6c61d1454b420cc293cf49710bfd40448a622457115f27e9149221c23",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/animation-dispatcher.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/animation-dispatcher.ts",
+      "sourceSha256": "978fcd0535fd7661c118a85c28f5e9de96555f1b6ea869f6eea4d98e6540c911",
+      "importedSha256": "978fcd0535fd7661c118a85c28f5e9de96555f1b6ea869f6eea4d98e6540c911",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/animation-utils.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/animation-utils.ts",
+      "sourceSha256": "2d180d62e8859eafc33431b907a4234b96779ec52bb4a42183529fa7d66a52e5",
+      "importedSha256": "2d180d62e8859eafc33431b907a4234b96779ec52bb4a42183529fa7d66a52e5",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/apply-transparency.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/apply-transparency.ts",
+      "sourceSha256": "2c10fa1f28b6820011ee3ecff81faa901d76c8603da2c0453925ef34f7ad5a40",
+      "importedSha256": "2c10fa1f28b6820011ee3ecff81faa901d76c8603da2c0453925ef34f7ad5a40",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/container-units.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/container-units.ts",
+      "sourceSha256": "b3fa7a9730c05c16fae3a991a050e6defda8386d10710205d429cce5bdeadb9b",
+      "importedSha256": "b3fa7a9730c05c16fae3a991a050e6defda8386d10710205d429cce5bdeadb9b",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/font-loader.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/font-loader.ts",
+      "sourceSha256": "8ef68a499b797ebdd9bbb870dd31ffc82d0e1493b3b38506985c607f74f53859",
+      "importedSha256": "ae7c4c27bf3a983e144bb386d00160fe894f9ad4894126e208e48c905606f0f4",
+      "adaptation": "Remote/theme catalog disabled; board overlay uses the product self-hosted NanumSquareNeo font."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/index.ts",
+      "sourceSha256": "8fbfe3f55aebe1c42ab343de41e9453a17764e85b91dcc8bce1c640e20a0a4fc",
+      "importedSha256": "8fbfe3f55aebe1c42ab343de41e9453a17764e85b91dcc8bce1c640e20a0a4fc",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/reduced-motion.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/reduced-motion.ts",
+      "sourceSha256": "7de3f442ac64e8685956459bcd1b8d4d24b7474b92ee9c213f87a458de9273ef",
+      "importedSha256": "7de3f442ac64e8685956459bcd1b8d4d24b7474b92ee9c213f87a458de9273ef",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/text-stroke.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/text-stroke.ts",
+      "sourceSha256": "0c268c1ca5ad1f6e11faa7d99b9ca42956e6bcb13261d8f424ad741781f83fb6",
+      "importedSha256": "0c268c1ca5ad1f6e11faa7d99b9ca42956e6bcb13261d8f424ad741781f83fb6",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/use-chat-animation.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/use-chat-animation.ts",
+      "sourceSha256": "481c99890988bf62a26a7a5b21a987b5efbda2412db7a0c9a00fefc8dd5392c6",
+      "importedSha256": "481c99890988bf62a26a7a5b21a987b5efbda2412db7a0c9a00fefc8dd5392c6",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/use-common-options.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/use-common-options.ts",
+      "sourceSha256": "85d3528297c2da57ab06083b1cd79b2de9081c057cdff1054ae3b094df54fc3a",
+      "importedSha256": "85d3528297c2da57ab06083b1cd79b2de9081c057cdff1054ae3b094df54fc3a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/use-donation-animation.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/use-donation-animation.ts",
+      "sourceSha256": "9fb54b349309ba432b9d108c96cc9b4189375ce50b9b55145ad66b5fad56fa0c",
+      "importedSha256": "9fb54b349309ba432b9d108c96cc9b4189375ce50b9b55145ad66b5fad56fa0c",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/use-lyrics-state.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/use-lyrics-state.ts",
+      "sourceSha256": "4702d7cb6dd76b9e804056c4edcb0aee62bff10494482a2fed23f1ef36b0d9b5",
+      "importedSha256": "d9defd32bd576d47e052fc769a5a18e3a31eb438d642db436adc1b426ead3a8d",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/use-queue-animation.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/use-queue-animation.ts",
+      "sourceSha256": "43d11b236131773ff8b8d2a44000745161380f7bef45d97c900e67c43e50ce1b",
+      "importedSha256": "43d11b236131773ff8b8d2a44000745161380f7bef45d97c900e67c43e50ce1b",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/use-theme-loader.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/use-theme-loader.ts",
+      "sourceSha256": "a68c65dadbb6b4d6756ab225c91c6c426a7bccbf512fec19c97876faa87e50af",
+      "importedSha256": "a68c65dadbb6b4d6756ab225c91c6c426a7bccbf512fec19c97876faa87e50af",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/shared/use-track-transition.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/shared/use-track-transition.ts",
+      "sourceSha256": "9d86742987769ac4eaecc5e2ffd33e937d39a169b1308153ab83f426876e4c5f",
+      "importedSha256": "9d86742987769ac4eaecc5e2ffd33e937d39a169b1308153ab83f426876e4c5f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/sports-ticker/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/sports-ticker/Chatbox.tsx",
+      "sourceSha256": "d300973dca374789a8677737b6a4d9245cea7399f64b9bf30cc0785e20c7e1bc",
+      "importedSha256": "d300973dca374789a8677737b6a4d9245cea7399f64b9bf30cc0785e20c7e1bc",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/sports-ticker/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/sports-ticker/Lyrics.tsx",
+      "sourceSha256": "e9d7cf5e50084092108cb8fe4cc28f5e533740a98ee8c2fadca85cc66adf2918",
+      "importedSha256": "e9d7cf5e50084092108cb8fe4cc28f5e533740a98ee8c2fadca85cc66adf2918",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/sports-ticker/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/sports-ticker/NowPlaying.tsx",
+      "sourceSha256": "a07be37c88b94d5a1748f621a91f92facf403795a8030fd6fd6568c061b08279",
+      "importedSha256": "a07be37c88b94d5a1748f621a91f92facf403795a8030fd6fd6568c061b08279",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/sports-ticker/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/sports-ticker/Queue.tsx",
+      "sourceSha256": "8ab3db01e9a6599f921135333e3b73039bf9cdd41315bd24ecb3d8deaf194fcf",
+      "importedSha256": "8ab3db01e9a6599f921135333e3b73039bf9cdd41315bd24ecb3d8deaf194fcf",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/sports-ticker/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/sports-ticker/Setlist.tsx",
+      "sourceSha256": "21c9c53f46985f43040d1964672675d57a703f1d00e8133ebf4d5c07bae56626",
+      "importedSha256": "c99a8abaf69aaa3f2577787e35eb521ea9c69d41cd501164ea38810207052f79",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/sports-ticker/animations.css",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/sports-ticker/animations.css",
+      "sourceSha256": "7200a81579bc9c2835fd1241ffb24f917b331b20835162398386b0a002b065bf",
+      "importedSha256": "7200a81579bc9c2835fd1241ffb24f917b331b20835162398386b0a002b065bf",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/sports-ticker/config.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/sports-ticker/config.ts",
+      "sourceSha256": "5709068127ed5b1807a22c6f8dc3978b7b22e6dca81b7968016ff98a0e67d10a",
+      "importedSha256": "5709068127ed5b1807a22c6f8dc3978b7b22e6dca81b7968016ff98a0e67d10a",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/sports-ticker/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/sports-ticker/index.ts",
+      "sourceSha256": "84fac0f7a494c21daa99ce64010aba141edc728902e11fa83279be550e3b6480",
+      "importedSha256": "84fac0f7a494c21daa99ce64010aba141edc728902e11fa83279be550e3b6480",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/spotify/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/spotify/Chatbox.tsx",
+      "sourceSha256": "e160b074d57e45acf084249c5bbefc8af50a6957c76a7eea3cc501f484f3c747",
+      "importedSha256": "39f65e9094a882445e373167c089dfc993d8ac36974f33a2b238fe81fb0c824f",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/spotify/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/spotify/Lyrics.tsx",
+      "sourceSha256": "ce3046339dbda2dfddff3cddde4565ea24047a7e62eae13253424562281a0812",
+      "importedSha256": "ce3046339dbda2dfddff3cddde4565ea24047a7e62eae13253424562281a0812",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/spotify/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/spotify/NowPlaying.tsx",
+      "sourceSha256": "bdeba7d9f8ae13f8c64b5270b280fdc7845bebd7c3688ed3c65a50dda869fb80",
+      "importedSha256": "bdeba7d9f8ae13f8c64b5270b280fdc7845bebd7c3688ed3c65a50dda869fb80",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/spotify/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/spotify/Queue.tsx",
+      "sourceSha256": "9720d7625b30140946b36cdda1657a3c7954c0ca233f0643ff3467d0e96d15b1",
+      "importedSha256": "9720d7625b30140946b36cdda1657a3c7954c0ca233f0643ff3467d0e96d15b1",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/spotify/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/spotify/Setlist.tsx",
+      "sourceSha256": "2099d30476fe3772864cb9f2772834aaf1f9ae6d3a364de983ba307f1f081d6f",
+      "importedSha256": "44943d822a14c4690a2c2cf85e804006e9ce22693e2c45dc92c08a6f81641edd",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/spotify/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/spotify/index.ts",
+      "sourceSha256": "85e7c99c7e0dbb242903ff678ecb5fae96f25361511047312cfaed4f71a1ce0f",
+      "importedSha256": "85e7c99c7e0dbb242903ff678ecb5fae96f25361511047312cfaed4f71a1ce0f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/types.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/types.ts",
+      "sourceSha256": "476262e983f3661a3bbb00c5218369a47e28ab74941342dd31a84b0230c33e3c",
+      "importedSha256": "476262e983f3661a3bbb00c5218369a47e28ab74941342dd31a84b0230c33e3c",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/vinyl-analog/Chatbox.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/vinyl-analog/Chatbox.tsx",
+      "sourceSha256": "12b0ec308cedea4627e7d181394379da1f87ecdd8c8ece7b3cee96adeb79849c",
+      "importedSha256": "12b0ec308cedea4627e7d181394379da1f87ecdd8c8ece7b3cee96adeb79849c",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/vinyl-analog/Lyrics.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/vinyl-analog/Lyrics.tsx",
+      "sourceSha256": "c205ac8de0f15e85065f056d3b2926ebd4e4544c29114893f78f2a12e2d8dc7f",
+      "importedSha256": "c205ac8de0f15e85065f056d3b2926ebd4e4544c29114893f78f2a12e2d8dc7f",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/vinyl-analog/NowPlaying.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/vinyl-analog/NowPlaying.tsx",
+      "sourceSha256": "bafc55b64a2c3ed76405ab1b2734e8596b301822f111b7b29ad72eaf10a0a4c8",
+      "importedSha256": "bafc55b64a2c3ed76405ab1b2734e8596b301822f111b7b29ad72eaf10a0a4c8",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/vinyl-analog/Queue.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/vinyl-analog/Queue.tsx",
+      "sourceSha256": "be935dd8a428139b16c32562fc25eca6614eb00ba3672141a71cac29f9d53d24",
+      "importedSha256": "be935dd8a428139b16c32562fc25eca6614eb00ba3672141a71cac29f9d53d24",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/vinyl-analog/Setlist.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/vinyl-analog/Setlist.tsx",
+      "sourceSha256": "66b4b09b3fad26d3cdcf706fc0cbd1b0970e2545806e754795d55fde1061f29e",
+      "importedSha256": "07b6c6442cc45cd5adf3c92a1fa52a258c5121bdb0ba5a2f6546ef5ed70d62fb",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/themes/vinyl-analog/animations.css",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/vinyl-analog/animations.css",
+      "sourceSha256": "e0aa16567c819fd465012daca18d400fed575a9597b4de81ea6b108564e309c3",
+      "importedSha256": "e0aa16567c819fd465012daca18d400fed575a9597b4de81ea6b108564e309c3",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/vinyl-analog/config.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/vinyl-analog/config.ts",
+      "sourceSha256": "7c4410dd4fa3fe616ab4f6f12e14f0a20df8250bc233000034c3fb5e613089f2",
+      "importedSha256": "7c4410dd4fa3fe616ab4f6f12e14f0a20df8250bc233000034c3fb5e613089f2",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/themes/vinyl-analog/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/themes/vinyl-analog/index.ts",
+      "sourceSha256": "0c8ac888ccbf19ea128350530ddc6b28fa23c6e5f23daad4b9ba09284e6cfe46",
+      "importedSha256": "0c8ac888ccbf19ea128350530ddc6b28fa23c6e5f23daad4b9ba09284e6cfe46",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/types/chat.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/types/chat.ts",
+      "sourceSha256": "76d0b0e156ad63808941c00e1a06706d5adb8a56e7a8baf53af9305afb9b94b5",
+      "importedSha256": "76d0b0e156ad63808941c00e1a06706d5adb8a56e7a8baf53af9305afb9b94b5",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/types/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/types/index.ts",
+      "sourceSha256": "20d5b431d118ac7cc57e6e5d561244f9e9d3a868aa3401cdb25c5ea6aee6fb83",
+      "importedSha256": "20d5b431d118ac7cc57e6e5d561244f9e9d3a868aa3401cdb25c5ea6aee6fb83",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/types/options/index.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/types/options/index.ts",
+      "sourceSha256": "f991cb9d5b0d9cd55b374563339d2ffaba0b3c0055327e95dba2fe56ba5f03b2",
+      "importedSha256": "f991cb9d5b0d9cd55b374563339d2ffaba0b3c0055327e95dba2fe56ba5f03b2",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/types/overlay.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/types/overlay.ts",
+      "sourceSha256": "db550db8243a061925d1c9c96afb7ac6d488f43c6da27833bdb43e0491454349",
+      "importedSha256": "db550db8243a061925d1c9c96afb7ac6d488f43c6da27833bdb43e0491454349",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/utils/merge-queue-sync-into-overlay-data.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/utils/merge-queue-sync-into-overlay-data.ts",
+      "sourceSha256": "689f95470429e10d7fc45cd46751dcb1e82b9d8c1ed06f37d8dbc43ea5f1d2b2",
+      "importedSha256": "6a6bfabc916d1d026ddeaf58cdac0ac58f48a65bd965f02375d3cf5bc3520f05",
+      "adaptation": "Namespace imports rewritten from the original @/ root to @/integrated-overlay/; network/font boundary adaptations are reviewed separately."
+    },
+    {
+      "sourcePath": "domains/overlay/utils/playback-snapshot.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/utils/playback-snapshot.ts",
+      "sourceSha256": "16b15345fb890f3a61c935a96227f2801b5c3813d4000762a770ed1dfa24e0fc",
+      "importedSha256": "16b15345fb890f3a61c935a96227f2801b5c3813d4000762a770ed1dfa24e0fc",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "domains/overlay/utils/snapshot-reader-flag.ts",
+      "targetPath": "apps/web/src/integrated-overlay/domains/overlay/utils/snapshot-reader-flag.ts",
+      "sourceSha256": "da0b7446d2e7abbb759bb8b77739698c0898cd2374ad9323465bd0fa7e3ed803",
+      "importedSha256": "da0b7446d2e7abbb759bb8b77739698c0898cd2374ad9323465bd0fa7e3ed803",
+      "adaptation": "unchanged"
+    },
+    {
+      "sourcePath": "shared/lib/api-client.ts",
+      "targetPath": "apps/web/src/integrated-overlay/shared/lib/api-client.ts",
+      "sourceSha256": "c75b0da99c4de8c0e71e2404d42f45edac3a2128ba9b3610eede73262489c0e9",
+      "importedSha256": "512c33b1de1edd895d76acb6689da32ac8e71508f9f904cc25fb6eca88ce28f2",
+      "adaptation": "Original service transport replaced with explicit 501 fail-closed adapter."
+    },
+    {
+      "sourcePath": "shared/providers/query-provider.tsx",
+      "targetPath": "apps/web/src/integrated-overlay/shared/providers/query-provider.tsx",
+      "sourceSha256": "bcfa0e5e4d07223590bf68d812a817da97eaa5b7c1aab74ed94ce45312e43dbb",
+      "importedSha256": "bcfa0e5e4d07223590bf68d812a817da97eaa5b7c1aab74ed94ce45312e43dbb",
+      "adaptation": "unchanged"
+    }
+  ],
+  "addedProductFiles": [
+    "apps/web/src/integrated-overlay/snapshot-order.ts",
+    "apps/web/app/overlay/layout.tsx",
+    "apps/web/app/overlay/view.tsx",
+    "apps/web/test/overlay-snapshot-order.test.ts",
+    "apps/web/src/integrated-overlay/roll-playback.ts",
+    "apps/web/test/overlay-roll-playback.test.ts"
+  ],
+  "runtimeScope": "Original total canvas/widget/scaling sources retained; Rogimarble board+Lottie widget and authenticated polling are active. Original song-request themes/assets/socket are dormant and not claimed supported."
+}

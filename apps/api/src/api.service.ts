@@ -44,7 +44,7 @@ export class ApiService {
       const inventory:InventoryItemDto[]=session?await inventoryState(client,session.id,channelId):[];
       const missions:MissionDto[]=session?await missionState(client,session.id):[];
       const canOperate=operator.role!=='viewer'&&access.rows[0].permission!=='view';
-      return { session,inventory,missions,capabilities:{ manualRoll:canOperate,setDirection:canOperate,setPosition:canOperate,
+      return { session,boardDefinition:result.rows[0]?.board_definition??null,inventory,missions,capabilities:{ manualRoll:canOperate,setDirection:canOperate,setPosition:canOperate,
         arrivalEffects:false,donations:false,inventory:canOperate,missions:canOperate,sessionLifecycle:canOperate } };
     });
   }

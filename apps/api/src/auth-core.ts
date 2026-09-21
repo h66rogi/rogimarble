@@ -6,7 +6,7 @@ export const hash = (value:string):string=>createHash('sha256').update(value).di
 function secret():string{const value=process.env.SESSION_SECRET;if(!value||Buffer.byteLength(value)<32)throw new Error('SESSION_SECRET must contain at least 32 bytes');return value;}
 export function localCsrfToken(sessionToken:string):string{return createHmac('sha256',secret()).update(`local\0${sessionToken}`).digest('base64url');}
 export function validCsrf(storedHash:string|undefined,token:string|undefined,mode:'local'|'shared'|undefined,origin:string|undefined,expectedOrigin:string|undefined):boolean{
-  return !!storedHash&&!!token&&hash(token)===storedHash&&(mode!=='shared'||origin===expectedOrigin);
+  return !!storedHash&&!!token&&hash(token)===storedHash&&((mode!=='shared'&&!expectedOrigin)||!!expectedOrigin&&origin===expectedOrigin);
 }
 const SUBJECT=/^[A-Za-z0-9_-]{43}$/,OPAQUE=/^[A-Za-z0-9_-]{43}$/;
 function cookieValues(header:string|undefined,name:string):string[]{const prefix=`${name}=`;return (header??'').split(';').map(v=>v.trim()).filter(v=>v.startsWith(prefix)).map(v=>v.slice(prefix.length));}

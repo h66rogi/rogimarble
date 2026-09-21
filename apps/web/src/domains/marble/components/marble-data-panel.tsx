@@ -1,0 +1,69 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import type { DonationEventDto, ObsTokenDto } from '@rogimarble/contracts';
+import { api } from '../../../../lib/api';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
+import { ConfigurationEditor } from './configuration-editor';
+
+const operationNames: Record<string, string> = { roll_dice: '주사위 굴리기', set_direction: '방향 변경', set_position: '위치 보정', pause: '일시정지', resume: '재개', create_session: '세션 시작', end_session: '세션 종료', adjust_inventory: '보상 수량 변경', create_mission: '미션 생성', complete_mission: '미션 완료', waive_mission: '미션 면제', use_shield: '실드 사용', 'config.created': '설정 초안 생성', 'config.updated': '설정 변경', 'config.validated': '설정 검증', 'config.validation_failed': '설정 검증 실패', 'config.published': '설정 게시' };
+const resultNames: Record<string, string> = { matched: '규칙 일치', no_match: '일치하는 규칙 없음', failed: '처리 실패', pending: '처리 대기' };
+
+export function MarbleDataPanel({ view }: { view: 'donations' | 'operations' | 'obs' | 'config' | 'sessions' | 'missions' }) {
+  const [items, setItems] = useState<readonly unknown[]>([]);
+  const [tokens, setTokens] = useState<readonly ObsTokenDto[]>([]);
+  const [label, setLabel] = useState('방송 OBS');
+  const [issued, setIssued] = useState<{id:string;url:string} | null>(null);
+  const [message, setMessage] = useState('');
+  const [connected, setConnected] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [donor, setDonor] = useState('');
+  const [result, setResult] = useState('');
+  const [cursor, setCursor] = useState<string | null>(null);
+  const sequence = useRef(0);
+
+  const load = async (append = false) => {
+    const requestId = ++sequence.current;
+    setBusy(true); setMessage('');
+    try {
+      if (view === 'donations') {
+        const page = await api.donations({ ...(donor.trim() ? { donor: donor.trim() } : {}), ...(result ? { result } : {}), ...(append && cursor ? { cursor } : {}) });
+        if (requestId !== sequence.current) return;
+        setItems(previous => append ? [...previous, ...page.items] : page.items); setCursor(page.nextCursor); setConnected(page.collectionConnected);
+      } else if (view === 'operations') {
+        const page = await api.operations(append ? cursor ?? undefined : undefined);
+        if (requestId !== sequence.current) return;
+        setItems(previous => append ? [...previous, ...page.items] : page.items); setCursor(page.nextCursor);
+      } else if (view === 'obs') {
+        const values = await api.obsTokens(); if (requestId === sequence.current) setTokens(values);
+      }
+    } catch (cause) { if (requestId === sequence.current) setMessage(cause instanceof Error ? cause.message : '데이터를 불러오지 못했습니다.'); }
+    finally { if (requestId === sequence.current) setBusy(false); }
+  };
+  useEffect(() => { setItems([]); setCursor(null); setIssued(null); void load(); return () => { sequence.current += 1; }; }, [view]);
+  const feedback = message && <p role="status" className="rounded-md border p-3 text-sm text-muted-foreground">{message}</p>;
+
+  if (view === 'obs') return <Panel title="OBS 설정" description="읽기 전용 방송 화면 주소를 발급하고 회수합니다.">
+    <form className="flex gap-2" onSubmit={event => { event.preventDefault(); setBusy(true); setMessage(''); void api.issueObsToken(label).then(async token => { setIssued({id:token.id,url:new URL(token.overlayUrlPath,window.location.origin).href}); await load(); }).catch(error => setMessage(error.message)).finally(() => setBusy(false)); }}><Input aria-label="OBS 이름" value={label} maxLength={80} onChange={event => setLabel(event.target.value)} /><Button disabled={busy || !label.trim()}>주소 발급</Button></form>
+    {issued && <div className="space-y-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm"><strong>OBS 브라우저 소스 주소</strong><p>이 주소는 지금만 표시됩니다. OBS에 붙여 넣고 외부에 공유하지 마세요.</p><Input readOnly aria-label="OBS 브라우저 소스 주소" value={issued.url} onFocus={event => event.target.select()} /><div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => void navigator.clipboard.writeText(issued.url).then(() => setMessage('OBS 주소를 복사했습니다.')).catch(() => setMessage('주소를 선택해서 복사해 주세요.'))}>주소 복사</Button><Button size="sm" variant="outline" asChild><a href={issued.url} target="_blank" rel="noopener noreferrer">방송 화면 열기</a></Button></div></div>}
+    {tokens.map(token => <div className="flex flex-wrap items-center gap-3 rounded-md border p-3" key={token.id}><span className="flex-1">{token.label} · …{token.tokenSuffix}</span><span className="text-xs text-muted-foreground">{token.revokedAt ? '회수됨' : '사용 가능'}</span>{!token.revokedAt && <Button variant="destructive" size="sm" disabled={busy} onClick={() => { setBusy(true); void api.revokeObsToken(token.id).then(async () => { if (issued?.id === token.id) setIssued(null); await load(); }).catch(error => setMessage(error.message)).finally(() => setBusy(false)); }}>회수</Button>}</div>)}
+    {!tokens.length && <p className="text-sm text-muted-foreground">발급한 주소가 없습니다.</p>}{feedback}
+  </Panel>;
+
+  if (view === 'donations') return <Panel title="후원 내역" description="후원자·개수·메시지와 처리 결과를 확인합니다.">
+    {!connected && <p className="rounded-md border p-3 text-sm text-muted-foreground">후원 수집은 아직 연결되지 않았습니다.</p>}
+    <form className="flex flex-wrap gap-2" onSubmit={event => {event.preventDefault(); void load();}}><Input className="min-w-0 flex-1" aria-label="후원자 검색" placeholder="후원자 이름" value={donor} onChange={event => setDonor(event.target.value)} /><select className="h-9 rounded-md border bg-background px-2 text-sm" aria-label="처리 결과" value={result} onChange={event => setResult(event.target.value)}><option value="">전체 결과</option>{Object.entries(resultNames).map(([value,name]) => <option key={value} value={value}>{name}</option>)}</select><Button disabled={busy}>조회</Button></form>
+    {(items as readonly DonationEventDto[]).map(item => <article className="space-y-1 rounded-md border p-3 text-sm" key={item.id}><div className="flex flex-wrap items-center gap-3"><strong className="flex-1">{item.donorDisplayName}</strong><strong>{item.amount}개</strong><span>{resultNames[item.result]}</span></div>{item.message && <p className="break-words">{item.message}</p>}<p className="text-xs text-muted-foreground">{formatDate(item.occurredAt)}{item.ruleId ? ` · 규칙 ${item.ruleId}` : ''}</p>{item.resultDetail != null && <details className="text-xs text-muted-foreground"><summary>처리 상세</summary><pre className="overflow-auto">{typeof item.resultDetail === "string" ? item.resultDetail : JSON.stringify(item.resultDetail, null, 2)}</pre></details>}</article>)}
+    {!busy && !items.length && <p className="text-sm text-muted-foreground">표시할 후원이 없습니다.</p>}{cursor && <Button variant="outline" disabled={busy} onClick={() => void load(true)}>더 보기</Button>}{feedback}
+  </Panel>;
+
+  if (view === 'operations') return <Panel title="운영 기록" description="수동 조작과 설정 변경 내역입니다."><Button variant="outline" disabled={busy} onClick={() => void load()}>새로고침</Button>{items.map((item,index) => { const record=item as Record<string,unknown>; return <article className="space-y-2 rounded-md border p-3 text-sm" key={String(record.id ?? index)}><div className="flex flex-wrap justify-between gap-2"><strong>{operationNames[String(record.operation_type)] ?? String(record.operation_type ?? '운영 조작')}</strong><time className="text-xs text-muted-foreground">{formatDate(String(record.createdAt ?? ''))}</time></div>{typeof record.reason === 'string' && <p>{record.reason}</p>}<details><summary className="cursor-pointer text-xs text-muted-foreground">변경 전·후 상세</summary><pre className="mt-2 max-h-64 overflow-auto rounded bg-muted p-2 text-xs">{JSON.stringify({before:record.before_state,after:record.after_state},null,2)}</pre></details></article>; })}{!busy && !items.length && <p className="text-sm text-muted-foreground">표시할 운영 기록이 없습니다.</p>}{cursor && <Button variant="outline" disabled={busy} onClick={() => void load(true)}>더 보기</Button>}{feedback}</Panel>;
+  if (view === 'config') return <Panel title="규칙·보드 설정" description="초안을 편집하고 검증한 뒤 게시합니다."><ConfigurationEditor kind="rules" /><ConfigurationEditor kind="items" /><ConfigurationEditor kind="board" /><ConfigurationEditor kind="overlay-layout" /></Panel>;
+  return <Panel title={view === 'missions' ? '보상·미션' : '세션 기록'} description="게임 운영 탭에서 현재 미션과 세션을 관리합니다."><p className="text-sm text-muted-foreground">이전 조작은 운영 기록에서 확인할 수 있습니다.</p></Panel>;
+}
+
+function formatDate(value:string) { const date=new Date(value); return Number.isFinite(date.valueOf()) ? date.toLocaleString('ko-KR') : ''; }
+function Panel({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return <div className="mx-auto max-w-4xl space-y-4 rounded-lg border bg-card p-4 sm:p-6"><div><h2 className="text-lg font-semibold">{title}</h2><p className="mt-1 text-sm text-muted-foreground">{description}</p></div>{children}</div>;
+}

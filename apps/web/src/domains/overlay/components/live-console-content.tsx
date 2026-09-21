@@ -219,6 +219,9 @@ import {
 } from '@/shared/components/ui/collapsible';
 import { formatDonationAmount } from '@/domains/channel/utils/donation-amount-format';
 import { extractApiErrorMessage } from '@/shared/lib/api-error';
+import { MarbleOperationsPanel } from '@/domains/marble/components/marble-operations-panel';
+import { MarbleDataPanel } from '@/domains/marble/components/marble-data-panel';
+import type { OperatorSnapshot } from '../../../../lib/types';
 
 const NOW_PLAYING_CLEAR_GRACE_MS = 1200;
 const NOW_PLAYING_NULL_SYNC_CLEAR_GRACE_MS = 3500;
@@ -1708,6 +1711,12 @@ export function LiveConsoleContent({
   const [activeTab, setActiveTab] = useState<
     'home' | 'queue' | 'omakase' | 'blocks' | 'overlay' | 'settings' | 'session-history'
   >('home');
+  const [marbleState, setMarbleState] = useState<OperatorSnapshot | null>(null);
+  useEffect(() => {
+    const handleState = (event: Event) => setMarbleState((event as CustomEvent<OperatorSnapshot>).detail);
+    window.addEventListener('rogimarble:operator-state', handleState);
+    return () => window.removeEventListener('rogimarble:operator-state', handleState);
+  }, []);
   const [sideTab, setSideTab] = useState<'song' | 'overlay'>('song');
   const [overlaySubTab, setOverlaySubTab] = useState<'settings' | 'theme'>('settings');
   const [historyDetailSessionId, setHistoryDetailSessionId] = useState<number | null>(null);
@@ -4034,7 +4043,7 @@ export function LiveConsoleContent({
             >
               <span className="flex items-center gap-1.5">
                 <ListMusic className="size-3.5" />
-                신청곡
+                후원 내역
                 {queue.length > 0 && (
                   <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
                     {queue.length}
@@ -4049,19 +4058,19 @@ export function LiveConsoleContent({
                 />
               )}
             </button>
-            {omakaseEnabledForConsole && (
+            {(
               <button
                 onClick={() => setActiveTab('omakase')}
                 className={cn(
-                  "relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
+                  "hidden relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
                   activeTab === 'omakase' ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <span className="flex items-center gap-1.5">
                   <Star className="size-3.5" />
-                  {omakaseDisplayName}
+                  보상·미션
                   <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
-                    {omakaseStatus?.enabled ? omakaseCount : '설정'}
+                    운영
                   </Badge>
                 </span>
                 {activeTab === 'omakase' && (
@@ -4082,7 +4091,7 @@ export function LiveConsoleContent({
             >
               <span className="flex items-center gap-1.5">
                 <Ban className="size-3.5" />
-                차단
+                규칙·보드
               </span>
               {activeTab === 'blocks' && (
                 <motion.div
@@ -4101,7 +4110,7 @@ export function LiveConsoleContent({
             >
               <span className="flex items-center gap-1.5">
                 <Video className="size-3.5" />
-                오버레이
+                OBS 설정
               </span>
               {activeTab === 'overlay' && (
                 <motion.div
@@ -4120,7 +4129,7 @@ export function LiveConsoleContent({
             >
               <span className="flex items-center gap-1.5">
                 <Settings className="size-3.5" />
-                설정
+                운영 기록
               </span>
               {activeTab === 'settings' && (
                 <motion.div
@@ -4133,7 +4142,7 @@ export function LiveConsoleContent({
             <button
               onClick={() => setActiveTab('session-history')}
               className={cn(
-                "relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
+                "hidden relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
                 activeTab === 'session-history' ? "text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -4153,6 +4162,25 @@ export function LiveConsoleContent({
 
           {/* 우측 컨트롤 */}
           <div className="flex items-center gap-2 shrink-0">
+            <Badge variant={marbleState?.session?.status === 'running' ? 'default' : 'secondary'}>
+              {marbleState?.session ? `${marbleState.session.status === 'running' ? '진행 중' : marbleState.session.status === 'paused' ? '일시정지' : '준비'} · 변경 ${marbleState.revision}` : '세션 없음'}
+            </Badge>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+              <a href="/account">계정 관리</a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => {
+                void import('../../../../lib/api').then(({ api }) =>
+                  api.logout().finally(() => window.location.assign('/login')),
+                );
+              }}
+            >
+              로그아웃
+            </Button>
+            <div className="hidden">
             {/* 신청곡 모드 시작/종료 + 일시정지/재개 */}
             {isLive ? (
               <>
@@ -4447,11 +4475,12 @@ export function LiveConsoleContent({
               </SheetContent>
             </Sheet>
             </div>
+            </div>
           </div>
         </div>
       </header>
 
-      {isBroadcastOffline && <OfflineRequestWarning />}
+      {false && isBroadcastOffline && <OfflineRequestWarning />}
 
       {/* 탭 콘텐츠 — 홈 영상 패널은 숨김 상태로 유지해 탭 전환/리사이즈 중 재생을 보존한다. */}
       <ResizablePanelGroup
@@ -4494,6 +4523,7 @@ export function LiveConsoleContent({
                     managerLyricsText.length > 0);
                 const upper = (
                   <div className="h-full overflow-y-auto p-4 space-y-4">
+                <MarbleOperationsPanel />
                 {!isDesktopLayout && (
                   <CommandReferenceList
                     requestCommand={activeSession?.settings?.requestCommand ?? '!신청'}
@@ -4718,7 +4748,7 @@ export function LiveConsoleContent({
               })()}
             </motion.div>
           )}
-          {activeTab === 'omakase' && omakaseEnabledForConsole && (
+          {false && activeTab === 'omakase' && omakaseEnabledForConsole && (
             <motion.div
               key="omakase"
               initial={{ opacity: 0, x: 20 }}
@@ -4926,7 +4956,18 @@ export function LiveConsoleContent({
               </ScrollArea>
             </motion.div>
           )}
-          {activeTab === 'blocks' && (
+          {activeTab !== 'home' && (
+            <motion.div
+              key={`marble-${activeTab}`}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="h-full overflow-y-auto bg-background p-6"
+            >
+              <MarbleDataPanel view={activeTab === 'queue' ? 'donations' : activeTab === 'blocks' ? 'config' : activeTab === 'overlay' ? 'obs' : activeTab === 'settings' ? 'operations' : activeTab === 'session-history' ? 'sessions' : 'missions'} />
+            </motion.div>
+          )}
+          {false && activeTab === 'blocks' && (
             <motion.div
               key="blocks"
               initial={{ opacity: 0, x: 20 }}
@@ -4952,7 +4993,7 @@ export function LiveConsoleContent({
               </ScrollArea>
             </motion.div>
           )}
-          {activeTab === 'settings' && (
+          {false && activeTab === 'settings' && (
             <motion.div
               key="settings"
               initial={{ opacity: 0, x: 20 }}
@@ -5021,7 +5062,7 @@ export function LiveConsoleContent({
               </div>
             </motion.div>
           )}
-          {activeTab === 'session-history' && (
+          {false && activeTab === 'session-history' && (
             <motion.div
               key="session-history"
               initial={{ opacity: 0, x: 20 }}
@@ -5050,7 +5091,7 @@ export function LiveConsoleContent({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.2 }}
-              className="h-full flex flex-col"
+              className="hidden h-full flex flex-col"
             >
               {!isDesktopLayout && (
                 <div className="px-4 pt-3">
@@ -5377,7 +5418,7 @@ export function LiveConsoleContent({
               )}
             </motion.div>
           )}
-          {activeTab === 'overlay' && (
+          {false && activeTab === 'overlay' && (
             <motion.div
               key="overlay"
               initial={{ opacity: 0, x: 20 }}
@@ -5695,10 +5736,12 @@ export function LiveConsoleContent({
         </AnimatePresence>
         </main>
         </ResizablePanel>
-        {isDesktopLayout && <ResizableHandle withHandle />}
-        {isDesktopLayout && (
+        {isDesktopLayout && activeTab === 'home' && <ResizableHandle withHandle />}
+        {isDesktopLayout && activeTab === 'home' && (
           <ResizablePanel defaultSize={50} minSize={32} maxSize={65} order={2}>
             <aside className="h-full flex flex-col bg-background text-sm">
+              <div id="marble-controls-root" className="flex-1 overflow-y-auto" />
+              <div className="hidden">
               <div className="flex-1 overflow-y-auto">
                 {/* 1. 명령어 레퍼런스 (제일 위) */}
                 <section className="border-b px-3 py-3">
@@ -5847,6 +5890,7 @@ export function LiveConsoleContent({
                   </Button>
                 </div>
               )}
+              </div>
             </aside>
           </ResizablePanel>
         )}
@@ -5871,23 +5915,23 @@ export function LiveConsoleContent({
             <LiveStatusIndicator isLive={isLive} />
             <div className="h-3 w-px bg-border" />
             <span className="text-xs text-muted-foreground tabular-nums">
-              {queue.length}곡 대기
+              {marbleState?.session ? `${marbleState.token.cellId} · ${marbleState.token.direction === 'forward' ? '정방향' : '역방향'}` : '세션 시작 대기'}
             </span>
           </div>
 
           {/* 신청곡 상태 */}
           <div className="flex items-center gap-2">
-            {isLive && requestEnabled && !isPaused ? (
+            {marbleState?.session?.status === 'running' ? (
               <Badge className="h-5 px-2 text-[10px]">
-                신청 ON
+                게임 진행 중
               </Badge>
-            ) : isLive && requestEnabled && isPaused ? (
+            ) : marbleState?.session?.status === 'paused' ? (
               <Badge variant="secondary" className="h-5 px-2 text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30">
                 일시정지
               </Badge>
             ) : (
               <Badge variant="outline" className="h-5 px-2 text-[10px]">
-                신청 OFF
+                게임 대기
               </Badge>
             )}
           </div>

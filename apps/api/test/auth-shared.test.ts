@@ -62,3 +62,11 @@ test('file-based bootstrap leaves one database credential source and rejects amb
     rmSync(directory,{recursive:true,force:true});
   }
 });
+
+test('local sessions require the configured browser origin in deployed environments',()=>{
+  const csrf='local-csrf';
+  assert.equal(validCsrf(hash(csrf),csrf,'local','https://marble.rogi.chat','https://marble.rogi.chat'),true);
+  assert.equal(validCsrf(hash(csrf),csrf,'local',undefined,'https://marble.rogi.chat'),false);
+  assert.equal(validCsrf(hash(csrf),csrf,'local','https://other.invalid','https://marble.rogi.chat'),false);
+  assert.equal(validCsrf(hash(csrf),csrf,'local',undefined,undefined),true);
+});

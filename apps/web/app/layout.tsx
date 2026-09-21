@@ -3,6 +3,7 @@ import { QueryProvider } from '@/shared/providers/query-provider';
 import { ThemeProvider } from '@/shared/providers/theme-provider';
 import '../src/app/globals.css';
 import './legacy-surfaces.css';
+import './board-surface.css';
 
 export const metadata: Metadata = {
   title: '주루마블 운영 콘솔',

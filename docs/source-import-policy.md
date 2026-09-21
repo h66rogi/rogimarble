@@ -12,6 +12,8 @@
 `meloming-front`의 실제 원본 코드에서 시작한다. 반입 범위와 변경 경계는
 [리모컨 이식 기록](source-imports/song-request-console.md), 파일별 허용 목록은
 [원본 해시 manifest](source-imports/song-request-console.json)에 기록한다.
+통합 오버레이도 실제 원본 진입점을 직접 수정해 사용한다. 반입한 175개 파일의
+고정 원본·허용 목록·변경 사유는 [통합 오버레이 이식 기록](source-imports/total-overlay.md)에 기록한다.
 `docs/assets/streamer-board-reference.png`는 사용자가 직접 제공한 참고 이미지의 변경 없는 사본이며,
 보드 프리셋은 그 칸 정보를 데이터로 옮긴 것이다. private 참고 레포의 이미지/코드를 가져온 것이 아니다.
 

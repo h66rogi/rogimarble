@@ -25,10 +25,10 @@ async function waitFor(url:string,attempts=120):Promise<void>{
   for(let i=0;i<attempts;i++){try{if((await fetch(url)).ok)return;}catch{} await new Promise(r=>setTimeout(r,250));}
   throw new Error(`Timed out waiting for ${url}`);
 }
-async function startApi():Promise<void>{
+async function startApi(extraEnv:NodeJS.ProcessEnv={}):Promise<void>{
   apiOutput='';
   api=spawn(process.execPath,['apps/api/dist/apps/api/src/main.js'],{cwd:root,env:{...process.env,DATABASE_URL:databaseUrl,
-    SESSION_SECRET:sessionSecret,COOKIE_SECURE:'false',PORT:String(apiPort)},stdio:['ignore','pipe','pipe']});
+    SESSION_SECRET:sessionSecret,COOKIE_SECURE:'false',PORT:String(apiPort),...extraEnv},stdio:['ignore','pipe','pipe']});
   api.stdout?.on('data',chunk=>{apiOutput+=String(chunk);});api.stderr?.on('data',chunk=>{apiOutput+=String(chunk);});
   try{await waitFor(`http://127.0.0.1:${apiPort}/health`,480);}catch(error){throw new Error(`${String(error)}; api=${apiOutput.slice(-2000)}`);}
 }
@@ -38,8 +38,8 @@ async function stopApi():Promise<void>{
   await Promise.race([new Promise<void>(resolve=>api!.once('exit',()=>resolve())),new Promise<void>(resolve=>setTimeout(resolve,3000))]);
   if(api.exitCode===null)api.kill('SIGKILL');
 }
-async function login(username='admin'){
-  const response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/login`,{method:'POST',headers:{'content-type':'application/json'},
+async function login(username='admin',origin?:string){
+  const response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/login`,{method:'POST',headers:{'content-type':'application/json',...(origin?{origin}:{})},
     body:JSON.stringify({username,password:adminPassword})});
   assert.equal(response.status,200); const body=await response.json() as {csrfToken:string};
   const cookie=response.headers.get('set-cookie')?.split(';')[0]; assert.ok(cookie);
@@ -49,7 +49,9 @@ function client(auth:{csrf:string;cookie:string}){
   const get=(path:string)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{headers:{cookie:auth.cookie}});
   const post=(path:string,body:unknown,csrf:string|null=auth.csrf)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'POST',
     headers:{cookie:auth.cookie,'content-type':'application/json',...(csrf?{'x-csrf-token':csrf}:{})},body:JSON.stringify(body)});
-  return {get,post};
+  const put=(path:string,body:unknown)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'PUT',headers:{cookie:auth.cookie,'content-type':'application/json','x-csrf-token':auth.csrf},body:JSON.stringify(body)});
+  const del=(path:string)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'DELETE',headers:{cookie:auth.cookie,'x-csrf-token':auth.csrf}});
+  return {get,post,put,del};
 }
 
 test.before(async()=>{
@@ -194,4 +196,70 @@ test('missions complete or waive exactly once and session lifecycle permits a cl
   const boards=await (await http.get('/v1/channels/test-channel/board-versions/runnable')).json() as any[];
   response=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId:boards[0].id,initialCellId:boards[0].initialCellId,direction:'forward'});assert.equal(response.status,201);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session.status,'running');assert.equal(state.session.previewOnly,true);assert.equal(state.inventory[0].quantity,0);assert.deepEqual(state.missions,[]);
+});
+
+test('versioned configuration, honest donation feed and revocable OBS snapshot are persisted',async()=>{
+  const http=client(await login());
+  const rules={schemaVersion:1,multiRollEnabled:false,items:[{id:'drink-shield',label:'한잔 실드'}],rules:[{id:'roll',label:'주사위',amount:33,enabled:true,action:{type:'roll_dice',rollCount:1}}]};
+  let response=await http.post('/v1/channels/test-channel/config/rules',{document:rules});assert.equal(response.status,201);
+  let version=await response.json() as any;assert.equal(version.status,'draft');
+  response=await http.put(`/v1/channels/test-channel/config/rules/${version.id}`,{expectedRevision:version.revision,document:{...rules,rules:[...rules.rules,{...rules.rules[0],id:'duplicate',amount:33}]}});assert.equal(response.status,200);
+  version=await response.json();response=await http.post(`/v1/channels/test-channel/config/rules/${version.id}/validate`,{expectedRevision:version.revision});assert.equal(response.status,201);version=await response.json();assert.equal(version.status,'draft');assert.ok(version.validationErrors.length>0);
+  response=await http.put(`/v1/channels/test-channel/config/rules/${version.id}`,{expectedRevision:version.revision,document:rules});assert.equal(response.status,200);version=await response.json();
+  response=await http.post(`/v1/channels/test-channel/config/rules/${version.id}/validate`,{expectedRevision:version.revision});assert.equal(response.status,201);version=await response.json();assert.equal(version.status,'validated');
+  response=await http.post(`/v1/channels/test-channel/config/rules/${version.id}/publish`,{expectedRevision:version.revision});assert.equal(response.status,201);assert.equal((await response.json() as any).status,'published');
+  const feed=await (await http.get('/v1/channels/test-channel/donations?limit=10')).json() as any;assert.equal(feed.collectionConnected,false);assert.deepEqual(feed.items,[]);
+  response=await http.post('/v1/channels/test-channel/obs-tokens',{label:'integration OBS'});assert.equal(response.status,201);const issued=await response.json() as any;assert.match(issued.token,/^[A-Za-z0-9_-]{43}$/);
+  response=await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}});assert.equal(response.status,200);const overlay=await response.json() as any;assert.equal(overlay.channelId,'test-channel');assert.equal(overlay.capabilities.donations,false);assert.ok(overlay.session);assert.ok(overlay.boardDefinition);
+  assert.equal((await http.del(`/v1/channels/test-channel/obs-tokens/${issued.id}`)).status,204);
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})).status,401);
+});
+
+test('configuration rejects stale revisions and read-only writes; OBS permits concurrent readers',async()=>{
+  const http=client(await login()),viewer=client(await login('viewer'));
+  const path='/v1/channels/test-channel/config/overlay-layout';
+  const document={schemaVersion:1,width:1920,height:1080,aspectRatio:'16:9',background:'transparent',widgets:[{id:'board',bounds:{x:0,y:0,width:1,height:1},z:0}]};
+  assert.equal((await viewer.post(path,{document})).status,403);
+  assert.equal((await viewer.post('/v1/channels/test-channel/obs-tokens',{label:'forbidden'})).status,403);
+  let response=await http.post(path,{document});assert.equal(response.status,201);let version=await response.json() as any;
+  assert.equal((await http.put(`${path}/${version.id}`,{expectedRevision:version.revision+1,document})).status,409);
+  response=await http.post(`${path}/${version.id}/validate`,{expectedRevision:version.revision});version=await response.json();assert.equal(version.status,'validated');
+  response=await http.post(`${path}/${version.id}/publish`,{expectedRevision:version.revision});assert.equal(response.status,201);version=await response.json();
+  assert.equal((await http.put(`${path}/${version.id}`,{expectedRevision:version.revision,document})).status,409);
+  response=await http.post(path,{document:{...document,widgets:[{id:'board',bounds:{x:0.8,y:0,width:1,height:1},z:0}]}});version=await response.json();
+  response=await http.post(`${path}/${version.id}/validate`,{expectedRevision:version.revision});version=await response.json();assert.equal(version.status,'draft');assert.ok(version.validationErrors.length);
+  assert.equal((await http.post(`${path}/${version.id}/publish`,{expectedRevision:version.revision})).status,409);
+  const issued=await (await http.post('/v1/channels/test-channel/obs-tokens',{label:'concurrent readers'})).json() as any;
+  const readers=await Promise.all(Array.from({length:4},()=>fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})));
+  assert.deepEqual(readers.map(x=>x.status),[200,200,200,200]);
+  for(const reader of readers){const state=await reader.json() as any;assert.deepEqual(state.layout,document);assert.equal(state.latestCommand?.operatorId,undefined);}
+  assert.equal((await http.del(`/v1/channels/test-channel/obs-tokens/${issued.id}`)).status,204);
+  const first=await (await http.get('/v1/channels/test-channel/operations?limit=1')).json() as any;assert.equal(first.items.length,1);assert.ok(first.nextCursor);
+  const second=await (await http.get(`/v1/channels/test-channel/operations?limit=1&cursor=${encodeURIComponent(first.nextCursor)}`)).json() as any;assert.equal(second.items.length,1);assert.notEqual(first.items[0].id,second.items[0].id);
+  assert.equal((await http.get('/v1/channels/test-channel/operations?cursor=invalid')).status,400);
+});
+
+test('password change keeps the current session and revokes other sessions',async()=>{
+  command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-v','ON_ERROR_STOP=1','-c',
+    `INSERT INTO operators(id,username,password_hash,role) SELECT '${randomUUID()}','password-user',password_hash,'operator' FROM operators WHERE username='admin';`]);
+  const first=await login('password-user'),second=await login('password-user');
+  const nextPassword=randomBytes(24).toString('base64url');
+  assert.equal((await client(first).post('/v1/auth/password',{currentPassword:'incorrect',newPassword:nextPassword})).status,401);
+  assert.equal((await client(first).post('/v1/auth/password',{currentPassword:adminPassword,newPassword:nextPassword})).status,200);
+  assert.equal((await client(first).get('/v1/auth/session')).status,200);
+  assert.equal((await client(second).get('/v1/auth/session')).status,401);
+  const response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/login`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:'password-user',password:nextPassword})});assert.equal(response.status,200);
+});
+
+test('shared mode still issues and validates explicit local operator sessions',async()=>{
+  await stopApi();
+  await startApi({AUTH_MODE:'rogichat_shared_cookie',ROGICHAT_COOKIE_NAME:'__Secure-rogi_session',ROGICHAT_SESSION_URL:'https://api.rogi.chat/v1/auth/session',WEB_ORIGIN:'https://marble.rogi.chat'});
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/auth/login`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:'admin',password:adminPassword})})).status,403);
+  const auth=await login('admin','https://marble.rogi.chat');
+  let response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/session`,{headers:{cookie:auth.cookie}});assert.equal(response.status,200);assert.equal((await response.json() as any).authMode,'local');
+  response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/session`,{headers:{cookie:'rogimarble_session=bad.bad'}});assert.equal(response.status,401);
+  response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/login`,{method:'POST',headers:{origin:'https://attacker.invalid','content-type':'application/json'},body:JSON.stringify({username:'admin',password:adminPassword})});assert.equal(response.status,403);
+  command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-c',`UPDATE operators SET disabled_at=now() WHERE username='admin';`]);
+  response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/session`,{headers:{cookie:auth.cookie}});assert.equal(response.status,401);
+  command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-c',`UPDATE operators SET disabled_at=NULL WHERE username='admin';`]);
 });

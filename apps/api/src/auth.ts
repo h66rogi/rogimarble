@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { pool } from '../../../packages/database/src/index.ts';
@@ -24,8 +24,9 @@ function cookieValues(header:string|undefined,name:string):string[]{const prefix
 export function parseSessionCookie(header:string|undefined):string|null{
   const matches=cookieValues(header,SESSION_COOKIE_PREFIX.slice(0,-1));if(matches.length!==1)return null;const encoded=matches[0];
   if(!encoded)return null;
-  const [token,signature]=encoded.split('.');
-  if(!token||!signature||sign(token)!==signature)return null;
+  const parts=encoded.split('.');if(parts.length!==2)return null;const [token,signature]=parts;
+  if(!/^[A-Za-z0-9_-]{43}$/.test(token)||!/^[A-Za-z0-9_-]{43}$/.test(signature))return null;
+  if(!timingSafeEqual(Buffer.from(sign(token)),Buffer.from(signature)))return null;
   return token;
 }
 export function readSessionCookie(request: Request): string | null {
@@ -55,7 +56,7 @@ export async function resolveSharedIdentity(cookieHeader:string|undefined,fetche
 export class SessionGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    if(authMode()==='shared'){const identity=await resolveSharedIdentity(request.headers.cookie);request.operator={...identity.operator,csrfHash:hash(identity.csrfToken)};request.authMode='shared';request.csrfToken=identity.csrfToken;return true;}
+    if(authMode()==='shared'&&cookieValues(request.headers.cookie,'rogimarble_session').length===0){const identity=await resolveSharedIdentity(request.headers.cookie);request.operator={...identity.operator,csrfHash:hash(identity.csrfToken)};request.authMode='shared';request.csrfToken=identity.csrfToken;return true;}
     const token = readSessionCookie(request);
     if (!token) throw new UnauthorizedException('Login required');
     const result = await pool().query<{ id: string; username: string; role: 'admin'|'operator'|'viewer'; csrf_hash: string }>(

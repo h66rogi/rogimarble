@@ -11,8 +11,9 @@ export interface LoginRequest { readonly username: string; readonly password: st
 export interface LoginResponse {
   readonly operator: { readonly id: string; readonly username: string; readonly role: 'admin' | 'operator' | 'viewer' };
   readonly csrfToken: string;
+  readonly authMode?: 'local' | 'shared';
 }
-export interface AuthConfigResponse { readonly mode: 'local' | 'shared'; readonly loginUrl: string | null }
+export interface AuthConfigResponse { readonly mode: 'local' | 'shared'; readonly loginUrl: string | null; readonly localLoginEnabled?: boolean }
 export type AuthSessionResponse = LoginResponse;
 
 export interface GameSessionDto {
@@ -123,6 +124,7 @@ export interface MissionDto {
 
 export interface OperatorStateDto {
   readonly session: GameSessionDto | null;
+  readonly boardDefinition: unknown | null;
   readonly inventory: readonly InventoryItemDto[];
   readonly missions: readonly MissionDto[];
   readonly capabilities: {
@@ -152,6 +154,25 @@ export interface ApiErrorDto {
   readonly message: string;
 }
 
+export type ChannelConfigKind = 'rules' | 'items' | 'board' | 'overlay-layout';
+export interface ChannelConfigVersionDto {
+  readonly id: string; readonly channelId: string; readonly kind: ChannelConfigKind;
+  readonly revision: number; readonly status: 'draft'|'validated'|'published'|'superseded';
+  readonly document: unknown; readonly validationErrors: readonly string[];
+  readonly createdAt: string; readonly updatedAt: string; readonly publishedAt: string|null;
+}
+export interface ChannelConfigStateDto { readonly draft: ChannelConfigVersionDto|null; readonly published: ChannelConfigVersionDto|null }
+export interface DonationEventDto { readonly id:string; readonly sessionId:string|null; readonly donorDisplayName:string; readonly amount:number; readonly message:string|null; readonly ruleId:string|null; readonly result:'matched'|'no_match'|'failed'|'pending'; readonly resultDetail:unknown; readonly occurredAt:string }
+export interface DonationPageDto { readonly items:readonly DonationEventDto[]; readonly nextCursor:string|null; readonly collectionConnected:false }
+export interface OperationPageDto { readonly items:readonly unknown[]; readonly nextCursor:string|null }
+export interface ObsTokenDto { readonly id:string; readonly label:string; readonly tokenSuffix:string; readonly createdAt:string; readonly lastUsedAt:string|null; readonly revokedAt:string|null }
+export interface IssuedObsTokenDto extends ObsTokenDto { readonly token:string; readonly overlayUrlPath:string }
+export interface OverlayPresentationCommandDto { readonly commandId:string; readonly sessionId:string; readonly sessionEpoch:number; readonly presentationEpoch:number; readonly type:OperatorCommandType; readonly afterRevision:number; readonly result:SessionCommandDto['result']; readonly createdAt:string }
+export type OverlayWidgetId='board'|'dice'|'current_mission'|'inventory'|'direction';
+export interface OverlayLayoutDto { readonly schemaVersion:1; readonly width:number; readonly height:number; readonly aspectRatio:'16:9'|'9:16'|'4:3'|'custom'; readonly background:string; readonly widgets:readonly {readonly id:OverlayWidgetId;readonly bounds:{readonly x:number;readonly y:number;readonly width:number;readonly height:number};readonly z:number}[] }
+export function validateOverlayLayout(value:unknown):asserts value is OverlayLayoutDto {if(!value||typeof value!=='object'||Array.isArray(value))throw new TypeError('overlay layout must be an object');const x=value as any;if(Object.keys(x).some(k=>!['schemaVersion','width','height','aspectRatio','background','widgets'].includes(k))||x.schemaVersion!==1)throw new TypeError('overlay layout schema is invalid');for(const key of ['width','height'])if(!Number.isInteger(x[key])||x[key]<1||x[key]>7680)throw new TypeError(`${key} must be 1-7680`);if(!['16:9','9:16','4:3','custom'].includes(x.aspectRatio))throw new TypeError('aspectRatio is unsupported');const ratios:Record<string,number>={'16:9':16/9,'9:16':9/16,'4:3':4/3};if(x.aspectRatio!=='custom'&&Math.abs(x.width/x.height-ratios[x.aspectRatio])>0.01)throw new TypeError('width and height must match aspectRatio');if(typeof x.background!=='string'||x.background.length>100)throw new TypeError('background must be text');if(!Array.isArray(x.widgets)||x.widgets.length>5)throw new TypeError('widgets must be an array of at most 5');const allowed=['board','dice','current_mission','inventory','direction'],ids=new Set<string>();for(const widget of x.widgets){if(!widget||typeof widget!=='object'||Object.keys(widget).some(k=>!['id','bounds','z'].includes(k))||!allowed.includes(widget.id)||ids.has(widget.id))throw new TypeError('widget id is invalid or duplicated');ids.add(widget.id);if(!Number.isSafeInteger(widget.z)||widget.z<0||widget.z>100)throw new TypeError('widget z must be 0-100');const b=widget.bounds;if(!b||Object.keys(b).some(k=>!['x','y','width','height'].includes(k)))throw new TypeError('widget bounds are invalid');for(const key of ['x','y','width','height'])if(typeof b[key]!=='number'||!Number.isFinite(b[key])||b[key]<0||b[key]>1)throw new TypeError('widget bounds must be finite normalized numbers');if(b.width===0||b.height===0||b.x+b.width>1||b.y+b.height>1)throw new TypeError('widget is outside layout');}}
+export interface OverlayStateDto { readonly channelId:string; readonly session:GameSessionDto|null; readonly boardDefinition:unknown|null; readonly latestCommand?:OverlayPresentationCommandDto|null; readonly inventory:readonly InventoryItemDto[]; readonly missions:readonly MissionDto[]; readonly layout:unknown|null; readonly capabilities:{readonly arrivalEffects:false;readonly donations:false} }
+
 export const operatorApi = {
   health: '/health',
   readiness: '/ready',
@@ -169,4 +190,9 @@ export const operatorApi = {
   missions: (channelId: string, sessionId: string) =>
     `${API_V1}/channels/${channelId}/sessions/${sessionId}/missions`,
   command: (channelId: string, commandId: string) => `${API_V1}/channels/${channelId}/commands/${commandId}`,
+  config: (channelId:string,kind:ChannelConfigKind) => `${API_V1}/channels/${channelId}/config/${kind}`,
+  donations: (channelId:string) => `${API_V1}/channels/${channelId}/donations`,
+  operations: (channelId:string) => `${API_V1}/channels/${channelId}/operations`,
+  obsTokens: (channelId:string) => `${API_V1}/channels/${channelId}/obs-tokens`,
+  overlayState: `${API_V1}/overlay/state`,
 } as const;

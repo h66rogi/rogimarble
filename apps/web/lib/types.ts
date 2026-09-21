@@ -14,6 +14,7 @@ export interface OperatorSnapshot {
   donations: Array<{ id: string; donor: string; quantity: number; createdAt: string; result: string }>;
   queue: Array<{ id: string; label: string; status: string }>;
   capabilities?: { manualRoll: boolean; setDirection: boolean; setPosition: boolean; arrivalEffects: boolean; donations: boolean; inventory: boolean; missions: boolean; sessionLifecycle: boolean };
+  boardDefinition?: unknown | null;
 }
 
 export type OperatorCommand =
