@@ -69,7 +69,7 @@ export function MarbleOperationsPanel({ view = 'full' }: { view?: 'full' | 'boar
       current?.id === command.sessionId &&
       current.sessionEpoch === command.sessionEpoch &&
       current.presentationEpoch === command.presentationEpoch &&
-      current.revision === command.afterRevision
+      canonical.current?.revision === command.afterRevision
     ) setLatestDice({ sessionId: current.id, sessionEpoch: current.sessionEpoch, presentationEpoch: current.presentationEpoch, values: command.result.dice });
   };
 
