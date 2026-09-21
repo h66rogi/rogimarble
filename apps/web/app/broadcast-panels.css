@@ -1,0 +1,22 @@
+/* Broadcast artwork is independent of console UI colours and game rules. */
+.broadcast-panel { --panel-accent:#809d38;--panel-strong:#526b20;--panel-tint:#f7fce4;--panel-ribbon:#d7e9a2; width:100%;height:100%;container-type:size;color:var(--panel-strong);padding:3px;overflow:hidden; }
+.broadcast-panel[data-board-theme="pink-bunny"] {--panel-accent:#ed81ad;--panel-strong:#b93b76;--panel-tint:#fff2f8;--panel-ribbon:#fbd3e4;}
+.broadcast-panel[data-board-theme="sky-soda"] {--panel-accent:#75aee7;--panel-strong:#295caa;--panel-tint:#eef8ff;--panel-ribbon:#c7e7ff;}
+.broadcast-panel[data-board-theme="lavender-dream"] {--panel-accent:#ae90e0;--panel-strong:#7152aa;--panel-tint:#f8f1ff;--panel-ribbon:#e2d2ff;}
+.broadcast-panel[data-board-theme="midnight-pop"] {--panel-accent:#adbbed;--panel-strong:#eef3ff;--panel-tint:#273d7f;--panel-ribbon:#4660a1;}
+.broadcast-panel[data-board-theme="peach-sorbet"] {--panel-accent:#efa189;--panel-strong:#ab5944;--panel-tint:#fff5e9;--panel-ribbon:#ffdbbd;}
+.broadcast-panel__surface { box-sizing:border-box;width:100%;height:100%;border:3px solid var(--panel-accent);border-radius:18px;background:var(--panel-tint);box-shadow:inset 0 0 0 3px #fff,0 0 0 2px #ffffffcc;overflow:hidden;display:flex; }
+.broadcast-panel--menu .broadcast-panel__surface {flex-direction:column;padding:4cqw;gap:2cqh;}
+.broadcast-panel__heading {display:flex;gap:2cqw;align-items:center;justify-content:center;border-radius:12px;background:var(--panel-ribbon);padding:1cqh 2cqw;font-size:min(7.5cqw,12cqh);line-height:1.1;text-align:center;min-height:0;flex:0 0 auto;}
+.broadcast-panel__heading strong {overflow-wrap:anywhere;}
+.broadcast-panel__heading>span {font-size:.72em;}
+.broadcast-panel__rows {display:flex;flex-direction:column;justify-content:center;gap:min(2cqh,1cqw);flex:1;min-height:0;font-size:min(6cqw,calc(62cqh / var(--menu-rows)));line-height:1.15;}
+.broadcast-panel__row {display:flex;align-items:center;justify-content:space-between;gap:3cqw;min-height:0;}
+.broadcast-panel__row>span {overflow-wrap:anywhere;min-width:0;flex:1;}
+.broadcast-panel__row>strong {white-space:nowrap;font-size:.95em;font-weight:inherit;flex-shrink:0;}
+.broadcast-panel__empty {text-align:center;margin:0;}
+.broadcast-panel__footer {font-size:min(5cqw,6cqh);text-align:center;color:var(--panel-accent);letter-spacing:.25em;line-height:1;}
+.broadcast-panel--dice_price .broadcast-panel__surface {align-items:center;justify-content:center;gap:3cqw;padding:2cqw 3cqw;font-size:min(6.3cqw,32cqh);line-height:1.1;}
+.broadcast-panel__dice {color:var(--panel-accent);font-size:1.25em;line-height:1;}
+.broadcast-panel__price-label {min-width:0;overflow-wrap:anywhere;}
+.broadcast-panel__price {border-radius:8px;background:var(--panel-ribbon);padding:.17em .35em;white-space:nowrap;}

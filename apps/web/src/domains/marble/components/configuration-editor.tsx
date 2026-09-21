@@ -108,6 +108,7 @@ export function ConfigurationEditor({
       if (seq !== request.current) return;
       const next = structuredClone(
         state.draft?.document ??
+          (kind === "overlay-layout" ? state.effectiveDocument : undefined) ??
           state.published?.document ??
           state.effectiveDocument ??
           blank[kind],

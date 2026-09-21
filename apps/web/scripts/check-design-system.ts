@@ -109,7 +109,7 @@ export function inspectSource(file: string, source: string): Violation[] {
         ts.isNamedImports(bindings)
       ) {
         for (const item of bindings.elements) {
-          if ((item.propertyName?.text ?? item.name.text) === "nanumSquareNeo")
+          if (["nanumSquareNeo", "jua", "doHyeon", "blackHanSans"].includes(item.propertyName?.text ?? item.name.text))
             localFontBindings.add(item.name.text);
         }
       }
@@ -133,7 +133,7 @@ export function inspectSource(file: string, source: string): Violation[] {
         /\.css$/.test(module) &&
         !(
           file === "app/layout.tsx" &&
-          ["../src/app/globals.css", "./board-surface.css"].includes(module)
+          ["../src/app/globals.css", "./board-surface.css", "./broadcast-panels.css"].includes(module)
         )
       )
         report(
@@ -263,15 +263,13 @@ export function inspectSource(file: string, source: string): Violation[] {
           const expression = ts.isJsxExpression(prop.initializer)
             ? prop.initializer.expression
             : undefined;
-          // Next generates this class; it is the one central font registration, not feature styling.
-          const generatedFontClass =
-            file === "app/layout.tsx" &&
-            tag === "html" &&
-            expression &&
-            ts.isPropertyAccessExpression(expression) &&
-            expression.name.text === "variable" &&
-            ts.isIdentifier(expression.expression) &&
-            localFontBindings.has(expression.expression.text);
+          // Only next/font variable registrations are allowed on the root element.
+          const fontVariable = (value: ts.Expression): boolean =>
+            ts.isPropertyAccessExpression(value) && value.name.text === "variable" &&
+            ts.isIdentifier(value.expression) && localFontBindings.has(value.expression.text);
+          const generatedFontClass = file === "app/layout.tsx" && tag === "html" && expression &&
+            (fontVariable(expression) || (ts.isTemplateExpression(expression) && expression.head.text.trim() === "" &&
+              expression.templateSpans.every(span => fontVariable(span.expression) && span.literal.text.trim() === "")));
           // Shared components own variants. Features may only place those components.
           const chunks =
             primitive || composition || generatedFontClass
@@ -444,6 +442,14 @@ export function inspectProject(): { files: string[]; violations: Violation[] } {
       break;
     }
   }
+  // Broadcast panels share no selectors or tokens with console chrome.
+  const panelCss = readFileSync(resolve(root, "app/broadcast-panels.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const match of panelCss.matchAll(/([^{}]+)\{/g)) {
+    if (!match[1].trim().split(",").every(part => /^\.broadcast-panel(?:\b|__|--)/.test(part.trim())))
+      violations.push({file:"app/broadcast-panels.css",line:1,message:`Panel CSS escapes its renderer: ${match[1].trim()}`});
+  }
+  if (/--(?:primary|accent|ring|background|foreground)\s*:/.test(panelCss))
+    violations.push({file:"app/broadcast-panels.css",line:1,message:"Panel CSS must not redefine console tokens."});
   // Only paths already present in the reviewed source-import manifest can be inherited.
   const importedPaths = new Set<string>(
     JSON.parse(

@@ -40,6 +40,12 @@ test("only the root layout may apply the configured next/font generated variable
       .length,
   );
 });
+test("broadcast font variables can be registered together without allowing arbitrary root styling", () => {
+  const source = 'import { nanumSquareNeo, jua, doHyeon, blackHanSans } from "./fonts"; const view=<html className={`${nanumSquareNeo.variable} ${jua.variable} ${doHyeon.variable} ${blackHanSans.variable}`} />';
+  assert.deepEqual(errors(source, "app/layout.tsx"), []);
+  assert.ok(errors(source.replace('${jua.variable}', 'bg-pink-500'), "app/layout.tsx").length);
+  assert.ok(errors(source.replace('${jua.variable}', '${other.variable}'), "app/layout.tsx").length);
+});
 test("rejects native controls, custom clickable surfaces and opaque spreads", () => {
   for (const source of [
     "<button />",

@@ -6,15 +6,16 @@ import { hashPassword, verifyPassword } from '../../../packages/database/src/pas
 import { ApiService } from './api.service.ts';
 import { ConfigurationService } from './configuration.service.ts';
 import { AuthenticatedRequest, clearSessionCookie, CsrfGuard, hash, localCsrfToken, newCredential, readSessionCookie, SessionGuard, sessionCookieValue, setSessionCookie } from './auth.ts';
+import { OverlayLayoutService } from './overlay-layout.ts';
 
 @Controller()
 export class AppController {
-  constructor(private readonly api: ApiService,private readonly configuration:ConfigurationService) {}
+  constructor(private readonly api: ApiService,private readonly configuration:ConfigurationService,private readonly overlayLayout:OverlayLayoutService) {}
   @Get('/health') health() { return { status: 'ok' }; }
   @Get('/ready') async ready() {
-    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['010_apply_board_version.sql']);
+    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['011_live_overlay_layout.sql']);
       if(!result.rowCount)throw new Error('required migration missing');
-      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0');await pool().query('SELECT 1 FROM pawn_assets LIMIT 0'); return { status:'ready',schemaVersion:'010_apply_board_version.sql' }; }
+      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0');await pool().query('SELECT 1 FROM pawn_assets LIMIT 0');await pool().query('SELECT 1 FROM channel_live_overlay_layouts LIMIT 0'); return { status:'ready',schemaVersion:'011_live_overlay_layout.sql' }; }
     catch { throw new ServiceUnavailableException('Database or migrations are not ready'); }
   }
   @Post('/v1/auth/login') @HttpCode(200) @Header('Cache-Control','no-store')
@@ -82,6 +83,10 @@ export class AppController {
   }
   @Get('/v1/channels/:channelId/operator-state') @UseGuards(SessionGuard)
   state(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string){return this.api.state(req.operator!,channelId);}
+  @Get('/v1/channels/:channelId/overlay-layout/live') @UseGuards(SessionGuard) @Header('Cache-Control','no-store')
+  liveOverlayLayout(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string){return this.overlayLayout.get(req.operator!,channelId);}
+  @Put('/v1/channels/:channelId/overlay-layout/live') @UseGuards(SessionGuard,CsrfGuard) @Header('Cache-Control','no-store')
+  putLiveOverlayLayout(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Body() body:unknown){return this.overlayLayout.put(req.operator!,channelId,body);}
   @Get('/v1/channels/:channelId/board-versions/runnable') @UseGuards(SessionGuard)
   boards(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string){return this.api.runnableBoards(req.operator!,channelId);}
   @Post('/v1/channels/:channelId/sessions') @UseGuards(SessionGuard,CsrfGuard)

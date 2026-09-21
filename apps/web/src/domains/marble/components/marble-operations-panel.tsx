@@ -775,7 +775,7 @@ export function MarbleOperationsPanel({
       )}
       <Board
         board={liveBoard}
-        themeId={state?.boardThemeId ?? "lime-clover"}
+        themeId={state?.boardThemeId ?? "lime-clover"} fontId={state?.fontId}
         tokenCellId={presentation.cellId}
         moving={presentation.moving}
         dice={presentation.dice}

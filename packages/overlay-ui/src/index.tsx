@@ -1,15 +1,17 @@
 'use client';
 
 import { DiceLottie, LandingLottie, TokenLottie } from '@rogimarble/animation';
-import type { BoardThemeId } from '@rogimarble/contracts';
+import type { BoardFontId, BoardThemeId } from '@rogimarble/contracts';
 import { getCellRect, type BoardDefinition, type BoardEffect } from '@rogimarble/game-core/board';
 import { type CSSProperties, type ReactNode } from 'react';
-export { BOARD_THEMES, type BoardThemeMetadata } from './themes';
+export { BOARD_FONT_FAMILIES, BOARD_FONTS, BOARD_THEMES, type BoardFontMetadata, type BoardThemeMetadata } from './themes';
+export { BroadcastPanel, resolveBroadcastPanel } from './broadcast-panel';
 
-export function Board({ board, tokenCellId, moving = false, dice, interactive = false, selectedCellId, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, themeId = 'lime-clover' }: {
+export function Board({ board, tokenCellId, moving = false, dice, interactive = false, selectedCellId, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, themeId = 'lime-clover', fontId = 'nanum-square-neo' }: {
   board: BoardDefinition; tokenCellId: string; moving?: boolean; dice?: readonly number[]; interactive?: boolean; selectedCellId?: string; onCellSelect?: (id: string) => void; fit?: boolean;
   effectPhase?: 'idle' | 'anticipation' | 'reveal' | 'stepping' | 'landing'; trailCellIds?: readonly string[]; landingPulseKey?: string | number; reducedMotion?: boolean; pawnImageUrl?: string | null;
   themeId?: BoardThemeId;
+  fontId?: BoardFontId;
 }) {
   const displayBoard = board;
   const tokenCell = displayBoard.cells.find(c => c.id === tokenCellId) ?? displayBoard.cells[0];
@@ -19,7 +21,9 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
 
   const showThemeDecorations = displayBoard.layout.type === 'perimeter_grid';
 
-  return <div className={`board-scroll marble-board ${fit ? 'is-fitted' : ''}`} data-board-theme={themeId} data-presentation-phase={presentationPhase} style={{ '--board-aspect': displayBoard.canvas.width / displayBoard.canvas.height } as CSSProperties}>
+  const pastelTheme = themeId === 'sky-soda' || themeId === 'lavender-dream' || themeId === 'midnight-pop' || themeId === 'peach-sorbet';
+
+  return <div className={`board-scroll marble-board ${fit ? 'is-fitted' : ''} ${pastelTheme ? 'is-pastel-theme' : ''}`} data-board-theme={themeId} data-board-font={fontId} data-presentation-phase={presentationPhase} style={{ '--board-aspect': displayBoard.canvas.width / displayBoard.canvas.height } as CSSProperties}>
     <span className="board-scroll-hint">전체 {displayBoard.path.length}칸 보드</span>
     <div className="board-stage" style={{ aspectRatio: `${displayBoard.canvas.width}/${displayBoard.canvas.height}`, backgroundColor: 'transparent' }}>
       <svg className="board-svg" viewBox={`0 0 ${displayBoard.canvas.width} ${displayBoard.canvas.height}`} role="img" aria-label={`${displayBoard.path.length}칸 주루마블 보드`}>
@@ -55,7 +59,7 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
   </div>;
 }
 
-function ThemeCorners({ board, themeId }: { board: BoardDefinition; themeId: 'lime-clover' | 'pink-bunny' }) {
+function ThemeCorners({ board, themeId }: { board: BoardDefinition; themeId: BoardThemeId }) {
   if (board.layout.type !== 'perimeter_grid') return null;
   const layout = board.layout;
   const cornerCells = board.cells.filter(cell => cell.position.type === 'grid' &&
@@ -66,9 +70,12 @@ function ThemeCorners({ board, themeId }: { board: BoardDefinition; themeId: 'li
     const cx = rect.x + rect.width / 2;
     const cy = rect.y + rect.height / 2;
     const size = Math.min(rect.width, rect.height) * .82;
-    return themeId === 'lime-clover'
-      ? <g key={cell.id} className="theme-corner theme-clover" transform={`translate(${cx} ${cy}) scale(${size / 100})`}><path d="M0-34C-32-70-70-32-34 0C-70 32-32 70 0 34C32 70 70 32 34 0C70-32 32-70 0-34Z"/></g>
-      : <g key={cell.id} className="theme-corner theme-bunny" transform={`translate(${cx} ${cy}) scale(${size / 100})`}><path d="M-35-10C-43-35-39-57-27-59C-16-61-10-39-8-23C-3-25 3-25 8-23C10-39 16-61 27-59C39-57 43-35 35-10C62 21 38 54 0 54C-38 54-62 21-35-10Z"/><path className="bunny-ear" d="M-28-49c-3 10-2 21 1 30M28-49c3 10 2 21-1 30"/><circle className="bunny-eye" cx="-15" cy="13" r="3"/><circle className="bunny-eye" cx="15" cy="13" r="3"/><path className="bunny-face" d="M-5 24Q0 29 5 24"/></g>;
+    if (themeId === 'lime-clover') return <g key={cell.id} className="theme-corner theme-clover" transform={`translate(${cx} ${cy}) scale(${size / 100})`}><path d="M0-34C-32-70-70-32-34 0C-70 32-32 70 0 34C32 70 70 32 34 0C70-32 32-70 0-34Z"/></g>;
+    if (themeId === 'pink-bunny') return <g key={cell.id} className="theme-corner theme-bunny" transform={`translate(${cx} ${cy}) scale(${size / 100})`}><path d="M-35-10C-43-35-39-57-27-59C-16-61-10-39-8-23C-3-25 3-25 8-23C10-39 16-61 27-59C39-57 43-35 35-10C62 21 38 54 0 54C-38 54-62 21-35-10Z"/><path className="bunny-ear" d="M-28-49c-3 10-2 21 1 30M28-49c3 10 2 21-1 30"/><circle className="bunny-eye" cx="-15" cy="13" r="3"/><circle className="bunny-eye" cx="15" cy="13" r="3"/><path className="bunny-face" d="M-5 24Q0 29 5 24"/></g>;
+    if (themeId === 'sky-soda') return <g key={cell.id} className="theme-corner theme-bubbles" transform={`translate(${cx} ${cy}) scale(${size / 100})`}><circle cx="-24" cy="9" r="31"/><circle cx="17" cy="-17" r="35"/><circle cx="30" cy="25" r="22"/><circle className="bubble-shine" cx="27" cy="-27" r="8"/></g>;
+    if (themeId === 'lavender-dream') return <g key={cell.id} className="theme-corner theme-dream" transform={`translate(${cx} ${cy}) scale(${size / 100})`}><path d="M0-55C9-23 23-9 55 0C23 9 9 23 0 55C-9 23-23 9-55 0C-23-9-9-23 0-55Z"/><circle cx="33" cy="-32" r="9"/><circle cx="-34" cy="31" r="7"/></g>;
+    if (themeId === 'midnight-pop') return <g key={cell.id} className="theme-corner theme-pop" transform={`translate(${cx} ${cy}) scale(${size / 100})`}><path d="M0-58L15-34L43-43L34-15L58 0L34 15L43 43L15 34L0 58L-15 34L-43 43L-34 15L-58 0L-34-15L-43-43L-15-34Z"/><circle r="25"/></g>;
+    return <g key={cell.id} className="theme-corner theme-peach" transform={`translate(${cx} ${cy}) scale(${size / 100})`}><path d="M0-51C18-58 35-43 32-24C53-22 62-1 49 15C62 34 43 53 23 45C12 65-14 64-24 44C-45 53-63 33-49 14C-63-4-50-25-29-24C-32-43-17-57 0-51Z"/><path className="peach-leaf" d="M0-47C12-62 28-63 38-57C31-43 18-38 3-41Z"/></g>;
   })}</g>;
 }
 

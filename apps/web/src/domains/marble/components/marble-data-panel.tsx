@@ -14,6 +14,7 @@ import {
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { ConfigurationWorkspace } from "./configuration/configuration-workspace";
+import { LiveLayoutEditor } from "./live-layout-editor";
 
 const operationNames: Record<string, string> = {
   roll_dice: "주사위 굴리기",
@@ -162,6 +163,7 @@ export function MarbleDataPanel({
         title="OBS 설정"
         description="읽기 전용 방송 화면 주소를 발급하고 회수합니다."
       >
+        <LiveLayoutEditor />
         <form
           className="flex gap-2"
           onSubmit={(event) => {

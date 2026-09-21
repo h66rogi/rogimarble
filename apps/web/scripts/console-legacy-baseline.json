@@ -44,7 +44,7 @@
     "src/domains/overlay/components/theme-settings/dynamic-form/DynamicOptionForm.tsx": "8c64c94ff171b03324dd8e6c6e876ba82ba5a7a57939d92f3d1685e670ef074f",
     "src/domains/overlay/components/theme-settings/dynamic-form/fields/ColorField.tsx": "9d90b1c30689ad84869796bdbdb09f79f5d03e7041fba5ec1eab42f6f5f73bf6",
     "src/domains/overlay/components/theme-settings/dynamic-form/fields/FontField.tsx": "edd3494d63970786d3dd334f99234a71921ee2cefbf002c6cd956a9a7cc47ea6",
-    "src/domains/overlay/components/total-overlay-layout-settings.tsx": "d210de386d407962d067e656614333eddf1aeeba39b9340a6589916bfccc400b",
+    "src/domains/overlay/components/total-overlay-layout-settings.tsx": "68d28375f8bf8ad6aa5a73c91d53e311d6a7a87a7adb055c00f9f07cda545598",
     "src/shared/components/common/error-boundary.tsx": "8607468503ea4f5949f05f4e619d5f145d8f91efeff5896e5cccfe1bfddbf79d",
     "src/shared/styles/brand-header.css": "cc11a7bfbf2f192b8844f6eed8c18c2c5e1de2c907f5a43739560ce7595ae738",
     "src/shared/styles/content-view.css": "eddfcf3e99b73693de2b1de29b95b2d1df47ef974dcb591d4682a2b9c593f745",

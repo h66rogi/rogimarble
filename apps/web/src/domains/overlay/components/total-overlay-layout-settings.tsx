@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Check,
   Loader2,
@@ -136,6 +136,13 @@ const TOTAL_WIDGET_LABELS: Record<TotalOverlayWidgetId, string> = {
   setlist: '셋리스트',
   lyrics: '가사',
   'songbook-qr': '노래책 QR',
+  board: '주루마블 보드',
+  dice: '주사위 결과',
+  current_mission: '현재 미션',
+  inventory: '보유 아이템',
+  direction: '이동 방향',
+  menu: '후원 메뉴',
+  dice_price: '주사위 가격',
 };
 
 const TOTAL_WIDGET_MIN_SIZES: Record<TotalOverlayWidgetId, { w: number; h: number }> = {
@@ -146,7 +153,24 @@ const TOTAL_WIDGET_MIN_SIZES: Record<TotalOverlayWidgetId, { w: number; h: numbe
   setlist: { w: 0.18, h: 0.25 },
   lyrics: { w: 0.3, h: 0.15 },
   'songbook-qr': { w: 0.12, h: 0.16 },
+  board: { w: 0.35, h: 0.35 },
+  dice: { w: 0.1, h: 0.1 },
+  current_mission: { w: 0.18, h: 0.06 },
+  inventory: { w: 0.1, h: 0.06 },
+  direction: { w: 0.1, h: 0.06 },
+  menu: { w: 0.16, h: 0.2 },
+  dice_price: { w: 0.14, h: 0.06 },
 };
+
+export interface TotalOverlayLayoutAdapter {
+  readonly snapshot: { readonly layout: TotalOverlayLayout; readonly layoutVersion: number } | null;
+  readonly isLoading: boolean;
+  readonly canEdit: boolean;
+  readonly widgetIds: readonly TotalOverlayWidgetId[];
+  readonly canvasAspect?: number;
+  readonly save: (layout: TotalOverlayLayout, expectedVersion: number) => Promise<{ readonly layout: TotalOverlayLayout; readonly layoutVersion: number }>;
+  readonly renderWidget: (widgetId: TotalOverlayWidgetId, width: number, height: number) => ReactNode;
+}
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
@@ -193,14 +217,18 @@ const mergeTotalLayout = (
 
 const normalizeTotalLayout = (layout: TotalOverlayLayout): TotalOverlayLayout => ({
   ...layout,
-  widgets: layout.widgets.map((widget) => ({
-    ...widget,
-    x: clamp01(widget.x),
-    y: clamp01(widget.y),
-    w: clamp01(widget.w),
-    h: clamp01(widget.h),
-    z: widget.z ?? 0,
-  })),
+  widgets: layout.widgets.map((widget) => {
+    const w = clamp01(widget.w);
+    const h = clamp01(widget.h);
+    return {
+      ...widget,
+      x: Math.max(0, Math.min(1 - w, widget.x)),
+      y: Math.max(0, Math.min(1 - h, widget.y)),
+      w,
+      h,
+      z: widget.z ?? 0,
+    };
+  }),
 });
 
 const SNAP_THRESHOLD_PX = 6;
@@ -402,6 +430,7 @@ interface SortableWidgetItemProps {
   isSelected: boolean;
   onSelect: () => void;
   onToggle: (enabled: boolean) => void;
+  disabled?: boolean;
 }
 
 function SortableWidgetItem({
@@ -409,9 +438,10 @@ function SortableWidgetItem({
   isSelected,
   onSelect,
   onToggle,
+  disabled = false,
 }: SortableWidgetItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: widget.id });
+    useSortable({ id: widget.id, disabled });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -442,6 +472,7 @@ function SortableWidgetItem({
       <Switch
         checked={widget.enabled}
         onCheckedChange={onToggle}
+        disabled={disabled}
       />
     </div>
   );
@@ -459,6 +490,7 @@ export function TotalOverlayLayoutSettings({
   hiddenWidgetIds = EMPTY_HIDDEN_WIDGET_IDS,
   layoutScope = 'channel',
   syncRoomCode,
+  adapter,
 }: {
   user: string;
   overlayToken: string | null;
@@ -471,6 +503,7 @@ export function TotalOverlayLayoutSettings({
   hiddenWidgetIds?: readonly TotalOverlayWidgetId[];
   layoutScope?: 'channel' | 'sync-room';
   syncRoomCode?: string;
+  adapter?: TotalOverlayLayoutAdapter;
 }) {
   const overlayBaseUrl = process.env.NEXT_PUBLIC_OVERLAY_BASE_URL;
   const widgetWidth = 1920;
@@ -497,8 +530,8 @@ export function TotalOverlayLayoutSettings({
     [hiddenWidgetIds],
   );
   const allowedWidgetIds = useMemo(
-    () => TOTAL_WIDGETS.filter((widgetId) => !hiddenWidgetIdSet.has(widgetId)),
-    [hiddenWidgetIdSet],
+    () => (adapter?.widgetIds ?? TOTAL_WIDGETS).filter((widgetId) => !hiddenWidgetIdSet.has(widgetId)),
+    [adapter?.widgetIds, hiddenWidgetIdSet],
   );
 
   // 드래그/리사이즈 중 ref 기반 스로틀 저장용
@@ -508,6 +541,11 @@ export function TotalOverlayLayoutSettings({
   const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** 로컬 변경 중 서버 데이터 동기화 억제 플래그 */
   const suppressSyncRef = useRef(false);
+  const deferredSnapshotRef = useRef<{
+    layout?: TotalOverlayLayout | null;
+    layoutVersion?: number | null;
+    totalLayoutVersion?: number | null;
+  } | null>(null);
   const suppressSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const layoutRevisionRef = useRef<number | null>(null);
 
@@ -531,27 +569,47 @@ export function TotalOverlayLayoutSettings({
   const channelLayoutQuery = useOverlayLayout(
     user,
     layoutType,
-    Boolean(user) && !isSyncRoomLayoutScope,
+    Boolean(user) && !isSyncRoomLayoutScope && !adapter,
   );
   const syncRoomLayoutQuery = useSyncRoomOverlayLayout(
     syncRoomCode ?? '',
     layoutType,
-    Boolean(syncRoomCode) && isSyncRoomLayoutScope,
+    Boolean(syncRoomCode) && isSyncRoomLayoutScope && !adapter,
   );
   const channelUpdateLayoutMutation = useUpdateOverlayLayout(user, layoutType);
   const syncRoomUpdateLayoutMutation = useUpdateSyncRoomOverlayLayout(
     syncRoomCode ?? '',
     layoutType,
   );
-  const layoutData = isSyncRoomLayoutScope
+  const layoutData = adapter?.snapshot ?? (isSyncRoomLayoutScope
     ? syncRoomLayoutQuery.data
-    : channelLayoutQuery.data;
-  const isLayoutLoading = isSyncRoomLayoutScope
+    : channelLayoutQuery.data);
+  const isLayoutLoading = adapter?.isLoading ?? (isSyncRoomLayoutScope
     ? syncRoomLayoutQuery.isLoading
-    : channelLayoutQuery.isLoading;
+    : channelLayoutQuery.isLoading);
   const updateLayoutMutation = isSyncRoomLayoutScope
     ? syncRoomUpdateLayoutMutation
     : channelUpdateLayoutMutation;
+
+  const performUpdate = useCallback((next: TotalOverlayLayout, callbacks: {
+    onSuccess: (saved: unknown) => void;
+    onError: (error: unknown) => void;
+    onSettled: () => void;
+  }) => {
+    if (!adapter) {
+      updateLayoutMutation.mutate(next, callbacks);
+      return;
+    }
+    if (!adapter.canEdit) {
+      callbacks.onError(new Error('레이아웃 편집 권한이 없습니다.'));
+      callbacks.onSettled();
+      return;
+    }
+    void adapter.save(next, layoutRevisionRef.current ?? adapter.snapshot?.layoutVersion ?? 0)
+      .then(callbacks.onSuccess)
+      .catch(callbacks.onError)
+      .finally(callbacks.onSettled);
+  }, [adapter, updateLayoutMutation]);
 
   const applyLayoutSnapshot = useCallback((source: {
     layout?: TotalOverlayLayout | null;
@@ -576,7 +634,7 @@ export function TotalOverlayLayoutSettings({
 
   useOverlaySocket(overlayToken, {
     widgetType: 'total',
-    enabled: isSyncRoomLayoutScope && Boolean(overlayToken),
+    enabled: !adapter && isSyncRoomLayoutScope && Boolean(overlayToken),
     onLayoutUpdated: (data) => {
       const updatedLayout = data?.layout;
       const updatedWidgetType = data?.widgetType;
@@ -601,9 +659,9 @@ export function TotalOverlayLayoutSettings({
   }, [layout]);
 
   useEffect(() => {
-    if (layoutData?.layout && !suppressSyncRef.current) {
-      applyLayoutSnapshot(layoutData);
-    }
+    if (!layoutData?.layout) return;
+    if (suppressSyncRef.current) deferredSnapshotRef.current = layoutData;
+    else applyLayoutSnapshot(layoutData);
   }, [applyLayoutSnapshot, layoutData]);
 
   useEffect(() => {
@@ -638,15 +696,35 @@ export function TotalOverlayLayoutSettings({
           hiddenWidgetIdSet.has(widget.id) ? { ...widget, enabled: false } : widget,
         ),
       });
-      updateLayoutMutation.mutate(normalized, {
+      let saveSucceeded = false;
+      performUpdate(normalized, {
         onSuccess: (saved) => {
+          saveSucceeded = true;
           const revision = readLayoutRevision(saved);
           if (revision !== null) {
             layoutRevisionRef.current = revision;
           }
+          const deferredRevision = readLayoutRevision(deferredSnapshotRef.current);
+          if (revision !== null && deferredRevision !== null && deferredRevision <= revision) {
+            deferredSnapshotRef.current = null;
+          }
         },
         onSettled: () => {
           isSavingRef.current = false;
+          if (!saveSucceeded) {
+            pendingSaveRef.current = null;
+            if (throttleTimerRef.current) {
+              clearTimeout(throttleTimerRef.current);
+              throttleTimerRef.current = null;
+            }
+            suppressSyncRef.current = false;
+            if (deferredSnapshotRef.current?.layout) {
+              applyLayoutSnapshot(deferredSnapshotRef.current);
+              deferredSnapshotRef.current = null;
+            }
+            setSaveState('idle');
+            return;
+          }
           const queued = pendingSaveRef.current;
           if (queued) {
             pendingSaveRef.current = null;
@@ -654,6 +732,12 @@ export function TotalOverlayLayoutSettings({
             runSave(queued);
             return;
           }
+          const deferred = deferredSnapshotRef.current;
+          const deferredRevision = readLayoutRevision(deferred);
+          if (deferred?.layout && deferredRevision !== null && deferredRevision > (layoutRevisionRef.current ?? -1)) {
+            applyLayoutSnapshot(deferred);
+          }
+          deferredSnapshotRef.current = null;
           setSaveState('saved');
           saveStateTimerRef.current = setTimeout(() => setSaveState('idle'), 1500);
           // mutation 후 refetch가 돌아올 시간을 확보한 뒤 동기화 재개
@@ -661,14 +745,14 @@ export function TotalOverlayLayoutSettings({
             suppressSyncRef.current = false;
           }, 500);
         },
-        onError: () => {
-          toast.error('레이아웃 저장에 실패했습니다');
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : '레이아웃 저장에 실패했습니다');
         },
       });
     };
 
     runSave(data);
-  }, [hiddenWidgetIdSet, updateLayoutMutation]);
+  }, [applyLayoutSnapshot, hiddenWidgetIdSet, performUpdate]);
 
   /** 즉시 저장 — 제스처 종료(stop), 토글, 리셋 등에서 호출 */
   const saveLayout = useCallback((next: TotalOverlayLayout) => {
@@ -798,7 +882,7 @@ export function TotalOverlayLayoutSettings({
 
   /** 방향키로 선택된 위젯 1% / Shift+방향키 5% 이동 */
   useEffect(() => {
-    if (!selectedWidgetId) return;
+    if (!selectedWidgetId || adapter?.canEdit === false) return;
     const handler = (e: KeyboardEvent) => {
       const active = document.activeElement as HTMLElement | null;
       if (active) {
@@ -820,7 +904,7 @@ export function TotalOverlayLayoutSettings({
         ...prev,
         widgets: prev.widgets.map((w) =>
           w.id === selectedWidgetId
-            ? { ...w, x: clamp01(w.x + dx), y: clamp01(w.y + dy) }
+            ? { ...w, x: Math.max(0, Math.min(1 - w.w, w.x + dx)), y: Math.max(0, Math.min(1 - w.h, w.y + dy)) }
             : w,
         ),
       };
@@ -830,10 +914,11 @@ export function TotalOverlayLayoutSettings({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedWidgetId, saveLayout]);
+  }, [adapter?.canEdit, selectedWidgetId, saveLayout]);
 
   const renderWidget = (widgetId: TotalOverlayWidgetId, widgetW: number, widgetH: number) => {
     const label = TOTAL_WIDGET_LABELS[widgetId];
+    if (adapter) return adapter.renderWidget(widgetId, widgetW, widgetH);
     const settingsAvailable = isValidWidgetType(widgetId);
     const previewAvailable = settingsAvailable;
     return (
@@ -864,9 +949,11 @@ export function TotalOverlayLayoutSettings({
       <div
         ref={canvasRef}
         className={cn(
-          'relative w-full aspect-video rounded-lg border bg-muted/30 shadow-inner overflow-hidden',
+          'relative w-full rounded-lg border bg-muted/30 shadow-inner overflow-hidden',
+          !adapter && 'aspect-video',
           !embedded && 'max-w-4xl',
         )}
+        style={adapter?.canvasAspect ? { aspectRatio: adapter.canvasAspect } : undefined}
       >
         {!canRenderCanvas && (
           <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
@@ -875,8 +962,7 @@ export function TotalOverlayLayoutSettings({
         )}
         {canRenderCanvas &&
           layout.widgets
-            .filter((item) => TOTAL_WIDGETS.includes(item.id) && item.enabled)
-            .filter((item) => allowedWidgetIds.includes(item.id))
+            .filter((item) => allowedWidgetIds.includes(item.id) && item.enabled)
             .map((item) => {
               const minSize = TOTAL_WIDGET_MIN_SIZES[item.id];
               const width = canvasSize.width * clamp01(item.w);
@@ -893,6 +979,9 @@ export function TotalOverlayLayoutSettings({
                   position={{ x, y }}
                   minWidth={canvasSize.width * minSize.w}
                   minHeight={canvasSize.height * minSize.h}
+                  disableDragging={adapter?.canEdit === false}
+                  enableResizing={adapter?.canEdit === false ? false : undefined}
+                  resizeHandleClasses={{ bottomRight: 'rogimarble-resize-bottom-right' }}
                   onDragStart={() => setSelectedWidgetId(item.id)}
                   onDrag={(e, data) => {
                     const shiftHeld =
@@ -1025,7 +1114,7 @@ export function TotalOverlayLayoutSettings({
         )}
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="outline" size="sm" onClick={handleReset}>
+        <Button variant="outline" size="sm" onClick={handleReset} disabled={adapter?.canEdit === false}>
           기본 레이아웃 복원
         </Button>
         <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
@@ -1039,6 +1128,7 @@ export function TotalOverlayLayoutSettings({
           <Switch
             checked={snapEnabled}
             onCheckedChange={setSnapEnabled}
+            disabled={adapter?.canEdit === false}
           />
         </label>
         {selectedWidgetId && (
@@ -1059,7 +1149,7 @@ export function TotalOverlayLayoutSettings({
               저장됨
             </span>
           )}
-          {saveState === 'idle' && '변경사항은 자동으로 저장됩니다'}
+          {saveState === 'idle' && (adapter?.canEdit === false ? '보기 권한으로 접속했습니다' : '변경사항은 자동으로 저장됩니다')}
         </span>
       </div>
     </div>
@@ -1178,6 +1268,7 @@ export function TotalOverlayLayoutSettings({
                             isSelected={selectedWidgetId === item.id}
                             onSelect={() => setSelectedWidgetId(item.id)}
                             onToggle={(enabled) => updateWidget(item.id, { enabled })}
+                            disabled={adapter?.canEdit === false}
                           />
                         ))}
                       </div>

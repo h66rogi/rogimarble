@@ -175,6 +175,7 @@ export interface PawnAppearanceDto { readonly revision:number; readonly image:Pa
 
 export interface OperatorStateDto {
   readonly boardThemeId?: BoardThemeId;
+  readonly fontId?: BoardFontId;
   readonly latestCommand?: SessionCommandDto | null;
   readonly session: GameSessionDto | null;
   readonly boardDefinition: unknown | null;
@@ -226,11 +227,14 @@ export interface OperationPageDto { readonly items:readonly unknown[]; readonly 
 export interface ObsTokenDto { readonly id:string; readonly label:string; readonly tokenSuffix:string; readonly createdAt:string; readonly lastUsedAt:string|null; readonly revokedAt:string|null }
 export interface IssuedObsTokenDto extends ObsTokenDto { readonly token:string; readonly overlayUrlPath:string }
 export interface OverlayPresentationCommandDto { readonly commandId:string; readonly sessionId:string; readonly sessionEpoch:number; readonly presentationEpoch:number; readonly type:OperatorCommandType; readonly afterRevision:number; readonly result:SessionCommandDto['result']; readonly createdAt:string }
-export type OverlayWidgetId='board'|'dice'|'current_mission'|'inventory'|'direction';
-export const BOARD_THEME_IDS=['lime-clover','pink-bunny'] as const;
+export type OverlayWidgetId='board'|'dice'|'current_mission'|'inventory'|'direction'|'menu'|'dice_price';
+export const BOARD_THEME_IDS=['lime-clover','pink-bunny','sky-soda','lavender-dream','midnight-pop','peach-sorbet'] as const;
+export const BOARD_FONT_IDS=['nanum-square-neo','jua','do-hyeon','black-han-sans'] as const;
+export type BoardFontId=(typeof BOARD_FONT_IDS)[number];
+export function resolveBoardFontId(value:unknown):BoardFontId { return BOARD_FONT_IDS.includes(value as BoardFontId)?value as BoardFontId:'nanum-square-neo'; }
 export type BoardThemeId=(typeof BOARD_THEME_IDS)[number];
-/** Retired or absent themes use the current default; pink remains an explicit choice. */
-export function resolveBoardThemeId(value:unknown):BoardThemeId { return value==='pink-bunny'?'pink-bunny':'lime-clover'; }
+/** Retired or absent themes use the current default. */
+export function resolveBoardThemeId(value:unknown):BoardThemeId { return BOARD_THEME_IDS.includes(value as BoardThemeId)?value as BoardThemeId:'lime-clover'; }
 /** Read compatibility only. New writes still reject retired and unknown theme IDs. */
 export function upgradeLegacyOverlayLayout(value:unknown):unknown {
   if(value && typeof value==='object' && !Array.isArray(value) && (value as Record<string,unknown>).boardThemeId==='classic-party')
@@ -238,11 +242,44 @@ export function upgradeLegacyOverlayLayout(value:unknown):unknown {
   return value;
 }
 
-export interface OverlayLayoutDto { readonly schemaVersion:1; readonly boardThemeId?:BoardThemeId; readonly width:number; readonly height:number; readonly aspectRatio:'16:9'|'9:16'|'4:3'|'custom'; readonly background:string; readonly widgets:readonly {readonly id:OverlayWidgetId;readonly bounds:{readonly x:number;readonly y:number;readonly width:number;readonly height:number};readonly z:number}[] }
-export function validateOverlayLayout(value:unknown):asserts value is OverlayLayoutDto {if(!value||typeof value!=='object'||Array.isArray(value))throw new TypeError('overlay layout must be an object');const x=value as any;if(Object.keys(x).some(k=>!['schemaVersion','boardThemeId','width','height','aspectRatio','background','widgets'].includes(k))||x.schemaVersion!==1)throw new TypeError('overlay layout schema is invalid');if(x.boardThemeId!==undefined&&(typeof x.boardThemeId!=='string'||!BOARD_THEME_IDS.includes(x.boardThemeId)))throw new TypeError('boardThemeId is unsupported');for(const key of ['width','height'])if(!Number.isInteger(x[key])||x[key]<1||x[key]>7680)throw new TypeError(`${key} must be 1-7680`);if(!['16:9','9:16','4:3','custom'].includes(x.aspectRatio))throw new TypeError('aspectRatio is unsupported');const ratios:Record<string,number>={'16:9':16/9,'9:16':9/16,'4:3':4/3};if(x.aspectRatio!=='custom'&&Math.abs(x.width/x.height-ratios[x.aspectRatio])>0.01)throw new TypeError('width and height must match aspectRatio');if(typeof x.background!=='string'||x.background.length>100)throw new TypeError('background must be text');if(!Array.isArray(x.widgets)||x.widgets.length>5)throw new TypeError('widgets must be an array of at most 5');const allowed=['board','dice','current_mission','inventory','direction'],ids=new Set<string>();for(const widget of x.widgets){if(!widget||typeof widget!=='object'||Object.keys(widget).some(k=>!['id','bounds','z'].includes(k))||!allowed.includes(widget.id)||ids.has(widget.id))throw new TypeError('widget id is invalid or duplicated');ids.add(widget.id);if(!Number.isSafeInteger(widget.z)||widget.z<0||widget.z>100)throw new TypeError('widget z must be 0-100');const b=widget.bounds;if(!b||Object.keys(b).some(k=>!['x','y','width','height'].includes(k)))throw new TypeError('widget bounds are invalid');for(const key of ['x','y','width','height'])if(typeof b[key]!=='number'||!Number.isFinite(b[key])||b[key]<0||b[key]>1)throw new TypeError('widget bounds must be finite normalized numbers');if(b.width===0||b.height===0||b.x+b.width>1||b.y+b.height>1)throw new TypeError('widget is outside layout');}}
-export interface OverlayStateDto { readonly channelId:string; readonly session:GameSessionDto|null; readonly boardDefinition:unknown|null; readonly latestCommand?:OverlayPresentationCommandDto|null; readonly inventory:readonly InventoryItemDto[]; readonly missions:readonly MissionDto[]; readonly pawnAppearance:PawnAppearanceDto; readonly layout:unknown|null; readonly capabilities:{readonly arrivalEffects:boolean;readonly donations:boolean} }
+export interface BroadcastMenuRow { readonly id:string; readonly label:string; readonly amount:number }
+/** Display-only projection of enabled donation rules, with no donor or private data. */
+export interface BroadcastDonationRule extends BroadcastMenuRow { readonly rollCount?:number }
+export interface BroadcastMenuConfig { readonly source:'rules'|'custom'; readonly title:string; readonly currencyLabel:string; readonly rows:readonly BroadcastMenuRow[] }
+export interface BroadcastDicePriceConfig { readonly source:'rules'|'custom'; readonly label:string; readonly currencyLabel:string; readonly amount?:number; readonly ruleId?:string }
+export const DEFAULT_BROADCAST_MENU:BroadcastMenuConfig={source:'rules',title:'주루마블 메뉴판',currencyLabel:'개',rows:[]};
+export const DEFAULT_DICE_PRICE:BroadcastDicePriceConfig={source:'rules',label:'주사위 1회',currencyLabel:'개'};
+export interface OverlayLayoutSnapshotDto { readonly canEdit?:boolean; readonly layout:OverlayLayoutDto; readonly layoutVersion:number; readonly layoutUpdatedAt:string|null }
+export interface OverlayLayoutDto { readonly schemaVersion:1; readonly boardThemeId?:BoardThemeId; readonly fontId?:BoardFontId; readonly menu?:BroadcastMenuConfig; readonly dicePrice?:BroadcastDicePriceConfig; readonly width:number; readonly height:number; readonly aspectRatio:'16:9'|'9:16'|'4:3'|'custom'; readonly background:string; readonly widgets:readonly {readonly id:OverlayWidgetId;readonly bounds:{readonly x:number;readonly y:number;readonly width:number;readonly height:number};readonly z:number}[] }
+export function validateOverlayLayout(value:unknown):asserts value is OverlayLayoutDto {if(!value||typeof value!=='object'||Array.isArray(value))throw new TypeError('overlay layout must be an object');const x=value as any;if(Object.keys(x).some(k=>!['schemaVersion','boardThemeId','fontId','menu','dicePrice','width','height','aspectRatio','background','widgets'].includes(k))||x.schemaVersion!==1)throw new TypeError('overlay layout schema is invalid');if(x.boardThemeId!==undefined&&(typeof x.boardThemeId!=='string'||!BOARD_THEME_IDS.includes(x.boardThemeId)))throw new TypeError('boardThemeId is unsupported');if(x.fontId!==undefined&&!BOARD_FONT_IDS.includes(x.fontId))throw new TypeError('fontId is unsupported');validateBroadcastPanels(x);for(const key of ['width','height'])if(!Number.isInteger(x[key])||x[key]<1||x[key]>7680)throw new TypeError(`${key} must be 1-7680`);if(!['16:9','9:16','4:3','custom'].includes(x.aspectRatio))throw new TypeError('aspectRatio is unsupported');const ratios:Record<string,number>={'16:9':16/9,'9:16':9/16,'4:3':4/3};if(x.aspectRatio!=='custom'&&Math.abs(x.width/x.height-ratios[x.aspectRatio])>0.01)throw new TypeError('width and height must match aspectRatio');if(typeof x.background!=='string'||x.background.length>100)throw new TypeError('background must be text');if(!Array.isArray(x.widgets)||x.widgets.length>7)throw new TypeError('widgets must be an array of at most 7');const allowed=['board','dice','current_mission','inventory','direction','menu','dice_price'],ids=new Set<string>();for(const widget of x.widgets){if(!widget||typeof widget!=='object'||Object.keys(widget).some(k=>!['id','bounds','z'].includes(k))||!allowed.includes(widget.id)||ids.has(widget.id))throw new TypeError('widget id is invalid or duplicated');ids.add(widget.id);if(!Number.isSafeInteger(widget.z)||widget.z<0||widget.z>100)throw new TypeError('widget z must be 0-100');const b=widget.bounds;if(!b||Object.keys(b).some(k=>!['x','y','width','height'].includes(k)))throw new TypeError('widget bounds are invalid');for(const key of ['x','y','width','height'])if(typeof b[key]!=='number'||!Number.isFinite(b[key])||b[key]<0||b[key]>1)throw new TypeError('widget bounds must be finite normalized numbers');if(b.width===0||b.height===0||b.x+b.width>1||b.y+b.height>1)throw new TypeError('widget is outside layout');}}
+function validateBroadcastPanels(layout:Record<string,unknown>):void {
+  const record=(value:unknown,keys:string[],name:string):Record<string,unknown>=>{
+    if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!keys.includes(k)))throw new TypeError(`${name} is invalid`);
+    return value as Record<string,unknown>;
+  };
+  const text=(value:unknown,max:number,name:string)=>{if(typeof value!=='string'||!value.trim()||value.length>max)throw new TypeError(`${name} must be 1-${max} characters`);};
+  const amount=(value:unknown)=>{if(!Number.isSafeInteger(value)||Number(value)<1||Number(value)>1_000_000_000)throw new TypeError('panel amount must be 1-1000000000');};
+  if(layout.menu!==undefined){
+    const m=record(layout.menu,['source','title','currencyLabel','rows'],'menu');
+    if(m.source!=='rules'&&m.source!=='custom')throw new TypeError('menu source is invalid');
+    text(m.title,60,'menu title');text(m.currencyLabel,12,'currency label');
+    if(!Array.isArray(m.rows)||m.rows.length>20)throw new TypeError('menu supports at most 20 rows');
+    const ids=new Set<string>();
+    for(const value of m.rows){const row=record(value,['id','label','amount'],'menu row');text(row.id,100,'row id');text(row.label,80,'row label');amount(row.amount);if(ids.has(row.id as string))throw new TypeError('menu row ids must be unique');ids.add(row.id as string);}
+  }
+  if(layout.dicePrice!==undefined){
+    const d=record(layout.dicePrice,['source','label','currencyLabel','amount','ruleId'],'dice price');
+    if(d.source!=='rules'&&d.source!=='custom')throw new TypeError('dice price source is invalid');
+    text(d.label,60,'dice label');text(d.currencyLabel,12,'currency label');
+    if(d.ruleId!==undefined)text(d.ruleId,100,'rule id');
+    if(d.amount!==undefined||d.source==='custom')amount(d.amount);
+  }
+}
+
+export interface OverlayStateDto { readonly channelId:string; readonly session:GameSessionDto|null; readonly boardDefinition:unknown|null; readonly latestCommand?:OverlayPresentationCommandDto|null; readonly inventory:readonly InventoryItemDto[]; readonly missions:readonly MissionDto[]; readonly pawnAppearance:PawnAppearanceDto; readonly layout:unknown|null; readonly layoutVersion?:number; readonly layoutUpdatedAt?:string|null; readonly donationMenu?:readonly BroadcastDonationRule[]; readonly capabilities:{readonly arrivalEffects:boolean;readonly donations:boolean} }
 
 export const operatorApi = {
+  overlayLayoutLive: (channelId:string) => `${API_V1}/channels/${encodeURIComponent(channelId)}/overlay-layout/live`,
   health: '/health',
   readiness: '/ready',
   login: `${API_V1}/auth/login`,

@@ -42,3 +42,18 @@
 `apps/web/scripts/console-legacy-baseline.json`으로 확인한다.
 상단 키보드/aria 연결, 설정 초안의 탭 간 유지와 스크롤 경계만 기능적으로 보완했다.
 원본 신청곡 코드의 비활성 네트워크 경계도 유지한다. 새 원본 코드·Git 이력 반입은 없다.
+
+## 실시간 방송 배치 편집 연결 (2026-09-22)
+
+원본 `total-overlay-layout-settings.tsx`의 `react-rnd` 드래그·리사이즈, 정규화 좌표,
+캔버스/위젯 스냅, 150ms 저장 throttle과 직렬 최신값 저장 queue를 삭제하거나 재작성하지 않고
+optional adapter 경계로 주루마블 live overlay API에 연결했다. adapter를 사용하지 않는 기존
+신청곡·sync-room 경로와 원본 UI 구조는 유지한다. 주루마블 wrapper는 서버의
+`layoutVersion`을 `expectedVersion`으로 전송하고, 409에서는 최신 snapshot을 다시 불러오며
+실패를 저장 완료로 표시하지 않는다. viewer는 편집 컨트롤을 사용할 수 없다.
+
+추가된 `board`, `dice`, `current_mission`, `inventory`, `direction`, `menu`, `dice_price` ID는
+원본 상수 파일의 타입과 기본값을 확장한 것이다. 신규 네트워크 경계는
+`apps/web/lib/live-layout.ts`, 제품 연결 UI는
+`apps/web/src/domains/marble/components/live-layout-editor.tsx`에 격리했다. 새 private 원본이나
+Git 이력은 반입하지 않았다.

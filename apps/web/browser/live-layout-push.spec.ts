@@ -1,0 +1,38 @@
+import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+const board=JSON.parse(readFileSync(new URL('../../../presets/streamer-board.json',import.meta.url),'utf8'));
+
+test('OBS applies layout.updated immediately and an older poll cannot undo the position',async({page},info)=>{
+  test.skip(info.project.name!=='desktop','Broadcast websocket ordering is viewport independent.');
+  await page.setViewportSize({width:1920,height:1080});
+  const layout={schemaVersion:1,width:1920,height:1080,aspectRatio:'16:9',background:'transparent',boardThemeId:'lime-clover',widgets:[{id:'board',bounds:{x:0,y:0,width:1,height:1},z:1},{id:'menu',bounds:{x:.13,y:.32,width:.22,height:.35},z:4}]};
+  const state={channelId:'fixture',session:{id:'fixture',createdAt:'2026-01-01T00:00:00Z',sessionEpoch:1,revision:3,presentationEpoch:0,currentCellId:board.startCellId,direction:'forward'},boardDefinition:board,inventory:[],missions:[],pawnAppearance:{revision:0,image:null},layout,layoutVersion:1,donationMenu:[{id:'dice',label:'주사위',amount:17,rollCount:1}]};
+  let polls=0;
+  let failGamePoll=false;
+  let send:((value:string)=>void)|undefined;
+  await page.routeWebSocket('**/socket.io/**',socket=>{
+    send=data=>socket.send(data);
+    socket.send('0{"sid":"synthetic-engine","upgrades":[],"pingInterval":25000,"pingTimeout":20000}');
+    socket.onMessage(data=>{if(typeof data==='string'&&data.startsWith('40'))socket.send('40{"sid":"synthetic-socket"}');if(data==='2')socket.send('3');});
+  });
+  await page.route('**/v1/overlay/state',route=>{polls++;return failGamePoll?route.fulfill({status:503,json:{message:'synthetic outage'}}):route.fulfill({json:state});});
+  await page.goto('/overlay#token=synthetic-overlay');
+  const panel=page.locator('[data-overlay-widget="menu"]');
+  await expect(panel).toBeVisible();
+  await expect.poll(()=>typeof send).toBe('function');
+  const before=await panel.boundingBox();
+  expect(before!.x).toBeCloseTo(1920*.13,0);
+  const moved={...layout,widgets:layout.widgets.map(widget=>widget.id==='menu'?{...widget,bounds:{...widget.bounds,x:.55,y:.35}}:widget)};
+  send!(`42${JSON.stringify(['overlay:event',{event:'layout.updated',payload:JSON.stringify({widgetType:'total',layout:moved,layoutVersion:2,layoutUpdatedAt:'2026-09-22T00:00:00Z'})}])}`);
+  await expect.poll(async()=>(await panel.boundingBox())?.x,{timeout:700,intervals:[20,50,100]}).toBeCloseTo(1920*.55,0);
+  const pushedPolls=polls;
+  await expect.poll(()=>polls).toBeGreaterThan(pushedPolls+1);
+  expect((await panel.boundingBox())!.x).toBeCloseTo(1920*.55,0);
+  await expect(page.locator('.token-wrapper')).toHaveAttribute('data-cell-id',board.startCellId);
+  failGamePoll=true;
+  await expect(page.getByText('연결 지연 · 마지막 상태',{exact:true})).toBeVisible();
+  send!(`42${JSON.stringify(['overlay:event',{event:'layout.updated',payload:JSON.stringify({widgetType:'total',layout:moved,layoutVersion:3})}])}`);
+  await expect(page.getByText('연결 지연 · 마지막 상태',{exact:true})).toBeVisible();
+  send!(`42${JSON.stringify(['overlay:event',{event:'layout.updated',payload:JSON.stringify({widgetType:'total',layout:{...moved,fontId:'unknown'},layoutVersion:99})}])}`);
+  await expect(page.locator('.marble-board')).toHaveAttribute('data-board-font','nanum-square-neo');
+});

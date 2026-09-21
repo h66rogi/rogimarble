@@ -1,4 +1,4 @@
-import type { BoardThemeId, InventoryItemDto, MissionDto, PawnAppearanceDto, SessionStatus, SessionCounterDto, SessionEffectTaskDto, SessionMovementLockDto, SessionRollModifierDto, SessionCommandDto } from '@rogimarble/contracts';
+import type { BoardFontId, BoardThemeId, InventoryItemDto, MissionDto, PawnAppearanceDto, SessionStatus, SessionCounterDto, SessionEffectTaskDto, SessionMovementLockDto, SessionRollModifierDto, SessionCommandDto } from '@rogimarble/contracts';
 
 export type Direction = 'forward' | 'reverse';
 
@@ -22,6 +22,7 @@ export interface OperatorSnapshot {
   capabilities?: { manualRoll: boolean; setDirection: boolean; setPosition: boolean; arrivalEffects: boolean; donations: boolean; inventory: boolean; missions: boolean; sessionLifecycle: boolean };
   boardDefinition?: unknown | null;
   boardThemeId?: BoardThemeId;
+  fontId?: BoardFontId;
 }
 
 export type OperatorCommand =

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Board } from '@rogimarble/overlay-ui';
+import { Board, BroadcastPanel } from '@rogimarble/overlay-ui';
 import type { BoardDefinition } from '@rogimarble/game-core/board';
 import { upgradeLegacyOverlayLayout, validateOverlayLayout, type BoardThemeId, type OverlayLayoutDto, type OverlayStateDto } from '@rogimarble/contracts';
 import { CanvasSizeNotice } from '@/integrated-overlay/domains/overlay/components/shared/CanvasSizeNotice';
@@ -9,9 +9,9 @@ import { rollPlayback } from '@/integrated-overlay/roll-playback';
 import { useRollPresentation } from '@/lib/use-roll-presentation';
 import { apiAssetUrl } from '@/lib/api';
 
-type WidgetId = 'board' | 'dice' | 'current_mission' | 'inventory' | 'direction';
+type WidgetId = 'board' | 'dice' | 'current_mission' | 'inventory' | 'direction' | 'menu' | 'dice_price';
 type LayoutWidget = { id: WidgetId; enabled: boolean; x: number; y: number; w: number; h: number; z: number };
-type TotalLayout = { boardThemeId: BoardThemeId; version: number; aspect: string; width: number; height: number; background: string; widgets: readonly LayoutWidget[] };
+type TotalLayout = Pick<OverlayLayoutDto, 'fontId' | 'menu' | 'dicePrice'> & { boardThemeId: BoardThemeId; version: number; aspect: string; width: number; height: number; background: string; widgets: readonly LayoutWidget[] };
 
 const DEFAULT_TOTAL_OVERLAY_LAYOUT: TotalLayout = {
   boardThemeId: 'lime-clover',
@@ -21,6 +21,8 @@ const DEFAULT_TOTAL_OVERLAY_LAYOUT: TotalLayout = {
   height: 1080,
   background: 'transparent',
   widgets: [
+    { id: 'menu', enabled: false, x: 0.13, y: 0.32, w: 0.22, h: 0.35, z: 4 },
+    { id: 'dice_price', enabled: false, x: 0.13, y: 0.24, w: 0.22, h: 0.065, z: 4 },
     { id: 'board', enabled: true, x: 0, y: 0, w: 1, h: 1, z: 1 },
     // The board already owns the authoritative dice/Lottie presentation.
     { id: 'dice', enabled: false, x: 0.41, y: 0.39, w: 0.18, h: 0.12, z: 3 },
@@ -44,6 +46,7 @@ function mergeLayout(layout?: Record<string, unknown> | null): TotalLayout {
   return {
     ...DEFAULT_TOTAL_OVERLAY_LAYOUT,
     boardThemeId: parsed.boardThemeId ?? 'lime-clover',
+    fontId: parsed.fontId, menu: parsed.menu, dicePrice: parsed.dicePrice,
     version: parsed.schemaVersion,
     aspect: parsed.aspectRatio,
     width: parsed.width,
@@ -119,7 +122,7 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
   const missingLiveBoard = status !== 'preview' && !!state && !state.boardDefinition;
   const waitingForSession = status !== 'preview' && !!state && !state.session;
   const displayStatus = missingLiveBoard && !waitingForSession ? 'error' : status;
-  const label = waitingForSession ? '게임 시작 대기' : displayStatus === 'preview' ? 'PREVIEW · 정적 프리셋' : displayStatus === 'live' ? 'LIVE · polling' : displayStatus === 'stale' ? '연결 지연 · 마지막 상태' : displayStatus === 'connecting' ? '연결 중' : displayStatus === 'unauthorized' ? 'OBS 토큰 거부됨' : '오버레이 상태를 불러오지 못함';
+  const label = waitingForSession ? '게임 시작 대기' : displayStatus === 'preview' ? 'PREVIEW · 정적 프리셋' : displayStatus === 'live' ? 'LIVE' : displayStatus === 'stale' ? '연결 지연 · 마지막 상태' : displayStatus === 'connecting' ? '연결 중' : displayStatus === 'unauthorized' ? 'OBS 토큰 거부됨' : '오버레이 상태를 불러오지 못함';
   const tokenCellId = missingLiveBoard ? previewBoard.path[0] : presentation.cellId;
   const correctionKey = commandType === 'set_position' ? presentationKey : 'continuous-board';
   const shouldRenderWidgets = status === 'preview' || (!!state && !missingLiveBoard);
@@ -135,7 +138,8 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
         const left = fittedWidth * clamp01(widget.x);
         const top = fittedHeight * clamp01(widget.y);
         return <div key={widget.id} data-overlay-widget={widget.id} data-overlay-version="1" className="absolute" style={{ left, top, width, height, zIndex: widget.z ?? 1 }}>
-          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} themeId={totalLayout.boardThemeId} tokenCellId={tokenCellId} moving={presentation.moving} dice={presentation.dice.length?presentation.dice:playback?.dice} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} pawnImageUrl={state?.pawnAppearance?.image ? apiAssetUrl(state.pawnAppearance.image.url) : null} /></div>}
+          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} themeId={totalLayout.boardThemeId} fontId={totalLayout.fontId} tokenCellId={tokenCellId} moving={presentation.moving} dice={presentation.dice.length?presentation.dice:playback?.dice} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} pawnImageUrl={state?.pawnAppearance?.image ? apiAssetUrl(state.pawnAppearance.image.url) : null} /></div>}
+          {(widget.id === 'menu' || widget.id === 'dice_price') && <BroadcastPanel kind={widget.id} layout={totalLayout} rules={state?.donationMenu ?? []} />}
           {widget.id === 'dice' && <OverlayCard themeId={totalLayout.boardThemeId} eyebrow="이번 주사위" value={presentation.effectPhase==='anticipation'?'굴리는 중…':(presentation.dice.length?presentation.dice:playback?.dice)?.join(' + ')||'대기 중'} />}
           {widget.id === 'current_mission' && <OverlayCard themeId={totalLayout.boardThemeId} eyebrow="현재 미션" value={currentMission ? `${currentMission.message} × ${currentMission.quantity}` : '진행 중인 미션 없음'} />}
           {widget.id === 'inventory' && <OverlayCard themeId={totalLayout.boardThemeId} eyebrow="보유 아이템" value={state?.inventory.length ? state.inventory.map((item) => `${item.name} ${item.quantity}`).join(' · ') : '없음'} align="left" />}

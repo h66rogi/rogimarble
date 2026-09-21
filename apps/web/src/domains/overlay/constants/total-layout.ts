@@ -5,7 +5,14 @@ export type TotalOverlayWidgetId =
   | "alertbox"
   | "setlist"
   | "lyrics"
-  | "songbook-qr";
+  | "songbook-qr"
+  | "board"
+  | "dice"
+  | "current_mission"
+  | "inventory"
+  | "direction"
+  | "menu"
+  | "dice_price";
 
 export type TotalOverlayLayoutWidget = {
   id: TotalOverlayWidgetId;
@@ -160,5 +167,19 @@ export const DEFAULT_SYNC_TOTAL_OVERLAY_LAYOUT: TotalOverlayLayout = {
       h: 0.28,
       z: 3,
     },
+  ],
+};
+
+export const DEFAULT_MARBLE_TOTAL_OVERLAY_LAYOUT: TotalOverlayLayout = {
+  version: 1,
+  aspect: "16:9",
+  widgets: [
+    { id: "board", enabled: true, x: 0, y: 0, w: 1, h: 1, z: 1 },
+    { id: "direction", enabled: true, x: 0.3, y: 0.28, w: 0.14, h: 0.07, z: 3 },
+    { id: "inventory", enabled: true, x: 0.56, y: 0.28, w: 0.14, h: 0.07, z: 3 },
+    { id: "current_mission", enabled: true, x: 0.32, y: 0.68, w: 0.36, h: 0.075, z: 3 },
+    { id: "dice", enabled: false, x: 0.43, y: 0.44, w: 0.14, h: 0.12, z: 4 },
+    { id: "menu", enabled: false, x: 0.13, y: 0.32, w: 0.22, h: 0.35, z: 5 },
+    { id: "dice_price", enabled: false, x: 0.13, y: 0.24, w: 0.22, h: 0.065, z: 5 },
   ],
 };

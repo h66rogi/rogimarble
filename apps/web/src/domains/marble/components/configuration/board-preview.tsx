@@ -1,6 +1,6 @@
 "use client";
 
-import { Board } from "@rogimarble/overlay-ui";
+import { Board, BroadcastPanel } from "@rogimarble/overlay-ui";
 import type { CSSProperties } from "react";
 import {
   ArrowDown,
@@ -18,7 +18,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { BoardCell, BoardDefinition } from "@rogimarble/game-core/board";
-import type { OverlayLayoutDto } from "@rogimarble/contracts";
+import type { BroadcastDonationRule, OverlayLayoutDto } from "@rogimarble/contracts";
 import { assetManifestById } from "@rogimarble/asset-manifest";
 import { BoardCellButton } from "@/shared/components/ui/board-cell-button";
 import { Button } from "@/shared/components/ui/button";
@@ -342,13 +342,15 @@ export function ResizePreview({
     </div>
   );
 }
-export function OverlayLayoutPreview({ value, board }: { value: OverlayLayoutDto; board?: BoardDefinition }) {
+export function OverlayLayoutPreview({ value, board, rules = [] }: { value: OverlayLayoutDto; board?: BoardDefinition; rules?: readonly BroadcastDonationRule[] }) {
   const labels = {
     board: "게임판",
     dice: "주사위",
     current_mission: "현재 미션",
     inventory: "보유 아이템",
     direction: "진행 방향",
+    menu: "후원 메뉴",
+    dice_price: "주사위 가격",
   };
   return (
     <div
@@ -358,7 +360,7 @@ export function OverlayLayoutPreview({ value, board }: { value: OverlayLayoutDto
       {value.widgets.map((w) => (
         <div
           key={w.id}
-          className={w.id === "board" && board ? "absolute" : "absolute flex items-center justify-center rounded border border-primary/30 bg-primary/10 text-sm text-foreground"}
+          className={(w.id === "board" && board) || w.id === "menu" || w.id === "dice_price" ? "absolute" : "absolute flex items-center justify-center rounded border border-primary/30 bg-primary/10 text-sm text-foreground"}
           style={{
             left: `${w.bounds.x * 100}%`,
             top: `${w.bounds.y * 100}%`,
@@ -367,7 +369,7 @@ export function OverlayLayoutPreview({ value, board }: { value: OverlayLayoutDto
             zIndex: w.z,
           }}
         >
-          {w.id === "board" && board ? <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "lime-clover"} fit reducedMotion /> : labels[w.id]}
+          {w.id === "board" && board ? <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "lime-clover"} fontId={value.fontId} fit reducedMotion /> : w.id === "menu" || w.id === "dice_price" ? <BroadcastPanel kind={w.id} layout={value} rules={rules} /> : labels[w.id]}
         </div>
       ))}
     </div>

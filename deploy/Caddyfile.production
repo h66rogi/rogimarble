@@ -10,6 +10,9 @@
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
 	}
+	handle /socket.io/* {
+		reverse_proxy api:4000
+	}
 	handle_path /api/* {
 		reverse_proxy api:4000
 	}

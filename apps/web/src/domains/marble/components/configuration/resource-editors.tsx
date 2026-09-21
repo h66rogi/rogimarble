@@ -6,12 +6,13 @@ import { useEffect, useState } from "react";
 import { validateBoardDefinition, type BoardDefinition } from "@rogimarble/game-core/board";
 import initialBoard from "../../../../../../../presets/streamer-board.json";
 import { api } from "@/lib/api";
+import { BroadcastPanelEditor } from "./broadcast-panel-editor";
 import { BoardThemePicker } from "./board-theme-picker";
 import { Plus, Trash2 } from "lucide-react";
-import type { OverlayLayoutDto } from "@rogimarble/contracts";
+import type { BroadcastDonationRule, OverlayLayoutDto } from "@rogimarble/contracts";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Field, NumberField, Options, Toggle } from "./editor-fields";
+import { Field, NumberField, Options } from "./editor-fields";
 import type { NamedItem } from "./editor-model";
 import { OverlayLayoutPreview } from "./board-preview";
 
@@ -91,13 +92,6 @@ export function ItemsEditor({
     </div>
   );
 }
-const widgetNames = {
-  board: "게임판",
-  dice: "주사위",
-  current_mission: "현재 미션",
-  inventory: "보유 아이템",
-  direction: "진행 방향",
-};
 export function LayoutEditor({
   value,
   change,
@@ -106,6 +100,7 @@ export function LayoutEditor({
   change: (layout: OverlayLayoutDto) => void;
 }) {
   const [board, setBoard] = useState<BoardDefinition>(initialBoard as BoardDefinition);
+  const [rules, setRules] = useState<BroadcastDonationRule[]>([]);
   const [boardSource, setBoardSource] = useState("기본 게임판 예시");
   useEffect(() => {
     let active = true;
@@ -115,16 +110,20 @@ export function LayoutEditor({
       setBoard(snapshot.boardDefinition);
       setBoardSource("현재 게임판");
     }).catch(() => { /* A sample remains explicitly labelled when live state is unavailable. */ });
+    void api.config("rules").then(state => {
+      if (!active) return;
+      const doc = state.published?.document as { multiRollEnabled?: boolean; rules?: Array<{id:string;label:string;amount:number;enabled:boolean;action:{type:string;rollCount?:number}}> } | undefined;
+      setRules((doc?.rules ?? []).filter(rule => rule.enabled && (rule.action.type !== 'roll_dice' || (rule.action.rollCount ?? 1) === 1 || doc?.multiRollEnabled)).map(rule => ({id:rule.id,label:rule.label,amount:rule.amount,...(rule.action.type === 'roll_dice' ? {rollCount:rule.action.rollCount ?? 1} : {})})));
+    }).catch(() => { /* Missing published rules are displayed as unconfigured prices. */ });
     return () => { active = false; };
   }, []);
   return (
     <div className="mx-auto max-w-4xl space-y-5">
-      <BoardThemePicker board={board} selected={value.boardThemeId ?? "lime-clover"} change={boardThemeId => change({ ...value, boardThemeId })} />
+      <BoardThemePicker board={board} selected={value.boardThemeId ?? "lime-clover"} fontSelected={value.fontId ?? "nanum-square-neo"} changeFont={fontId => change({ ...value, fontId })} change={boardThemeId => change({ ...value, boardThemeId })} />
       <p className="text-xs text-muted-foreground">{boardSource} · 저장 전 미리보기</p>
-      <OverlayLayoutPreview value={value} board={board} />
+      <OverlayLayoutPreview value={value} board={board} rules={rules} />
       <p className="text-xs leading-relaxed text-muted-foreground">
-        OBS 방송 화면에서 각 영역을 표시할 위치와 크기를 정해요. 게임판의 칸
-        수는 바뀌지 않아요.
+        OBS 탭에서 게임판과 패널을 끌어 위치와 크기를 바로 바꿀 수 있어요. 이곳에서는 방송 스타일과 패널 내용을 편집하고 게시해요.
       </p>
       <div className="grid grid-cols-3 gap-3">
         <NumberField
@@ -174,80 +173,7 @@ export function LayoutEditor({
           onChange={(e) => change({ ...value, background: e.target.value })}
         />
       </Field>
-      {(Object.keys(widgetNames) as (keyof typeof widgetNames)[]).map((id) => {
-        const current = value.widgets.find((w) => w.id === id);
-        return (
-          <Card className="space-y-4" key={id}>
-            <CardContent className="space-y-4">
-              <Toggle
-                label={`${widgetNames[id]} 표시`}
-                checked={!!current}
-                change={(on) =>
-                  change({
-                    ...value,
-                    widgets: on
-                      ? [
-                          ...value.widgets,
-                          {
-                            id,
-                            bounds: { x: 0, y: 0, width: 0.5, height: 0.5 },
-                            z: value.widgets.length,
-                          },
-                        ]
-                      : value.widgets.filter((w) => w.id !== id),
-                  })
-                }
-              />
-              {current && (
-                <div className="grid grid-cols-3 gap-3">
-                  {(["x", "y", "width", "height"] as const).map((key) => (
-                    <NumberField
-                      key={key}
-                      label={
-                        {
-                          x: "가로 위치 (%)",
-                          y: "세로 위치 (%)",
-                          width: "너비 (%)",
-                          height: "높이 (%)",
-                        }[key]
-                      }
-                      min={key === "x" || key === "y" ? 0 : 1}
-                      max={100}
-                      value={Math.round(current.bounds[key] * 100)}
-                      change={(n) =>
-                        change({
-                          ...value,
-                          widgets: value.widgets.map((w) =>
-                            w.id === id
-                              ? {
-                                  ...w,
-                                  bounds: { ...w.bounds, [key]: n / 100 },
-                                }
-                              : w,
-                          ),
-                        })
-                      }
-                    />
-                  ))}
-                  <NumberField
-                    label="겹칠 때 표시 순서"
-                    min={0}
-                    value={current.z}
-                    change={(z) =>
-                      change({
-                        ...value,
-                        widgets: value.widgets.map((w) =>
-                          w.id === id ? { ...w, z } : w,
-                        ),
-                      })
-                    }
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
+      <BroadcastPanelEditor value={value} rules={rules} change={change} />
     </div>
   );
 }

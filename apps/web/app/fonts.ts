@@ -15,3 +15,36 @@ export const nanumSquareNeo = localFont({
   adjustFontFallback: false,
   fallback: ['system-ui', 'sans-serif'],
 });
+
+export const jua = localFont({
+  src: '../public/fonts/google/Jua-Regular.ttf',
+  variable: '--font-jua',
+  weight: '400',
+  style: 'normal',
+  display: 'swap',
+  preload: false,
+  adjustFontFallback: false,
+  fallback: ['system-ui', 'sans-serif'],
+});
+
+export const doHyeon = localFont({
+  src: '../public/fonts/google/DoHyeon-Regular.ttf',
+  variable: '--font-do-hyeon',
+  weight: '400',
+  style: 'normal',
+  display: 'swap',
+  preload: false,
+  adjustFontFallback: false,
+  fallback: ['system-ui', 'sans-serif'],
+});
+
+export const blackHanSans = localFont({
+  src: '../public/fonts/google/BlackHanSans-Regular.ttf',
+  variable: '--font-black-han-sans',
+  weight: '400',
+  style: 'normal',
+  display: 'swap',
+  preload: false,
+  adjustFontFallback: false,
+  fallback: ['system-ui', 'sans-serif'],
+});

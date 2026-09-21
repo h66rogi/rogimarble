@@ -32,3 +32,21 @@ so Linux font-loading checks alone did not cover this failure.
 Context7 documentation used for the static `src` array with per-file weights:
 - https://nextjs.org/docs/app/api-reference/components/font
 - https://tailwindcss.com/docs/theme#referencing-other-variables
+
+## Board display fonts
+
+The unmodified static TTF files below come from the official Google Fonts repository.
+Each family is registered once in `app/fonts.ts` with `next/font/local` and exposed as
+a CSS variable on the root layout. They are used only when a board font is selected;
+the console remains on NanumSquare Neo.
+
+| Family | Official source | Local file | SHA-256 | License |
+| --- | --- | --- | --- | --- |
+| Jua | https://github.com/google/fonts/tree/main/ofl/jua | `google/Jua-Regular.ttf` | `769677aef240bfc3b9965f2b50748075bff885e6c6992fc591a3fb268279f898` | `google/OFL-Jua.txt` |
+| Do Hyeon | https://github.com/google/fonts/tree/main/ofl/dohyeon | `google/DoHyeon-Regular.ttf` | `35644be7f28e0a68a447b1f7af351dcde5674b870f24f7b5f43e26d00b4ab653` | `google/OFL-DoHyeon.txt` |
+| Black Han Sans | https://github.com/google/fonts/tree/main/ofl/blackhansans | `google/BlackHanSans-Regular.ttf` | `31960809284026681774a8e52dc19ebcad26cf69b0ad9d560f288296fbb52739` | `google/OFL-BlackHanSans.txt` |
+
+No conversion, subsetting, or font-file modification was performed. The separate OFL
+copies are retained because the copyright lines differ by family. Context7's Next.js
+16 font documentation was used for the local font registration and root CSS variables:
+https://nextjs.org/docs/app/api-reference/components/font

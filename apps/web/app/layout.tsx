@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-import { nanumSquareNeo } from './fonts';
+import { blackHanSans, doHyeon, jua, nanumSquareNeo } from './fonts';
 import { QueryProvider } from '@/shared/providers/query-provider';
 import { ThemeProvider } from '@/shared/providers/theme-provider';
 import '../src/app/globals.css';
 import './board-surface.css';
+import './broadcast-panels.css';
 
 export const metadata: Metadata = {
   title: '주루마블 운영 콘솔',
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko" className={nanumSquareNeo.variable} suppressHydrationWarning>
+    <html lang="ko" className={`${nanumSquareNeo.variable} ${jua.variable} ${doHyeon.variable} ${blackHanSans.variable}`} suppressHydrationWarning>
       <body className="font-sans">
         <QueryProvider>
           <ThemeProvider

@@ -207,3 +207,86 @@ html:has([data-total-overlay-source]),body:has([data-total-overlay-source]) { ba
 .marble-board[data-board-theme="pink-bunny"] .dice-total { margin-top: .45cqw; font-size: .9cqw; }
 .marble-board[data-board-theme="lime-clover"] .landing-status,
 .marble-board[data-board-theme="pink-bunny"] .landing-status { margin-top: .35cqw; padding: .3cqw .75cqw; font-size: .9cqw; }
+
+/* Board typography is selected independently from the console's Nanum UI font. */
+.marble-board[data-board-font="nanum-square-neo"] { font-family: var(--font-nanum-square-neo), sans-serif; }
+.marble-board[data-board-font="jua"] { font-family: var(--font-jua), sans-serif; }
+.marble-board[data-board-font="do-hyeon"] { font-family: var(--font-do-hyeon), sans-serif; }
+.marble-board[data-board-font="black-han-sans"] { font-family: var(--font-black-han-sans), sans-serif; }
+
+/* Pastel broadcast themes share the open-center board proportions. */
+.marble-board.is-pastel-theme .board-status,
+.marble-board.is-pastel-theme .cell-number { display:none; }
+.marble-board.is-pastel-theme .cell-shadow { opacity:.16;transform:translateY(-1px); }
+.marble-board.is-pastel-theme .cell-face { fill:rgba(255,255,255,.92);stroke-width:3px;filter:none; }
+.marble-board.is-pastel-theme .cell-content { gap:0;padding:4% 7%; }
+.marble-board.is-pastel-theme .cell-label { position:relative;z-index:1;max-width:100%;font-size:38px;line-height:1.03;text-wrap:balance;font-weight:900;letter-spacing:-.08em;color:#fff;paint-order:stroke fill;text-shadow:0 2px 2px rgba(24,35,76,.14); }
+.marble-board.is-pastel-theme .cell-label[data-long] { font-size:30px;line-height:1.12; }
+.marble-board.is-pastel-theme .cell-icon { position:absolute;right:2%;bottom:0;width:34%;height:42%;border:0;border-radius:50%;opacity:.52; }
+.marble-board.is-pastel-theme .cell-icon svg { width:64%;height:64%;stroke-width:2.4; }
+.marble-board.is-pastel-theme .board-cell.is-spatial-corner .cell-content { padding:9%; }
+.marble-board.is-pastel-theme .board-cell.is-spatial-corner .cell-face { fill:transparent;stroke:transparent;pointer-events:all; }
+.marble-board.is-pastel-theme .board-cell.is-spatial-corner .cell-shadow { display:none; }
+.marble-board.is-pastel-theme .board-cell.is-spatial-corner .cell-label { font-size:38px; }
+.marble-board.is-pastel-theme .center-widget { inset:35% 38%;justify-content:center; }
+.marble-board.is-pastel-theme .dice-tray { min-height:4cqw;margin:0;gap:.5cqw; }
+.marble-board.is-pastel-theme .die { width:4cqw;padding:.55cqw;border-width:.12cqw;border-radius:.7cqw; }
+.marble-board.is-pastel-theme .dice-idle { font-size:.8cqw; }
+.marble-board.is-pastel-theme .dice-total { margin-top:.45cqw;font-size:.9cqw; }
+.marble-board.is-pastel-theme .landing-status { margin-top:.35cqw;padding:.3cqw .75cqw;font-size:.9cqw; }
+
+.marble-board[data-board-theme="sky-soda"] .cell-face { stroke:#78cce8; }
+.marble-board[data-board-theme="sky-soda"] .cell-shadow { fill:#4caecf; }
+.marble-board[data-board-theme="sky-soda"] .cell-label { -webkit-text-stroke:5px #3ba7cf; }
+.marble-board[data-board-theme="sky-soda"] .cell-icon { background:rgba(191,239,250,.66);color:#319bc4; }
+.marble-board[data-board-theme="sky-soda"] .theme-bubbles { fill:#bdefff;stroke:#60c3e4;stroke-width:3;filter:drop-shadow(0 6px 5px rgba(38,133,166,.18)); }
+.marble-board[data-board-theme="sky-soda"] .theme-bubbles .bubble-shine { fill:#fff;stroke:none;opacity:.8; }
+.marble-board[data-board-theme="sky-soda"] .die { border-color:#66c7e5;box-shadow:0 .3cqw 0 #bceaf6,0 .5cqw .8cqw rgba(34,119,149,.14); }
+.marble-board[data-board-theme="sky-soda"] .die i.is-pip { background:#268eb8; }
+.marble-board[data-board-theme="sky-soda"] .board-cell.selected .cell-face { stroke:#176d93;stroke-width:6px; }
+
+.marble-board[data-board-theme="lavender-dream"] .cell-face { stroke:#b59bdd; }
+.marble-board[data-board-theme="lavender-dream"] .cell-shadow { fill:#8870bd; }
+.marble-board[data-board-theme="lavender-dream"] .cell-label { -webkit-text-stroke:5px #8f70c4; }
+.marble-board[data-board-theme="lavender-dream"] .cell-icon { background:rgba(229,215,250,.7);color:#8666bc; }
+.marble-board[data-board-theme="lavender-dream"] .theme-dream { fill:#e4d5ff;stroke:#a88bd6;stroke-width:3;filter:drop-shadow(0 6px 5px rgba(92,66,139,.17)); }
+.marble-board[data-board-theme="lavender-dream"] .theme-dream circle { fill:#fff4ad;stroke:#c6a95d;stroke-width:2; }
+.marble-board[data-board-theme="lavender-dream"] .die { border-color:#a98cd5;box-shadow:0 .3cqw 0 #d9c9ef,0 .5cqw .8cqw rgba(83,58,127,.14); }
+.marble-board[data-board-theme="lavender-dream"] .die i.is-pip { background:#7958ad; }
+.marble-board[data-board-theme="lavender-dream"] .board-cell.selected .cell-face { stroke:#5e3d91;stroke-width:6px; }
+
+.marble-board[data-board-theme="midnight-pop"] .cell-face { fill:rgba(250,248,255,.96);stroke:#263b72; }
+.marble-board[data-board-theme="midnight-pop"] .cell-shadow { fill:#152651;opacity:.25; }
+.marble-board[data-board-theme="midnight-pop"] .cell-label { color:#fff6fc;-webkit-text-stroke:5px #172b5c;text-shadow:2px 2px 0 #ef6ca9; }
+.marble-board[data-board-theme="midnight-pop"] .cell-icon { background:rgba(250,173,210,.55);color:#d74b8d; }
+.marble-board[data-board-theme="midnight-pop"] .theme-pop { fill:#24386f;stroke:#ef74ad;stroke-width:3;filter:drop-shadow(0 6px 5px rgba(10,20,50,.25)); }
+.marble-board[data-board-theme="midnight-pop"] .theme-pop circle { fill:#f889ba;stroke:#fff;stroke-width:2; }
+.marble-board[data-board-theme="midnight-pop"] .die { border-color:#293e76;box-shadow:0 .3cqw 0 #ef85b7,0 .5cqw .8cqw rgba(10,20,50,.25); }
+.marble-board[data-board-theme="midnight-pop"] .die i.is-pip { background:#e84f96; }
+.marble-board[data-board-theme="midnight-pop"] .board-cell.selected .cell-face { stroke:#ef4d99;stroke-width:6px; }
+
+.marble-board[data-board-theme="peach-sorbet"] .cell-face { fill:rgba(255,252,245,.95);stroke:#f2a37e; }
+.marble-board[data-board-theme="peach-sorbet"] .cell-shadow { fill:#dc795d; }
+.marble-board[data-board-theme="peach-sorbet"] .cell-label { -webkit-text-stroke:5px #e47960; }
+.marble-board[data-board-theme="peach-sorbet"] .cell-icon { background:rgba(255,214,191,.66);color:#dd745c; }
+.marble-board[data-board-theme="peach-sorbet"] .theme-peach { fill:#ffc9aa;stroke:#ed9470;stroke-width:3;stroke-linejoin:round;filter:drop-shadow(0 6px 5px rgba(158,77,54,.16)); }
+.marble-board[data-board-theme="peach-sorbet"] .theme-peach .peach-leaf { fill:#a9d58d;stroke:#76aa60;stroke-width:2; }
+.marble-board[data-board-theme="peach-sorbet"] .die { border-color:#ed9470;box-shadow:0 .3cqw 0 #ffd1b9,0 .5cqw .8cqw rgba(145,69,47,.14); }
+.marble-board[data-board-theme="peach-sorbet"] .die i.is-pip { background:#d96552; }
+.marble-board[data-board-theme="peach-sorbet"] .board-cell.selected .cell-face { stroke:#a94a3d;stroke-width:6px; }
+
+.marble-board.is-pastel-theme .board-cell.is-spatial-corner .cell-face { stroke:transparent; }
+.marble-board[data-board-theme="sky-soda"] .board-cell.selected .cell-face { stroke:#176d93;stroke-width:6px; }
+.marble-board[data-board-theme="lavender-dream"] .board-cell.selected .cell-face { stroke:#5e3d91;stroke-width:6px; }
+.marble-board[data-board-theme="midnight-pop"] .board-cell.selected .cell-face { stroke:#ef4d99;stroke-width:6px; }
+.marble-board[data-board-theme="peach-sorbet"] .board-cell.selected .cell-face { stroke:#a94a3d;stroke-width:6px; }
+.marble-board.is-pastel-theme .board-cell.is-spatial-corner.is-trail .cell-face { stroke:currentColor;stroke-width:5px; }
+
+.broadcast-hud-card.theme-sky-soda { border-color:#85d2e9;background:rgba(245,253,255,.96);color:#236f91;box-shadow:0 .25cqw 0 #c9edf7; }
+.broadcast-hud-card.theme-sky-soda .broadcast-hud-eyebrow { color:#3699bd; }
+.broadcast-hud-card.theme-lavender-dream { border-color:#bea8df;background:rgba(252,248,255,.96);color:#654b92;box-shadow:0 .25cqw 0 #e0d5f1; }
+.broadcast-hud-card.theme-lavender-dream .broadcast-hud-eyebrow { color:#8568b6; }
+.broadcast-hud-card.theme-midnight-pop { border-color:#354b80;background:rgba(244,245,252,.97);color:#172b5c;box-shadow:0 .25cqw 0 #f18ab8; }
+.broadcast-hud-card.theme-midnight-pop .broadcast-hud-eyebrow { color:#d84e8e; }
+.broadcast-hud-card.theme-peach-sorbet { border-color:#f0aa88;background:rgba(255,251,245,.97);color:#9b4e3e;box-shadow:0 .25cqw 0 #ffd3bc; }
+.broadcast-hud-card.theme-peach-sorbet .broadcast-hud-eyebrow { color:#d8735b; }

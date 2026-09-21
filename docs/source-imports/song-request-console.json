@@ -775,15 +775,15 @@
       "sourcePath": "src/domains/overlay/components/total-overlay-layout-settings.tsx",
       "targetPath": "apps/web/src/domains/overlay/components/total-overlay-layout-settings.tsx",
       "sourceSha256": "d210de386d407962d067e656614333eddf1aeeba39b9340a6589916bfccc400b",
-      "importedSha256": "d210de386d407962d067e656614333eddf1aeeba39b9340a6589916bfccc400b",
-      "adaptation": "unchanged"
+      "importedSha256": "68d28375f8bf8ad6aa5a73c91d53e311d6a7a87a7adb055c00f9f07cda545598",
+      "adaptation": "adapted: retained original Rnd drag/resize, normalized snapping, 150ms throttle and serialized save queue; added optional Rogimarble live-layout adapter and fail-closed permissions"
     },
     {
       "sourcePath": "src/domains/overlay/constants/total-layout.ts",
       "targetPath": "apps/web/src/domains/overlay/constants/total-layout.ts",
       "sourceSha256": "308e100bddd173144d296203e21867c588eef38f59071ee404bddaa7d8ea34e6",
-      "importedSha256": "308e100bddd173144d296203e21867c588eef38f59071ee404bddaa7d8ea34e6",
-      "adaptation": "unchanged"
+      "importedSha256": "9d847bcc33c2210487a0e4f51a2c1846b8876b2b92e8f978dc830ec349f03f75",
+      "adaptation": "adapted: retained imported layout types/defaults and added typed Rogimarble widget IDs/default geometry"
     },
     {
       "sourcePath": "src/domains/overlay/hooks/use-channel-song-request-settings.ts",

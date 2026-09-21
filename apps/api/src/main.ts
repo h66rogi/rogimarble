@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { loadSecret } from './runtime-secrets.ts';
 import { AppModule } from './app.module.ts';
 import { loadCollectorConfig } from './collector-config.ts';
+import { OverlayRealtimeService } from './overlay-realtime.ts';
 
 loadSecret('DATABASE_URL');loadSecret('SESSION_SECRET');
 loadCollectorConfig();
@@ -12,4 +13,6 @@ if(process.env.AUTH_MODE&&!['local','token'].includes(process.env.AUTH_MODE))thr
 const app=await NestFactory.create(AppModule,{cors:false});
 if(process.env.WEB_ORIGIN)app.enableCors({origin:process.env.WEB_ORIGIN,credentials:true,methods:['GET','POST','PUT','PATCH','DELETE','OPTIONS'],allowedHeaders:['Content-Type','X-CSRF-Token','Authorization'],maxAge:600});
 app.enableShutdownHooks();
+await app.init();
+app.get(OverlayRealtimeService).attach(app.getHttpServer());
 await app.listen(Number(process.env.PORT??4000),'0.0.0.0');

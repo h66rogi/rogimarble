@@ -4,6 +4,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import pg from 'pg';
+import { io } from 'socket.io-client';
 
 const root=new URL('../../../',import.meta.url).pathname;
 const container=`rogimarble-api-test-${randomUUID()}`;
@@ -39,7 +40,7 @@ async function stopApi():Promise<void>{
   await Promise.race([new Promise<void>(resolve=>api!.once('exit',()=>resolve())),new Promise<void>(resolve=>setTimeout(resolve,3000))]);
   if(api.exitCode===null)api.kill('SIGKILL');
 }
-async function login(username='admin',origin?:string){
+async function login(username='admin',origin='https://console.example'){
   let path='/v1/auth/login',requestBody:unknown={username,password:adminPassword};
   if(!['admin','password-user'].includes(username)){
     const raw=`rma_${randomBytes(32).toString('base64url')}`,digest=createHash('sha256').update(raw).digest('hex');
@@ -72,7 +73,7 @@ test.before(async()=>{
   command(process.execPath,['--experimental-strip-types','packages/database/src/import-items.ts','presets/streamer-initial.json'],{env:{DATABASE_URL:databaseUrl,
     ITEM_CHANNEL_ID:'test-channel'}});
   command('tsc',['-p','apps/api/tsconfig.json','--pretty','false']);
-  await startApi();
+  await startApi({WEB_ORIGIN:'https://console.example'});
 });
 test.after(async()=>{await stopApi();spawnSync('docker',['rm','-f',container],{stdio:'ignore'});});
 
@@ -82,6 +83,35 @@ test('health, readiness, cookie session and CSRF fail closed',async()=>{
   const boards=await http.get('/v1/channels/test-channel/board-versions/runnable');assert.equal(boards.status,200);
   const boardList=await boards.json() as unknown[];assert.equal(boardList.length,1);
   assert.equal((await http.post('/v1/channels/test-channel/sessions',{},null)).status,403);
+});
+
+test('live overlay layout persists, uses CAS, scopes channels, and revoked OBS tokens fail closed',async()=>{
+  const auth=await login(),http=client(auth),path='/v1/channels/test-channel/overlay-layout/live';
+  let response=await http.get(path);assert.equal(response.status,200);const initial=await response.json() as any;
+  assert.equal(initial.layoutVersion,0);assert.equal(initial.layout.width,1920);assert.equal(initial.layout.fontId,'nanum-square-neo');
+  const changed={...initial.layout,background:'#112233',widgets:[{id:'board',bounds:{x:.1,y:.1,width:.8,height:.8},z:1}]};
+  response=await http.put(path,{layout:changed,expectedVersion:0});assert.equal(response.status,200);const saved=await response.json() as any;assert.equal(saved.layoutVersion,1);
+  assert.equal((await http.put(path,{layout:initial.layout,expectedVersion:0})).status,409);
+  response=await http.get(path);assert.equal(response.status,200);const reloaded=await response.json() as any;assert.equal(reloaded.layoutVersion,1);assert.deepEqual(reloaded.layout.widgets,changed.widgets);
+  assert.equal((await http.get('/v1/channels/unrelated-channel/overlay-layout/live')).status,403);
+  response=await http.post('/v1/channels/test-channel/obs-tokens',{label:'layout integration'});assert.equal(response.status,201);const issued=await response.json() as any;
+  response=await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}});assert.equal(response.status,200);const overlay=await response.json() as any;assert.equal(overlay.layoutVersion,1);assert.deepEqual(overlay.layout.widgets,changed.widgets);
+  const hostile=io(`http://127.0.0.1:${apiPort}`,{path:'/socket.io',transports:['websocket'],auth:{token:issued.token},extraHeaders:{origin:'https://hostile.example'},reconnection:false});
+  await new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('hostile origin was not rejected')),3000);hostile.once('connect_error',()=>{clearTimeout(timeout);resolve();});hostile.once('connect',()=>reject(new Error('hostile origin connected')));});hostile.close();
+  const socket=io(`http://127.0.0.1:${apiPort}`,{path:'/socket.io',transports:['websocket'],auth:{token:issued.token},extraHeaders:{origin:'https://console.example'},reconnection:false});
+  await new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('socket connect timeout')),3000);socket.once('connect',()=>{clearTimeout(timeout);resolve();});socket.once('connect_error',reject);});
+  const db=new pg.Client({connectionString:databaseUrl});await db.connect();await db.query(`INSERT INTO channels(id,display_name,owner_operator_id) SELECT 'second-channel','Second',id FROM operators WHERE username='admin' ON CONFLICT DO NOTHING`);await db.query(`INSERT INTO channel_operators(channel_id,operator_id,permission) SELECT 'second-channel',id,'manage' FROM operators WHERE username='admin' ON CONFLICT DO NOTHING`);await db.end();
+  const secondIssued=await (await http.post('/v1/channels/second-channel/obs-tokens',{label:'isolated reader'})).json() as any;
+  const secondSocket=io(`http://127.0.0.1:${apiPort}`,{path:'/socket.io',transports:['websocket'],auth:{token:secondIssued.token},extraHeaders:{origin:'https://console.example'},reconnection:false});
+  await new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('second socket connect timeout')),3000);secondSocket.once('connect',()=>{clearTimeout(timeout);resolve();});secondSocket.once('connect_error',reject);});
+  try{
+    let crossRoomEvent=false;secondSocket.on('overlay:event',()=>{crossRoomEvent=true;});
+    const pushed=new Promise<any>((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('layout.updated timeout')),3000);socket.once('overlay:event',message=>{clearTimeout(timeout);resolve(message);});});
+    const changedAgain={...changed,background:'#445566'};response=await http.put(path,{layout:changedAgain,expectedVersion:1});assert.equal(response.status,200);const message=await pushed;assert.equal(message.event,'layout.updated');assert.equal(JSON.parse(message.payload).layoutVersion,2);await new Promise(resolve=>setTimeout(resolve,100));assert.equal(crossRoomEvent,false);
+    const disconnected=new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('socket revoke timeout')),3000);socket.once('disconnect',()=>{clearTimeout(timeout);resolve();});});
+    assert.equal((await http.del(`/v1/channels/test-channel/obs-tokens/${issued.id}`)).status,204);await disconnected;
+  }finally{socket.close();secondSocket.close();await http.del(`/v1/channels/second-channel/obs-tokens/${secondIssued.id}`);}
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})).status,401);
 });
 
 test('pawn image upload is revisioned, sanitized, replaced, and deleted',async()=>{
@@ -243,6 +273,7 @@ test('configuration rejects stale revisions and read-only writes; OBS permits co
   const http=client(await login()),viewer=client(await login('viewer'));
   const path='/v1/channels/test-channel/config/overlay-layout';
   const document={schemaVersion:1,boardThemeId:'lime-clover',width:1920,height:1080,aspectRatio:'16:9',background:'transparent',widgets:[{id:'board',bounds:{x:0,y:0,width:1,height:1},z:0}]};
+  const liveBeforePublish=await (await http.get('/v1/channels/test-channel/overlay-layout/live')).json() as any;
   const beforeTheme=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
   assert.equal(beforeTheme.boardThemeId,'lime-clover');
   assert.equal((await viewer.post(path,{document})).status,403);
@@ -256,6 +287,8 @@ test('configuration rejects stale revisions and read-only writes; OBS permits co
   assert.equal((await http.put(`${path}/${version.id}`,{expectedRevision:version.revision+1,document})).status,409);
   response=await http.post(`${path}/${version.id}/validate`,{expectedRevision:version.revision});version=await response.json();assert.equal(version.status,'validated');
   response=await http.post(`${path}/${version.id}/publish`,{expectedRevision:version.revision});assert.equal(response.status,201);version=await response.json();
+  const liveAfterPublish=await (await http.get('/v1/channels/test-channel/overlay-layout/live')).json() as any;
+  assert.equal(liveAfterPublish.layoutVersion,liveBeforePublish.layoutVersion+1);assert.deepEqual(liveAfterPublish.layout.widgets,liveBeforePublish.layout.widgets);assert.equal(liveAfterPublish.layout.background,document.background);
   const afterTheme=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
   assert.equal(afterTheme.boardThemeId,'lime-clover');
   assert.deepEqual({revision:afterTheme.session?.revision,currentCellId:afterTheme.session?.currentCellId,inventory:afterTheme.inventory,missions:afterTheme.missions},
@@ -267,19 +300,41 @@ test('configuration rejects stale revisions and read-only writes; OBS permits co
   const issued=await (await http.post('/v1/channels/test-channel/obs-tokens',{label:'concurrent readers'})).json() as any;
   const readers=await Promise.all(Array.from({length:4},()=>fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})));
   assert.deepEqual(readers.map(x=>x.status),[200,200,200,200]);
-  for(const reader of readers){const state=await reader.json() as any;assert.deepEqual(state.layout,document);assert.equal(state.latestCommand?.operatorId,undefined);}
+  const expectedEffectiveLayout={...document,widgets:liveBeforePublish.layout.widgets};
+  for(const reader of readers){const state=await reader.json() as any;assert.deepEqual(state.layout,expectedEffectiveLayout);assert.equal(state.latestCommand?.operatorId,undefined);}
   const legacyClient=new pg.Client({connectionString:databaseUrl});await legacyClient.connect();
   try {
     await legacyClient.query(`UPDATE channel_config_versions SET document=jsonb_set(document,'{boardThemeId}','"classic-party"') WHERE channel_id=$1 AND kind='overlay-layout' AND status='published'`,['test-channel']);
     const legacyOperator=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
     assert.equal(legacyOperator.boardThemeId,'lime-clover');assert.deepEqual(legacyOperator.session,afterTheme.session);
     const legacyOverlay=await (await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})).json() as any;
-    assert.deepEqual(legacyOverlay.layout,document);
+    assert.deepEqual(legacyOverlay.layout,expectedEffectiveLayout);
   } finally {await legacyClient.end();}
   assert.equal((await http.del(`/v1/channels/test-channel/obs-tokens/${issued.id}`)).status,204);
   const first=await (await http.get('/v1/channels/test-channel/operations?limit=1')).json() as any;assert.equal(first.items.length,1);assert.ok(first.nextCursor);
   const second=await (await http.get(`/v1/channels/test-channel/operations?limit=1&cursor=${encodeURIComponent(first.nextCursor)}`)).json() as any;assert.equal(second.items.length,1);assert.notEqual(first.items[0].id,second.items[0].id);
   assert.equal((await http.get('/v1/channels/test-channel/operations?cursor=invalid')).status,400);
+});
+
+test('live PUT queued with publish advances twice and publish preserves the newest widget geometry',async()=>{
+  const http=client(await login()),configPath='/v1/channels/test-channel/config/overlay-layout',livePath='/v1/channels/test-channel/overlay-layout/live';
+  const before=await (await http.get(livePath)).json() as any;
+  const geometry=[{id:'board',bounds:{x:.2,y:.15,width:.6,height:.7},z:7}];
+  const liveDocument={...before.layout,background:'#102030',widgets:geometry};
+  const publishedDocument={...before.layout,fontId:'jua',background:'#abcdef',widgets:[{id:'board',bounds:{x:0,y:0,width:1,height:1},z:0}]};
+  let response=await http.post(configPath,{document:publishedDocument});assert.equal(response.status,201);let version=await response.json() as any;
+  response=await http.post(`${configPath}/${version.id}/validate`,{expectedRevision:version.revision});assert.equal(response.status,201);version=await response.json();assert.equal(version.status,'validated');
+  const blocker=new pg.Client({connectionString:databaseUrl});await blocker.connect();await blocker.query('BEGIN');await blocker.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`live-overlay-layout:test-channel`]);
+  const waitForBlockedLayouts=async(count:number)=>{for(let attempt=0;attempt<100;attempt++){const result=await blocker.query("SELECT count(*)::int AS waiting FROM pg_locks WHERE locktype='advisory' AND NOT granted");if(result.rows[0].waiting>=count)return;await new Promise(resolve=>setTimeout(resolve,20));}throw new Error('Layout requests did not reach the advisory lock');};
+  try{
+    const putPromise=http.put(livePath,{layout:liveDocument,expectedVersion:before.layoutVersion});
+    await waitForBlockedLayouts(1);
+    const publishPromise=http.post(`${configPath}/${version.id}/publish`,{expectedRevision:version.revision});
+    await waitForBlockedLayouts(2);await blocker.query('COMMIT');
+    const [put,publish]=await Promise.all([putPromise,publishPromise]);assert.equal(put.status,200);assert.equal(publish.status,201);
+  }finally{await blocker.query('ROLLBACK').catch(()=>{});await blocker.end();}
+  const after=await (await http.get(livePath)).json() as any;
+  assert.equal(after.layoutVersion,before.layoutVersion+2);assert.deepEqual(after.layout.widgets,geometry);assert.equal(after.layout.fontId,'jua');assert.equal(after.layout.background,'#abcdef');
 });
 
 test('password change keeps the current session and revokes other sessions',async()=>{
@@ -291,7 +346,7 @@ test('password change keeps the current session and revokes other sessions',asyn
   assert.equal((await client(first).post('/v1/auth/password',{currentPassword:adminPassword,newPassword:nextPassword})).status,200);
   assert.equal((await client(first).get('/v1/auth/session')).status,200);
   assert.equal((await client(second).get('/v1/auth/session')).status,401);
-  const response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/login`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:'password-user',password:nextPassword})});assert.equal(response.status,200);
+  const response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/login`,{method:'POST',headers:{'content-type':'application/json',origin:'https://console.example'},body:JSON.stringify({username:'password-user',password:nextPassword})});assert.equal(response.status,200);
 });
 
 test('array item configuration round-trips as JSON and publishes active definitions',async()=>{
