@@ -8,7 +8,9 @@ import subprocess
 import tempfile
 import unittest
 
-from release import ReleaseError, SECRET_FILES, deploy, prepare_active, validate_manifest, verify_installed_runtime
+from release import (MINIMUM_DEPLOY_FREE_BYTES, ReleaseError, SECRET_FILES, deploy,
+                     ensure_deploy_capacity, prepare_active, reclaim_old_app_images,
+                     validate_manifest, verify_installed_runtime)
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -73,6 +75,54 @@ class ReleaseTest(unittest.TestCase):
         value["images"]["api"]="registry.invalid/api@sha256:"+"a"*64;value["composeSha256"]="0"*64;manifest_path.write_text(json.dumps(value))
         with self.assertRaisesRegex(ReleaseError,"checksum"):validate_manifest(manifest_path,app,data)
 
+    def test_app_image_retention_preserves_active_latest_and_unrelated_images(self):
+        class ImageRunner:
+            def __init__(self):
+                self.commands=[]
+                self.images={
+                    "registry.invalid/api":[
+                        {"Id":f"sha256:api-{index}","Created":f"2026-09-{index:02d}T00:00:00Z",
+                         "RepoDigests":[f"registry.invalid/api@sha256:{index:064x}"]}
+                        for index in range(1,7)
+                    ],
+                    "registry.invalid/web":[
+                        {"Id":f"sha256:web-{index}","Created":f"2026-09-{index:02d}T00:00:00Z",
+                         "RepoDigests":[f"registry.invalid/web@sha256:{index:064x}"]}
+                        for index in range(1,5)
+                    ],
+                }
+                self.images["registry.invalid/api"][1]["RepoDigests"].append(
+                    "registry.invalid/shared@sha256:"+"f"*64
+                )
+            def run(self,argv,*,check=True):
+                self.commands.append(argv)
+                if argv==["docker","ps","-aq"]:
+                    return subprocess.CompletedProcess(argv,0,"live-container\n","")
+                if argv[:3]==["docker","inspect","--format={{.Image}}"]:
+                    return subprocess.CompletedProcess(argv,0,"sha256:api-1\n","")
+                if argv[:5]==["docker","image","ls","--quiet","--no-trunc"]:
+                    return subprocess.CompletedProcess(argv,0,"\n".join(image["Id"] for image in self.images[argv[-1]])+"\n","")
+                if argv[:3]==["docker","image","inspect"]:
+                    selected={image["Id"]:image for images in self.images.values() for image in images}
+                    return subprocess.CompletedProcess(argv,0,json.dumps([selected[image_id] for image_id in argv[3:]]),"")
+                if argv[:3]==["docker","image","rm"]:
+                    return subprocess.CompletedProcess(argv,0,"","")
+                raise AssertionError(argv)
+        runner=ImageRunner()
+        manifest={"images":{"api":"registry.invalid/api@sha256:"+"a"*64,"web":"registry.invalid/web@sha256:"+"b"*64}}
+        result=reclaim_old_app_images(manifest,runner)
+        removed={command[-1] for command in runner.commands if command[:3]==["docker","image","rm"]}
+        self.assertEqual(result,{"removed":2,"skippedShared":1})
+        self.assertEqual(removed,{"sha256:api-3","sha256:web-1"})
+        self.assertNotIn("sha256:api-1",removed)
+        self.assertNotIn("sha256:api-2",removed)
+
+    def test_low_disk_space_is_rejected_before_pull_with_actionable_error(self):
+        class Usage:
+            free=MINIMUM_DEPLOY_FREE_BYTES-1
+        with self.assertRaisesRegex(ReleaseError,"insufficient Docker disk space.*4.0 GiB required"):
+            ensure_deploy_capacity(Path("/path/that/does/not/exist"),disk_usage=lambda _:Usage())
+
     def test_manifest_rejects_tampered_executed_runtime_file(self):
         temporary,app,_,_,data,_,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
         (app/"tools/ops/supervise.sh").write_text("tampered\n",encoding="utf-8")
@@ -91,7 +141,7 @@ class ReleaseTest(unittest.TestCase):
     def test_migration_failure_never_restarts_app(self):
         temporary, app, config, run, data, uuid, manifest_path = self.fixture();self.addCleanup(temporary.cleanup)
         runner=FakeRunner(uuid,fail_migrate=True)
-        with self.assertRaises(subprocess.CalledProcessError):deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None)
+        with self.assertRaises(subprocess.CalledProcessError):deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None,capacity_check=lambda:None)
         self.assertFalse(any(command[:2]==["systemctl","restart"] for command in runner.commands))
         self.assertFalse(any("down" in command or "-v" in command for command in runner.commands))
 
@@ -108,7 +158,7 @@ class ReleaseTest(unittest.TestCase):
                 return super().run(argv,check=check)
         runner=ActiveRunner(uuid,fail_migrate=True)
         with self.assertRaises(subprocess.CalledProcessError):
-            deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None)
+            deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None,capacity_check=lambda:None)
         commands=runner.commands
         stop=commands.index(["systemctl","stop","rogimarble-app.service"])
         storage=next(i for i,c in enumerate(commands) if "up" in c)
@@ -121,11 +171,13 @@ class ReleaseTest(unittest.TestCase):
 
     def test_success_order_is_pull_storage_migrate_supervisor_smoke(self):
         temporary, app, config, run, data, uuid, manifest_path = self.fixture();self.addCleanup(temporary.cleanup)
-        runner=FakeRunner(uuid);deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None)
+        runner=FakeRunner(uuid);deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None,capacity_check=lambda:None)
         rendered=[" ".join(command) for command in runner.commands]
         pull=next(i for i,v in enumerate(rendered) if v.endswith(" pull"));storage=next(i for i,v in enumerate(rendered) if " up -d --no-build --wait postgres redis" in v)
         migrate=next(i for i,v in enumerate(rendered) if " run --rm --no-deps migrate" in v);supervisor=next(i for i,v in enumerate(rendered) if v=="systemctl restart rogimarble-app.service")
+        inventories=[i for i,v in enumerate(rendered) if v=="docker ps -aq"]
         self.assertLess(pull,storage);self.assertLess(storage,migrate);self.assertLess(migrate,supervisor)
+        self.assertEqual(len(inventories),2);self.assertLess(inventories[0],pull);self.assertGreater(inventories[1],supervisor)
         self.assertTrue((config/"deployed-release.json").is_file())
         self.assertFalse((run/"docker-auth").exists())
         self.assertEqual(digest(run/"lib/supervise.sh"),json.loads(manifest_path.read_text())["runtimeFiles"]["tools/ops/supervise.sh"])
@@ -145,7 +197,7 @@ class ReleaseTest(unittest.TestCase):
         runner=StartingRunner(uuid);waits=[]
         def wait(seconds):
             self.assertFalse((config/"deployed-release.json").exists());waits.append(seconds)
-        deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=wait)
+        deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=wait,capacity_check=lambda:None)
         self.assertEqual(waits,[1]);self.assertEqual(runner.probes,2)
         for command in runner.commands:
             if command[-3:]==["ps","--format","json"]:self.assertEqual(command[command.index("--env-file")+1],str(run/"release.env"))
@@ -155,7 +207,7 @@ class ReleaseTest(unittest.TestCase):
         import shutil
         temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
         runner=FakeRunner(uuid)
-        deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None)
+        deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None,capacity_check=lambda:None)
         receipt=(config/"deployed-release.json").read_bytes()
         shutil.rmtree(run)
         prepare_active(config/"release.json",runner,app_root=app,config_root=config,run_root=run,data_root=data)

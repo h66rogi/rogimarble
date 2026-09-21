@@ -16,6 +16,9 @@ import time
 from typing import Any, Callable
 
 EXPECTED_SERVICES = {'postgres', 'redis', 'api', 'web', 'edge'}
+APP_IMAGE_KEYS = ("api", "web")
+APP_IMAGE_RETENTION = 3
+MINIMUM_DEPLOY_FREE_BYTES = 4 * 1024 * 1024 * 1024
 
 def containers_healthy(result):
     if not result['ok']:
@@ -141,6 +144,74 @@ class Runner:
     def run(self, argv: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
         return subprocess.run(argv, check=check, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+def _checked_output(result: subprocess.CompletedProcess[str], action: str) -> str:
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise ReleaseError(f"{action} failed: {detail}")
+    return result.stdout
+
+def reclaim_old_app_images(manifest: dict[str, Any], runner: Runner,
+                           retain: int = APP_IMAGE_RETENTION) -> dict[str, int]:
+    """Bound only Rogimarble application images while preserving rollback and live images."""
+    if retain < 1:
+        raise ReleaseError("application image retention must be at least one")
+    container_ids = _checked_output(
+        runner.run(["docker", "ps", "-aq"], check=False), "container image inventory"
+    ).split()
+    active_ids: set[str] = set()
+    if container_ids:
+        active_ids.update(_checked_output(
+            runner.run(["docker", "inspect", "--format={{.Image}}", *container_ids], check=False),
+            "active container image inspection",
+        ).split())
+
+    removed = skipped_shared = 0
+    for key in APP_IMAGE_KEYS:
+        repository = manifest["images"][key].split("@", 1)[0]
+        image_ids = list(dict.fromkeys(_checked_output(
+            runner.run(["docker", "image", "ls", "--quiet", "--no-trunc", repository], check=False),
+            f"{key} image inventory",
+        ).split()))
+        if not image_ids:
+            continue
+        try:
+            images = json.loads(_checked_output(
+                runner.run(["docker", "image", "inspect", *image_ids], check=False),
+                f"{key} image inspection",
+            ))
+        except json.JSONDecodeError as exc:
+            raise ReleaseError(f"{key} image inspection returned invalid JSON") from exc
+        if not isinstance(images, list) or any(not isinstance(image, dict) for image in images):
+            raise ReleaseError(f"{key} image inspection returned an invalid inventory")
+        images.sort(key=lambda image: str(image.get("Created", "")), reverse=True)
+        keep = {str(image.get("Id", "")) for image in images[:retain]} | active_ids
+        for image in images:
+            image_id = str(image.get("Id", ""))
+            if not image_id or image_id in keep:
+                continue
+            digests = image.get("RepoDigests") or []
+            if not isinstance(digests, list) or any(
+                not isinstance(digest, str) or not digest.startswith(f"{repository}@")
+                for digest in digests
+            ):
+                skipped_shared += 1
+                continue
+            result = runner.run(["docker", "image", "rm", image_id], check=False)
+            if result.returncode == 0:
+                removed += 1
+    return {"removed": removed, "skippedShared": skipped_shared}
+
+def ensure_deploy_capacity(path: Path = Path("/var/lib/docker"), *,
+                           disk_usage: Callable[[Path], Any] = shutil.disk_usage,
+                           minimum_free_bytes: int = MINIMUM_DEPLOY_FREE_BYTES) -> None:
+    target = path if path.exists() else Path("/")
+    free = disk_usage(target).free
+    if free < minimum_free_bytes:
+        raise ReleaseError(
+            "insufficient Docker disk space after safe application-image cleanup: "
+            f"{free / (1024 ** 3):.1f} GiB free, {minimum_free_bytes / (1024 ** 3):.1f} GiB required"
+        )
+
 def source_identity(app_root:Path,runner:Runner)->str:
     if (app_root/".git").exists():return runner.run(["git","-C",str(app_root),"rev-parse","HEAD"]).stdout.strip()
     marker=app_root/".release-source-sha"
@@ -252,7 +323,8 @@ def restore_collector_link(link:Path,previous_target:str|None)->None:
 def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = APP_ROOT,
            config_root:Path=CONFIG_ROOT,run_root: Path = RUN_ROOT, data_root: Path = DATA_ROOT,
            lib_root:Path=Path("/usr/local/lib/rogimarble"),unit_root:Path=Path("/etc/systemd/system"),
-           active_link:Path|None=None,sleep: Callable[[float], None] = time.sleep) -> None:
+           active_link:Path|None=None,sleep: Callable[[float], None] = time.sleep,
+           capacity_check: Callable[[], None] = ensure_deploy_capacity) -> None:
     run_root.mkdir(mode=0o750, parents=True, exist_ok=True)
     lock_path = run_root / "deploy.lock"
     with lock_path.open("w", encoding="utf-8") as lock:
@@ -261,6 +333,8 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
         except BlockingIOError as exc:
             raise ReleaseError("another marble deployment holds the host lock") from exc
         manifest, env_file = preflight(manifest_path, runner, app_root,config_root,run_root, data_root)
+        reclaim_old_app_images(manifest, runner)
+        capacity_check()
         collector_link=run_root/"collector-client"
         previous_collector_target=os.readlink(collector_link) if collector_link.is_symlink() else None
         restore_previous = False
@@ -312,6 +386,7 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
             if attempt == 59:
                 raise ReleaseError("container health did not settle after activation")
             sleep(1)
+        reclaim_old_app_images(manifest, runner)
         deployed = config_root / "deployed-release.json"
         receipt={"status":"deployed","deployedAt":time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime()),"releaseId":manifest["releaseId"],"sourceSha":manifest["sourceSha"],"images":manifest["images"]}
         receipt_temp = config_root / f".deployed-release.{os.getpid()}.json"

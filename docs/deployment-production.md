@@ -180,6 +180,12 @@ PostgreSQL/Redis를 준비한 뒤 manifest로 검증한 host migration directory
 env를 활성화하고 `rogimarble-app.service`를 재시작한 다음 두 HTTPS 경로를 smoke test한다. 실패 시 `down -v`, volume prune,
 DB 초기화, down migration을 실행하지 않는다.
 
+배포 시작 전과 성공 판정 직전에는 Rogimarble의 `api`·`web` 저장소 이미지만 점검한다. 실행 중인 모든
+컨테이너 이미지와 저장소별 최신 3세대는 항상 보존하고, 그보다 오래된 미사용 앱 이미지만 제거한다. 다른 제품 이미지,
+PostgreSQL·Redis·Caddy 이미지, volume, build cache는 이 정리 대상이 아니다. 정리 후 Docker 저장 경로의 여유 공간이
+4 GiB 미만이면 registry 인증이나 pull을 시작하지 않고 필요한 용량과 현재 여유 공간을 오류로 남긴다. 이 선행 정리로
+이전 배포에서 남은 이미지가 새 pull을 막는 상황을 복구하고, 성공 후 정리로 다음 배포 전까지 누적량을 제한한다.
+
 systemd는 attached `docker compose up --abort-on-container-failure` 프로세스를 감독한다. container 하나가
 종료되면 Compose가 application set을 내리고 systemd가 순서와 secret 준비를 다시 거쳐 재시작한다.
 이는 detached `compose up` 성공만으로 장기 실행을 정상이라고 간주하지 않기 위한 계약이다.
