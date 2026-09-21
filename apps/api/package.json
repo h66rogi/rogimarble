@@ -8,9 +8,13 @@
     "start": "node dist/apps/api/src/main.js",
     "test:effects": "node --experimental-strip-types --test test/board-support.test.ts test/travel-turn.test.ts",
     "test:integration": "tsc --noEmit --target es2022 --module nodenext --moduleResolution nodenext --esModuleInterop --skipLibCheck --allowImportingTsExtensions test/integration.test.ts && node --experimental-strip-types --test test/integration.test.ts",
-    "test:auth": "tsc -p tsconfig.test.json --pretty false && node --test dist-test/apps/api/test/auth-shared.test.js"
+    "test:auth": "tsc -p tsconfig.test.json --pretty false && node --test dist-test/apps/api/test/auth-shared.test.js",
+    "token:cli": "node --experimental-strip-types src/access-token-cli.ts",
+    "test:collector": "node --experimental-strip-types --test test/collector-rpc.test.ts"
   },
   "dependencies": {
+    "@grpc/grpc-js": "1.14.3",
+    "@grpc/proto-loader": "0.8.0",
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
     "@nestjs/platform-express": "^11.1.6",

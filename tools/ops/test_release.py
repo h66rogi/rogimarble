@@ -40,9 +40,11 @@ class ReleaseTest(unittest.TestCase):
         (app / "deploy").mkdir(parents=True); (app / "packages/database/migrations").mkdir(parents=True)
         (app/".release-source-sha").write_text("b"*40+"\n",encoding="ascii")
         compose = app / "deploy/compose.production.yaml"; compose.write_text("services: {}\n", encoding="utf-8")
-        runtime_paths=("deploy/Caddyfile.production","deploy/postgres/init-roles.sh","deploy/systemd/rogimarble-app.service","deploy/systemd/rogimarble-secrets.service","deploy/systemd/rogimarble-update.service","deploy/systemd/rogimarble-update.timer","deploy/systemd/rogimarble-backup.service","deploy/systemd/rogimarble-backup.timer","tools/ops/release.py","tools/ops/deploy.sh","tools/ops/supervise.sh","tools/ops/prepare-secrets.sh","tools/ops/install-host.sh","tools/ops/fetch-release.py","tools/ops/production-status.py","tools/ops/backup-postgres.sh","tools/ops/fetch-runtime-secrets.py","tools/ops/upload-backup.py","tools/ops/load-registry-auth.py")
+        runtime_paths=("deploy/Caddyfile.production","deploy/postgres/init-roles.sh","deploy/systemd/rogimarble-app.service","deploy/systemd/rogimarble-secrets.service","deploy/systemd/rogimarble-update.service","deploy/systemd/rogimarble-update.timer","deploy/systemd/rogimarble-backup.service","deploy/systemd/rogimarble-backup.timer","tools/ops/release.py","tools/ops/deploy.sh","tools/ops/supervise.sh","tools/ops/prepare-secrets.sh","tools/ops/prepare-collector-client.py","tools/ops/install-host.sh","tools/ops/fetch-release.py","tools/ops/production-status.py","tools/ops/backup-postgres.sh","tools/ops/fetch-runtime-secrets.py","tools/ops/upload-backup.py","tools/ops/load-registry-auth.py")
         for relative in runtime_paths:
-            target=app/relative;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(relative+"\n",encoding="utf-8")
+            target=app/relative;target.parent.mkdir(parents=True,exist_ok=True)
+            if relative=="tools/ops/prepare-collector-client.py":target.write_bytes((Path(__file__).parent/"prepare-collector-client.py").read_bytes())
+            else:target.write_text(relative+"\n",encoding="utf-8")
         migration = app / "packages/database/migrations/001_test.sql"; migration.write_text("SELECT 1;\n", encoding="utf-8")
         for name in ("postgres", "redis", "caddy-data", "caddy-config"):
             (data / name).mkdir(parents=True)
@@ -96,6 +98,9 @@ class ReleaseTest(unittest.TestCase):
     def test_existing_supervisor_is_stopped_before_storage_and_restored_on_failed_migration(self):
         temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
         previous=b'{"sourceSha":"previous"}';(config/"release.json").write_bytes(previous)
+        previous_generation=run/"collector-client.previous";previous_generation.mkdir(parents=True)
+        (previous_generation/"collector.env").write_text("COLLECTOR_ENABLED=false\n",encoding="utf-8")
+        collector_link=run/"collector-client";collector_link.symlink_to(previous_generation.name)
         class ActiveRunner(FakeRunner):
             def run(self,argv,*,check=True):
                 if argv[:2]==["systemctl","is-active"]:
@@ -109,6 +114,8 @@ class ReleaseTest(unittest.TestCase):
         storage=next(i for i,c in enumerate(commands) if "up" in c)
         self.assertLess(stop,storage)
         self.assertIn(["systemctl","start","rogimarble-app.service"],commands)
+        self.assertEqual(os.readlink(collector_link),previous_generation.name)
+        self.assertEqual((collector_link/"collector.env").read_text(),"COLLECTOR_ENABLED=false\n")
         self.assertEqual((config/"release.json").read_bytes(),previous)
         self.assertFalse((config/"deployed-release.json").exists())
 

@@ -44,6 +44,7 @@ RUNTIME_FILES = {"deploy/Caddyfile.production", "deploy/postgres/init-roles.sh",
                  "tools/ops/release.py", "tools/ops/deploy.sh", "tools/ops/supervise.sh",
                  "tools/ops/prepare-secrets.sh", "tools/ops/install-host.sh", "tools/ops/fetch-release.py",
                  "tools/ops/production-status.py", "tools/ops/backup-postgres.sh", "tools/ops/fetch-runtime-secrets.py", "tools/ops/upload-backup.py", "tools/ops/load-registry-auth.py"}
+RUNTIME_FILES.add("tools/ops/prepare-collector-client.py")
 RUNTIME_KEYS = {"webDomain", "apiDomain", "acmeEmail", "channelId", "composeProjectName", "dataRoot",
                 "dataVolumeUuid", "postgresDb", "postgresAdminUser", "migrationDbUser", "appDbUser",
                 "apiUid", "apiGid", "webUid", "webGid", "postgresUid", "postgresGid", "redisUid", "redisGid", "caddyUid", "caddyGid"}
@@ -159,6 +160,7 @@ def release_env(manifest: dict[str, Any], app_root: Path, run_root: Path, name: 
         "POSTGRES_DB": runtime["postgresDb"], "POSTGRES_ADMIN_USER": runtime["postgresAdminUser"],
         "MIGRATION_DB_USER": runtime["migrationDbUser"], "APP_DB_USER": runtime["appDbUser"],
         "CHANNEL_ID": runtime["channelId"],
+        "RUNTIME_COLLECTOR_ROOT": str(run_root / "collector-client"),
         **{key.upper().replace("UID","_UID").replace("GID","_GID"): str(runtime[key]) for key in ("apiUid","apiGid","webUid","webGid","postgresUid","postgresGid","redisUid","redisGid","caddyUid","caddyGid")},
         **{f"IMAGE_{key.upper()}": value for key, value in images.items()},
     }
@@ -179,6 +181,7 @@ def prepare_runtime(manifest:dict[str,Any],app_root:Path,config_root:Path,run_ro
     for name,(uid,gid) in ownership.items():
       source=source_root/name;check_secret(source);target=target_root/name;temporary=target_root/f".{name}.{os.getpid()}"
       temporary.write_bytes(source.read_bytes());temporary.chmod(0o400);os.chown(temporary,uid,gid);temporary.replace(target)
+    subprocess.run([sys.executable,str(app_root/"tools/ops/prepare-collector-client.py"),"--source",str(config_root/"collector-client"),"--run-root",str(run_root),"--uid",str(runtime["apiUid"]),"--gid",str(runtime["apiGid"]),"--game-channel",runtime["channelId"]],check=True)
     return release_env(manifest,app_root,run_root,env_name)
 
 def preflight(manifest_path: Path, runner: Runner, app_root: Path, config_root:Path, run_root: Path, data_root: Path) -> tuple[dict[str, Any], Path]:
@@ -205,6 +208,7 @@ def preflight(manifest_path: Path, runner: Runner, app_root: Path, config_root:P
 def installed_runtime_destinations(lib_root:Path,unit_root:Path)->dict[str,Path]:return {
     "tools/ops/release.py":lib_root/"release.py","tools/ops/supervise.sh":lib_root/"supervise.sh",
     "tools/ops/prepare-secrets.sh":lib_root/"prepare-secrets.sh","tools/ops/fetch-release.py":lib_root/"fetch-release.py",
+    "tools/ops/prepare-collector-client.py":lib_root/"prepare-collector-client.py",
     "tools/ops/production-status.py":lib_root/"production-status.py","tools/ops/backup-postgres.sh":lib_root/"backup-postgres.sh",
     "tools/ops/fetch-runtime-secrets.py":lib_root/"fetch-runtime-secrets.py",
     "tools/ops/upload-backup.py":lib_root/"upload-backup.py",
@@ -236,6 +240,15 @@ def install_runtime_files(manifest:dict[str,Any],app_root:Path,lib_root:Path,uni
         shutil.copyfile(source,temporary);temporary.chmod(0o755 if destination.suffix in (".py",".sh") else 0o644);temporary.replace(destination)
     verify_installed_runtime(manifest,lib_root,unit_root)
 
+def restore_collector_link(link:Path,previous_target:str|None)->None:
+    temporary=link.with_name(f".{link.name}.rollback.{os.getpid()}")
+    temporary.unlink(missing_ok=True)
+    if previous_target is None:
+        link.unlink(missing_ok=True)
+        return
+    temporary.symlink_to(previous_target)
+    temporary.replace(link)
+
 def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = APP_ROOT,
            config_root:Path=CONFIG_ROOT,run_root: Path = RUN_ROOT, data_root: Path = DATA_ROOT,
            lib_root:Path=Path("/usr/local/lib/rogimarble"),unit_root:Path=Path("/etc/systemd/system"),
@@ -248,25 +261,29 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
         except BlockingIOError as exc:
             raise ReleaseError("another marble deployment holds the host lock") from exc
         manifest, env_file = preflight(manifest_path, runner, app_root,config_root,run_root, data_root)
-        prepare_runtime(manifest,app_root,config_root,run_root,"candidate-release.env")
-        compose = ["docker", "compose", "--env-file", str(env_file), "-f", str(app_root / COMPOSE_PATH)]
-        registry=run_root/"docker-auth";shutil.rmtree(registry,ignore_errors=True)
-        try:
-            runner.run(["python3",str(app_root/"tools/ops/load-registry-auth.py"),"--metadata",str(config_root/"registry.json"),"--output",str(registry)])
-            runner.run(["docker","--config",str(registry),"compose","--env-file",str(env_file),"-f",str(app_root/COMPOSE_PATH),"pull"])
-        finally:shutil.rmtree(registry,ignore_errors=True)
-        # An attached old Compose supervisor must not race candidate storage recreation.
+        collector_link=run_root/"collector-client"
+        previous_collector_target=os.readlink(collector_link) if collector_link.is_symlink() else None
         restore_previous = False
-        if (config_root / "release.json").is_file():
-            prior_state = runner.run(["systemctl", "is-active", "rogimarble-app.service"], check=False).stdout.strip()
-            restore_previous = prior_state in ("active", "activating", "reloading")
-            runner.run(["systemctl", "stop", "rogimarble-app.service"])
+        old_supervisor_stopped = False
         try:
+            prepare_runtime(manifest,app_root,config_root,run_root,"candidate-release.env")
+            compose = ["docker", "compose", "--env-file", str(env_file), "-f", str(app_root / COMPOSE_PATH)]
+            registry=run_root/"docker-auth";shutil.rmtree(registry,ignore_errors=True)
+            try:
+                runner.run(["python3",str(app_root/"tools/ops/load-registry-auth.py"),"--metadata",str(config_root/"registry.json"),"--output",str(registry)])
+                runner.run(["docker","--config",str(registry),"compose","--env-file",str(env_file),"-f",str(app_root/COMPOSE_PATH),"pull"])
+            finally:shutil.rmtree(registry,ignore_errors=True)
+            # An attached old Compose supervisor must not race candidate storage recreation.
+            if (config_root / "release.json").is_file():
+                prior_state = runner.run(["systemctl", "is-active", "rogimarble-app.service"], check=False).stdout.strip()
+                restore_previous = prior_state in ("active", "activating", "reloading")
+                runner.run(["systemctl", "stop", "rogimarble-app.service"])
+                old_supervisor_stopped = True
             runner.run(compose + ["up", "-d", "--no-build", "--wait", "postgres", "redis"])
             runner.run(compose + ["run", "--rm", "--no-deps", "migrate"])
         except Exception:
-            # No active source, manifest or runtime promotion has occurred yet.
-            if restore_previous:
+            restore_collector_link(collector_link,previous_collector_target)
+            if restore_previous and old_supervisor_stopped:
                 runner.run(["systemctl", "start", "rogimarble-app.service"], check=False)
             raise
         # Only after a successful forward migration may systemd replace the application set.

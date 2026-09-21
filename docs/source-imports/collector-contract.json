@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "h66rogi/rogi-collector",
+    "resolvedCommit": "49c6d4c9f37a08593ff1983993bd0b5234e6b853"
+  },
+  "scope": "Public collector v1 protobuf contract only; no source history, deployment files, or operational values.",
+  "files": [
+    {
+      "sourcePath": "proto/collector/v1/collector.proto",
+      "targetPath": "apps/api/proto/collector.proto",
+      "sourceSha256": "fa17d7932ea5861072483cc48b022001f4c783a4da020bc2273bdb084d89b7e5",
+      "importedSha256": "fa17d7932ea5861072483cc48b022001f4c783a4da020bc2273bdb084d89b7e5",
+      "adaptation": "Unchanged service contract, decoded with string uint64 values."
+    }
+  ]
+}

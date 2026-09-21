@@ -32,6 +32,7 @@ export function MarbleOperationsPanel({ view = 'full' }: { view?: 'full' | 'boar
   const mutationFence = useRef(0);
   const canonical = useRef<OperatorSnapshot | null>(null);
   const pendingPresentation = useRef<SessionCommandDto | null>(null);
+  const observedPresentation = useRef<{session:string;commandId:string|null}|null>(null);
   const [pending, setPending] = useState(() => api.pending());
   const [controlsRoot, setControlsRoot] = useState<HTMLElement | null>(null);
   const [inventorySet, setInventorySet] = useState<Record<string, string>>({});
@@ -71,7 +72,7 @@ export function MarbleOperationsPanel({ view = 'full' }: { view?: 'full' | 'boar
       if (busy || api.pending()) return;
       const requestSequence = ++sequence.current;
       void api.snapshot().then((next) => alive && applySnapshot(next, requestSequence)).catch(() => undefined);
-    }, 2500);
+    }, 1000);
     return () => { alive = false; window.clearInterval(timer); };
   }, []);
 
@@ -83,6 +84,15 @@ export function MarbleOperationsPanel({ view = 'full' }: { view?: 'full' | 'boar
   }
   const activeBoard = liveBoard;
   const presentation = useRollPresentation({ sessionKey: state?.session ? `${state.session.id}:${state.session.sessionEpoch}` : null, presentationEpoch: state?.session?.presentationEpoch ?? null, authoritativeCellId: state?.token.cellId ?? activeBoard.path[0], boardPath: activeBoard.path });
+  useEffect(()=>{
+    if(!state?.session){observedPresentation.current=null;return;}
+    const session=`${state.session.id}:${state.session.sessionEpoch}`,command=state.latestCommand;
+    if(observedPresentation.current?.session!==session){observedPresentation.current={session,commandId:command?.commandId??null};return;}
+    if(!command||observedPresentation.current.commandId===command.commandId)return;
+    observedPresentation.current.commandId=command.commandId;
+    if(command.presentationEpoch!==state.session.presentationEpoch||command.afterRevision>state.revision)return;
+    if(['roll_dice','choose_destination','cancel_destination','resume'].includes(command.type))presentation.play({commandId:command.commandId,commandType:command.type as 'roll_dice'|'choose_destination'|'cancel_destination'|'resume',sessionKey:session,presentationEpoch:command.presentationEpoch,finalCellId:state.token.cellId,result:command.result});
+  },[state?.latestCommand?.commandId,state?.session?.id,state?.session?.sessionEpoch]);
   useEffect(()=>{
     const command=pendingPresentation.current,current=state?.session;
     if(!command||!current)return;

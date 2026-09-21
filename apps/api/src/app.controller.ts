@@ -5,20 +5,21 @@ import { pool, transaction } from '../../../packages/database/src/index.ts';
 import { hashPassword, verifyPassword } from '../../../packages/database/src/password.ts';
 import { ApiService } from './api.service.ts';
 import { ConfigurationService } from './configuration.service.ts';
-import { authMode, AuthenticatedRequest, clearSessionCookie, CsrfGuard, hash, localCsrfToken, newCredential, readSessionCookie, SessionGuard, sessionCookieValue, setSessionCookie } from './auth.ts';
+import { AuthenticatedRequest, clearSessionCookie, CsrfGuard, hash, localCsrfToken, newCredential, readSessionCookie, SessionGuard, sessionCookieValue, setSessionCookie } from './auth.ts';
 
 @Controller()
 export class AppController {
   constructor(private readonly api: ApiService,private readonly configuration:ConfigurationService) {}
   @Get('/health') health() { return { status: 'ok' }; }
   @Get('/ready') async ready() {
-    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['006_game_effect_state.sql']);
+    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['008_collector_inbox.sql']);
       if(!result.rowCount)throw new Error('required migration missing');
-      await pool().query('SELECT 1 FROM session_effect_tasks LIMIT 0'); return { status:'ready',schemaVersion:'006_game_effect_state.sql' }; }
+      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0'); return { status:'ready',schemaVersion:'008_collector_inbox.sql' }; }
     catch { throw new ServiceUnavailableException('Database or migrations are not ready'); }
   }
   @Post('/v1/auth/login') @HttpCode(200) @Header('Cache-Control','no-store')
   async login(@Body() body:LoginRequest,@Req() request:Request,@Res({passthrough:true}) response:Response):Promise<LoginResponse>{
+    if(process.env.PASSWORD_RECOVERY_ENABLED!=='true')throw new HttpException('Password recovery login is disabled',HttpStatus.FORBIDDEN);
     if(process.env.WEB_ORIGIN && request.header('origin')!==process.env.WEB_ORIGIN)throw new HttpException('Invalid login origin',HttpStatus.FORBIDDEN);
     if(typeof body?.username!=='string'||typeof body?.password!=='string'||body.username.length>80||body.password.length>1024)throw new UnauthorizedException('Invalid credentials');
     const username=body.username.trim().toLowerCase();
@@ -28,7 +29,7 @@ export class AppController {
       const attempt=await client.query<{failed_count:number;blocked_until:Date|null}>('SELECT failed_count,blocked_until FROM login_attempts WHERE identity_hash=$1',[identityHash]);
       if(attempt.rows[0]?.blocked_until&&attempt.rows[0].blocked_until>new Date())return {failure:429 as const};
       const found=await client.query<{id:string;username:string;password_hash:string;role:'admin'|'operator'|'viewer'}>('SELECT id,username,password_hash,role FROM operators WHERE username=$1 AND disabled_at IS NULL FOR UPDATE',[username]);
-      if(!found.rowCount||!await verifyPassword(body.password,found.rows[0].password_hash)){
+      if(!found.rowCount||found.rows[0].role!=='admin'||!await verifyPassword(body.password,found.rows[0].password_hash)){
         await client.query(`INSERT INTO login_attempts(identity_hash,failed_count,blocked_until) VALUES($1,1,NULL)
           ON CONFLICT(identity_hash) DO UPDATE SET
           failed_count=CASE WHEN login_attempts.blocked_until<now() THEN 1 ELSE login_attempts.failed_count+1 END,
@@ -44,18 +45,18 @@ export class AppController {
     setSessionCookie(response,sessionCookieValue(result.token),result.expires);
     return {operator:result.operator,csrfToken:result.csrf,authMode:'local'};
   }
-  @Get('/v1/auth/config') config():AuthConfigResponse{return authMode()==='shared'?{mode:'shared',loginUrl:'https://rogi.chat',localLoginEnabled:true}:{mode:'local',loginUrl:null,localLoginEnabled:true};}
+  @Get('/v1/auth/config') config():AuthConfigResponse{return{mode:'token',loginUrl:null,localLoginEnabled:false};}
   @Get('/v1/auth/session') @UseGuards(SessionGuard) @Header('Cache-Control','no-store') @Header('Pragma','no-cache')
   async authSession(@Req() request:AuthenticatedRequest):Promise<AuthSessionResponse>{
     let csrfToken=request.csrfToken;
-    if(request.authMode==='local'){const token=readSessionCookie(request);if(!token)throw new UnauthorizedException('Login required');csrfToken=localCsrfToken(token);if(request.operator!.csrfHash!==hash(csrfToken))await pool().query('UPDATE auth_sessions SET csrf_hash=$2 WHERE id_hash=$1',[hash(token),hash(csrfToken)]);}
+    if(request.authMode==='local'||request.authMode==='token'){const token=readSessionCookie(request);if(!token)throw new UnauthorizedException('Login required');csrfToken=localCsrfToken(token);if(request.operator!.csrfHash!==hash(csrfToken))await pool().query('UPDATE auth_sessions SET csrf_hash=$2 WHERE id_hash=$1',[hash(token),hash(csrfToken)]);}
     return{operator:{id:request.operator!.id,username:request.operator!.username,role:request.operator!.role},csrfToken:csrfToken!,authMode:request.authMode};
   }
   @Post('/v1/auth/logout') @UseGuards(SessionGuard,CsrfGuard) @HttpCode(204)
-  async logout(@Req() request:AuthenticatedRequest,@Res({passthrough:true}) response:Response):Promise<void>{if(request.authMode==='shared')throw new HttpException('Sign out at https://rogi.chat',HttpStatus.CONFLICT);const token=readSessionCookie(request);if(token)await pool().query('DELETE FROM auth_sessions WHERE id_hash=$1',[hash(token)]);clearSessionCookie(response);}
+  async logout(@Req() request:AuthenticatedRequest,@Res({passthrough:true}) response:Response):Promise<void>{const token=readSessionCookie(request);if(token)await pool().query('DELETE FROM auth_sessions WHERE id_hash=$1',[hash(token)]);clearSessionCookie(response);}
   @Post('/v1/auth/password') @UseGuards(SessionGuard,CsrfGuard) @HttpCode(200)
   async password(@Req() request:AuthenticatedRequest,@Body() body:{currentPassword?:unknown;newPassword?:unknown}) {
-    if(request.authMode!=='local')throw new HttpException('로기챗 계정의 비밀번호는 로기챗에서 변경하세요.',HttpStatus.CONFLICT);
+    if(request.authMode!=='local')throw new HttpException('비밀번호 변경은 관리자 복구 세션에서만 사용할 수 있습니다.',HttpStatus.CONFLICT);
     if(typeof body?.currentPassword!=='string'||typeof body?.newPassword!=='string'||body.newPassword.length<12||body.newPassword.length>128||body.currentPassword.length>1024)
       throw new HttpException('새 비밀번호는 12~128자로 입력하세요.',HttpStatus.BAD_REQUEST);
     const currentPassword=body.currentPassword,nextPassword=body.newPassword;

@@ -7,14 +7,43 @@ export type OperatorCommandType = 'create_session' | 'roll_dice' | 'set_directio
   'complete_mission' | 'waive_mission' | 'use_shield' | 'choose_destination' | 'cancel_destination' | 'adjust_counter' | 'clear_movement_lock' | 'clear_roll_modifier';
 export type OperatorCommandStatus = 'completed' | 'rejected';
 
-export interface LoginRequest { readonly username: string; readonly password: string }
-export interface LoginResponse {
-  readonly operator: { readonly id: string; readonly username: string; readonly role: 'admin' | 'operator' | 'viewer' };
-  readonly csrfToken: string;
-  readonly authMode?: 'local' | 'shared';
+export interface LoginRequest {
+  readonly username: string;
+  readonly password: string;
 }
-export interface AuthConfigResponse { readonly mode: 'local' | 'shared'; readonly loginUrl: string | null; readonly localLoginEnabled?: boolean }
+export interface TokenLoginRequest {
+  readonly token: string;
+}
+export interface LoginResponse {
+  readonly operator: {
+    readonly id: string;
+    readonly username: string;
+    readonly role: 'admin' | 'operator' | 'viewer';
+  };
+  readonly csrfToken: string;
+  readonly authMode?: 'local' | 'token';
+}
+export interface AuthConfigResponse {
+  readonly mode: 'token';
+  readonly loginUrl: null;
+  readonly localLoginEnabled: false;
+}
 export type AuthSessionResponse = LoginResponse;
+export interface AccessTokenDto {
+  readonly id: string;
+  readonly label: string;
+  readonly expiresAt: string;
+  readonly lastUsedAt: string | null;
+  readonly revokedAt: string | null;
+  readonly createdAt: string;
+}
+export interface IssuedAccessTokenDto extends AccessTokenDto {
+  readonly token: string;
+}
+export interface IssueAccessTokenRequest {
+  readonly label: string;
+  readonly expiresAt?: string;
+}
 
 export interface GameSessionDto {
   readonly id: string;
@@ -94,7 +123,7 @@ export interface RollResultDto {
 }
 export interface ArrivalEffectResultDto { readonly index:number; readonly cellId:string; readonly trigger:'pass'|'land'; readonly type:string; readonly result:unknown }
 export interface SessionCounterDto { readonly counterId:string; readonly label:string; readonly unit:string; readonly value:number; readonly reserved:number; readonly available:number; readonly revision:number }
-export interface SessionEffectTaskDto { readonly id:string; readonly type:'choice_mission'|'choose_destination'; readonly payload:unknown; readonly status:'pending'|'resolved'|'cancelled'; readonly revision:number; readonly createdAt:string }
+export interface SessionEffectTaskDto { readonly id:string; readonly type:'choice_mission'|'choose_destination'|'donation_destination'; readonly payload:unknown; readonly status:'pending'|'resolved'|'cancelled'; readonly revision:number; readonly createdAt:string }
 export interface SessionMovementLockDto { readonly releaseType:'operator'|'skip_rolls'|'skip_rolls_or_doubles'|'dice_faces'; readonly rollsRemaining:number|null; readonly release:unknown; readonly createdAt:string }
 export interface SessionRollModifierDto { readonly id:string; readonly type:'movement_multiplier'; readonly factor:number; readonly usesRemaining:number; readonly createdAt:string }
 
@@ -105,7 +134,8 @@ export interface SessionCommandDto {
   readonly presentationEpoch: number;
   readonly type: OperatorCommandType;
   readonly status: OperatorCommandStatus;
-  readonly operatorId: string;
+  readonly operatorId: string | null;
+  readonly source?: 'operator' | 'donation';
   readonly beforeRevision: number;
   readonly afterRevision: number;
   readonly result: RollResultDto | { readonly direction: Direction } |
@@ -135,6 +165,7 @@ export interface MissionDto {
 }
 
 export interface OperatorStateDto {
+  readonly latestCommand?: SessionCommandDto | null;
   readonly session: GameSessionDto | null;
   readonly boardDefinition: unknown | null;
   readonly inventory: readonly InventoryItemDto[];
@@ -178,8 +209,8 @@ export interface ChannelConfigVersionDto {
   readonly createdAt: string; readonly updatedAt: string; readonly publishedAt: string|null;
 }
 export interface ChannelConfigStateDto { readonly draft: ChannelConfigVersionDto|null; readonly published: ChannelConfigVersionDto|null; readonly effectiveDocument?: unknown }
-export interface DonationEventDto { readonly id:string; readonly sessionId:string|null; readonly donorDisplayName:string; readonly amount:number; readonly message:string|null; readonly ruleId:string|null; readonly result:'matched'|'no_match'|'failed'|'pending'; readonly resultDetail:unknown; readonly occurredAt:string }
-export interface DonationPageDto { readonly items:readonly DonationEventDto[]; readonly nextCursor:string|null; readonly collectionConnected:false }
+export interface DonationEventDto { readonly id:string; readonly sessionId:string|null; readonly donorDisplayName:string; readonly amount:number; readonly message:string|null; readonly ruleId:string|null; readonly result:'matched'|'no_match'|'failed'|'pending'|'held'|'ignored'; readonly resultDetail:unknown; readonly occurredAt:string }
+export interface DonationPageDto { readonly items:readonly DonationEventDto[]; readonly nextCursor:string|null; readonly collectionConnected:boolean }
 export interface OperationPageDto { readonly items:readonly unknown[]; readonly nextCursor:string|null }
 export interface ObsTokenDto { readonly id:string; readonly label:string; readonly tokenSuffix:string; readonly createdAt:string; readonly lastUsedAt:string|null; readonly revokedAt:string|null }
 export interface IssuedObsTokenDto extends ObsTokenDto { readonly token:string; readonly overlayUrlPath:string }
@@ -187,7 +218,7 @@ export interface OverlayPresentationCommandDto { readonly commandId:string; read
 export type OverlayWidgetId='board'|'dice'|'current_mission'|'inventory'|'direction';
 export interface OverlayLayoutDto { readonly schemaVersion:1; readonly width:number; readonly height:number; readonly aspectRatio:'16:9'|'9:16'|'4:3'|'custom'; readonly background:string; readonly widgets:readonly {readonly id:OverlayWidgetId;readonly bounds:{readonly x:number;readonly y:number;readonly width:number;readonly height:number};readonly z:number}[] }
 export function validateOverlayLayout(value:unknown):asserts value is OverlayLayoutDto {if(!value||typeof value!=='object'||Array.isArray(value))throw new TypeError('overlay layout must be an object');const x=value as any;if(Object.keys(x).some(k=>!['schemaVersion','width','height','aspectRatio','background','widgets'].includes(k))||x.schemaVersion!==1)throw new TypeError('overlay layout schema is invalid');for(const key of ['width','height'])if(!Number.isInteger(x[key])||x[key]<1||x[key]>7680)throw new TypeError(`${key} must be 1-7680`);if(!['16:9','9:16','4:3','custom'].includes(x.aspectRatio))throw new TypeError('aspectRatio is unsupported');const ratios:Record<string,number>={'16:9':16/9,'9:16':9/16,'4:3':4/3};if(x.aspectRatio!=='custom'&&Math.abs(x.width/x.height-ratios[x.aspectRatio])>0.01)throw new TypeError('width and height must match aspectRatio');if(typeof x.background!=='string'||x.background.length>100)throw new TypeError('background must be text');if(!Array.isArray(x.widgets)||x.widgets.length>5)throw new TypeError('widgets must be an array of at most 5');const allowed=['board','dice','current_mission','inventory','direction'],ids=new Set<string>();for(const widget of x.widgets){if(!widget||typeof widget!=='object'||Object.keys(widget).some(k=>!['id','bounds','z'].includes(k))||!allowed.includes(widget.id)||ids.has(widget.id))throw new TypeError('widget id is invalid or duplicated');ids.add(widget.id);if(!Number.isSafeInteger(widget.z)||widget.z<0||widget.z>100)throw new TypeError('widget z must be 0-100');const b=widget.bounds;if(!b||Object.keys(b).some(k=>!['x','y','width','height'].includes(k)))throw new TypeError('widget bounds are invalid');for(const key of ['x','y','width','height'])if(typeof b[key]!=='number'||!Number.isFinite(b[key])||b[key]<0||b[key]>1)throw new TypeError('widget bounds must be finite normalized numbers');if(b.width===0||b.height===0||b.x+b.width>1||b.y+b.height>1)throw new TypeError('widget is outside layout');}}
-export interface OverlayStateDto { readonly channelId:string; readonly session:GameSessionDto|null; readonly boardDefinition:unknown|null; readonly latestCommand?:OverlayPresentationCommandDto|null; readonly inventory:readonly InventoryItemDto[]; readonly missions:readonly MissionDto[]; readonly layout:unknown|null; readonly capabilities:{readonly arrivalEffects:boolean;readonly donations:false} }
+export interface OverlayStateDto { readonly channelId:string; readonly session:GameSessionDto|null; readonly boardDefinition:unknown|null; readonly latestCommand?:OverlayPresentationCommandDto|null; readonly inventory:readonly InventoryItemDto[]; readonly missions:readonly MissionDto[]; readonly layout:unknown|null; readonly capabilities:{readonly arrivalEffects:boolean;readonly donations:boolean} }
 
 export const operatorApi = {
   health: '/health',

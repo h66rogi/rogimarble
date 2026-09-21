@@ -11,10 +11,8 @@ worker가 완료되었다고 표시하지 않는다.
 - canonical API는 credential CORS를 정확히 `https://marble.rogi.chat`에만 허용하며 CSRF와 overlay bearer
   preflight header를 명시한다. 인증 session 응답에는 `Cache-Control: no-store`가 붙는다.
 - 현재 API 쿠키는 요청을 받은 호스트에 한정된다. 기존 `rogi.chat` 인증 쿠키의 값이나 검증 방식을 공유한다고
-  가정하지 않는다. production API는 `AUTH_MODE=rogichat_shared_cookie`에서 issuer가 발급한
-  `__Secure-rogi_session`의 opaque 값 하나만 기존 `https://api.rogi.chat/v1/auth/session`에
-  `__Host-rogi_session`으로 전달해 매 요청 검증한다. issuer가 `.rogi.chat` Domain cookie를 발급하는 변경은
-  기존 rogichat 소유 배포의 선행 조건이며 이 저장소가 그 issuer를 수정하거나 배포하지 않는다.
+  가정하지 않는다. production API는 현재 `AUTH_MODE=token`이며 별도 admin session과 명시적으로 발급된
+  access token만 검증한다. 일반 rogichat 공유 로그인은 issuer 계약과 발급 검증이 끝날 때까지 준비 중으로 표시한다.
 - Caddy만 호스트의 80/443을 연다. PostgreSQL, Redis, API, web 포트는 호스트에 공개하지 않는다.
 
 ## 호스트 경로
@@ -74,6 +72,22 @@ JSON을 `/run/rogimarble/source-secrets.<generation>`에 0400으로 쓰고 symli
 
 API는 `DATABASE_URL_FILE`과 `SESSION_SECRET_FILE`을 지원한다. migration은 `DATABASE_URL_FILE`만 받는다.
 관리자 DB 비밀번호 파일이나 secret directory 전체를 API/migration container에 mount하지 않는다.
+
+Collector client 발급본은 `/etc/rogimarble/collector-client`에 root:root 0600인 `ca.pem`, `client.pem`,
+`client.key`, `check.env`로 둔다. `check.env`에는 private target, TLS server name, collector channel과 선택적인
+consumer ID만 두며 셸로 source하지 않는다. release helper가 허용된 exact key와 형식, symlink/권한, CA 검증,
+keypair 일치, reader URI SAN, 30일 이상 남은 인증서를 검사한다. 성공하면 원본을 바꾸지 않고 API UID/GID 소유
+0400 파일과 `collector.env`를 `/run/rogimarble/collector-client.<generation>`에 만들고 symlink를 원자 교체한다.
+기존 세대는 이미 resolve된 directory bind를 사용하는 실행 중 API를 위해 즉시 삭제하지 않으며 tmpfs 재부팅으로 정리한다.
+Compose는 이 디렉터리만 `/run/collector-client`에 read-only mount하고 API는 `COLLECTOR_CONFIG_FILE`로 읽는다.
+발급본 디렉터리가 없는 개발·CI 환경은 `COLLECTOR_ENABLED=false` config를 생성해 수집 없이 안전하게 기동한다.
+파일 일부가 있거나 검증이 실패한 production host는 collector를 조용히 비활성화하지 않고 secret 준비 단계에서 실패한다.
+
+현재 운영 mapping은 game channel `preview`, collector channel `h66rogi`, consumer `rogimarble`이다. 실제 private
+주소는 public Compose나 manifest에 넣지 않고 host의 `check.env`에만 둔다. reader 인증서는 status/list/watch/ACK만
+허용한다. subscription/recovery 관리 인증서는 API에 mount하지 않는다. 최초 retained cursor부터 Marble inbox와
+cursor를 한 DB transaction으로 저장한 뒤에만 ACK하며, generation/recovery 오류는 자동으로 최신 위치로 넘기지 않는다.
+client leaf 갱신은 서버 leaf 자동 회전과 별도 운영 절차다. 새 세대를 검증·원자 교체한 뒤 API만 재시작한다.
 
 shared 인증 응답의 `accountPartition`은 자동 권한이 아니다. 003 migration의 issuer+subject binding에
 명시적으로 연결된 기존 local operator만 접근하며 채널 permission과 role을 다시 적용한다.

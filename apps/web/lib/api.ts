@@ -1,8 +1,8 @@
-import { operatorApi, type ChannelConfigKind, type ChannelConfigStateDto, type ChannelConfigVersionDto, type DonationPageDto, type GameSessionDto, type IssuedObsTokenDto, type LoginResponse, type ObsTokenDto, type OperationPageDto, type OperatorStateDto, type OverlayStateDto, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
+import { operatorApi, type AccessTokenDto, type ChannelConfigKind, type ChannelConfigStateDto, type ChannelConfigVersionDto, type DonationPageDto, type GameSessionDto, type IssuedAccessTokenDto, type IssuedObsTokenDto, type LoginResponse, type ObsTokenDto, type OperationPageDto, type OperatorStateDto, type OverlayStateDto, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
 import type { OperatorCommand, OperatorSnapshot } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
-export interface AuthConfig { mode: 'local' | 'shared'; loginUrl: string | null; localLoginEnabled?: boolean }
+export interface AuthConfig { mode: 'token'; loginUrl: null; localLoginEnabled: false }
 
 export class ApiError extends Error {
   readonly status: number;
@@ -40,12 +40,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export interface CollectorStatus { enabled:boolean;transport:string;collectionState:string;collectionActive:boolean;lastCheckedAt:string|null;lastAcceptedAt:string|null;errorCode:string|null;chatConnected:boolean;counts?:Record<string,number> }
+
 export const api = {
+  collectorStatus:()=>request<CollectorStatus>(`/v1/channels/${encodeURIComponent(channelId())}/collector`,{cache:'no-store'}),
   login: async (username: string, password: string) => { const result = await request<LoginResponse>(operatorApi.login, { method: 'POST', body: JSON.stringify({ username, password }) }); sessionStorage.setItem('rogimarble.csrf', result.csrfToken); return result; },
+  loginToken: async (token: string) => { const result=await request<LoginResponse>('/v1/auth/token',{method:'POST',body:JSON.stringify({token})});sessionStorage.setItem('rogimarble.csrf',result.csrfToken);return result; },
   authConfig: () => request<AuthConfig>('/v1/auth/config', { cache: 'no-store' }),
   bootstrapSession: async () => { const result = await request<LoginResponse>('/v1/auth/session', { cache: 'no-store' }); sessionStorage.setItem('rogimarble.csrf', result.csrfToken); return result; },
   changePassword: (currentPassword: string, newPassword: string) => request<void>('/v1/auth/password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
   logout: async () => { await request<void>('/v1/auth/logout', { method: 'POST' }); if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('rogimarble.csrf'); },
+  accessTokens:()=>request<readonly AccessTokenDto[]>('/v1/auth/tokens',{cache:'no-store'}),
+  issueAccessToken:(label:string,expiresAt?:string)=>request<IssuedAccessTokenDto>('/v1/auth/tokens',{method:'POST',body:JSON.stringify({label,...(expiresAt?{expiresAt}:{})})}),
+  revokeAccessToken:(id:string)=>request<void>(`/v1/auth/tokens/${encodeURIComponent(id)}`,{method:'DELETE'}),
   snapshot: async () => adaptState(await request<OperatorStateDto>(operatorApi.operatorState(channelId()), { cache: 'no-store' })),
   runnableBoards: () => request<readonly RunnableBoardVersionDto[]>(operatorApi.runnableBoards(channelId()), { cache: 'no-store' }),
   config: (kind: ChannelConfigKind) => request<ChannelConfigStateDto>(operatorApi.config(channelId(), kind), { cache: 'no-store' }),
@@ -133,5 +140,5 @@ async function retryIntent(pending: PendingIntent) {
 
 function channelId() { return process.env.NEXT_PUBLIC_CHANNEL_ID ?? 'demo-channel'; }
 function adaptState(value: OperatorStateDto): OperatorSnapshot {
-  return { revision: value.session?.revision ?? 0, session: value.session ? { id: value.session.id, status: value.session.status, channelName: value.session.channelId, sessionEpoch: value.session.sessionEpoch, boardVersionId: value.session.boardVersionId, presentationEpoch: value.session.presentationEpoch, previewOnly: value.session.previewOnly } : null, token: { cellId: value.session?.currentCellId ?? 'cell-01', direction: value.session?.direction ?? 'forward' }, dice: null, inventory: [...value.inventory], missions: [...value.missions], counters: value.counters ?? [], effectTasks: value.effectTasks ?? [], movementLock: value.movementLock ?? null, rollModifiers: value.rollModifiers ?? [], donations: [], queue: [], capabilities: value.capabilities, boardDefinition: value.boardDefinition };
+  return { latestCommand: value.latestCommand, revision: value.session?.revision ?? 0, session: value.session ? { id: value.session.id, status: value.session.status, channelName: value.session.channelId, sessionEpoch: value.session.sessionEpoch, boardVersionId: value.session.boardVersionId, presentationEpoch: value.session.presentationEpoch, previewOnly: value.session.previewOnly } : null, token: { cellId: value.session?.currentCellId ?? 'cell-01', direction: value.session?.direction ?? 'forward' }, dice: null, inventory: [...value.inventory], missions: [...value.missions], counters: value.counters ?? [], effectTasks: value.effectTasks ?? [], movementLock: value.movementLock ?? null, rollModifiers: value.rollModifiers ?? [], donations: [], queue: [], capabilities: value.capabilities, boardDefinition: value.boardDefinition };
 }

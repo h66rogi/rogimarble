@@ -8,7 +8,7 @@ import { decideTravel, reserveTravelTurn, type TravelReservation } from './trave
 import { isBoardSupportedForLive, unsupportedBoardEffects } from './board-support.ts';
 
 type Operator = { id: string; role: 'admin'|'operator'|'viewer' };
-type SessionRow = { id:string; channel_id:string; status:'ready'|'running'|'paused'|'ended'; session_epoch:number; revision:string;
+export type SessionRow = { id:string; channel_id:string; status:'ready'|'running'|'paused'|'ended'; session_epoch:number; revision:string;
   board_version_id:string; current_cell_id:string; direction:'forward'|'reverse'; automatic_movement_paused:boolean;
   presentation_epoch:string; created_at:Date; updated_at:Date; board_definition?:BoardDefinition };
 const canonical = (value: unknown): string => {
@@ -49,9 +49,11 @@ export class ApiService {
       const effectTasks=session?await effectTaskState(client,session.id):[];
       const movementLock=session?await movementLockState(client,session.id):null;
       const rollModifiers=session?await rollModifierState(client,session.id):[];
+      const latest=session?await client.query('SELECT * FROM game_commands WHERE session_id=$1 AND status=\'completed\' AND result ? \'dice\' AND result ? \'path\' ORDER BY after_revision DESC,created_at DESC,command_id DESC LIMIT 1',[session.id]):{rows:[]};
+      const collectorEnabled=await client.query('SELECT 1 FROM collector_consumer_cursors WHERE channel_id=$1 LIMIT 1',[channelId]);
       const canOperate=operator.role!=='viewer'&&access.rows[0].permission!=='view';
-      return { session,boardDefinition:result.rows[0]?.board_definition??null,inventory,missions,counters,effectTasks,movementLock,rollModifiers,capabilities:{ manualRoll:canOperate,setDirection:canOperate,setPosition:canOperate,
-        arrivalEffects:canOperate&&!!session&&isBoardSupportedForLive(result.rows[0]!.board_definition!),donations:false,inventory:canOperate,missions:canOperate,sessionLifecycle:canOperate } };
+      return { session,boardDefinition:result.rows[0]?.board_definition??null,latestCommand:latest.rows[0]?commandDto(latest.rows[0]):null,inventory,missions,counters,effectTasks,movementLock,rollModifiers,capabilities:{ manualRoll:canOperate,setDirection:canOperate,setPosition:canOperate,
+        arrivalEffects:canOperate&&!!session&&isBoardSupportedForLive(result.rows[0]!.board_definition!),donations:canOperate&&!!collectorEnabled.rowCount,inventory:canOperate,missions:canOperate,sessionLifecycle:canOperate } };
     });
   }
   async runnableBoards(operator:Operator,channelId:string):Promise<RunnableBoardVersionDto[]>{
@@ -111,19 +113,30 @@ export class ApiService {
       if(body.type==='roll_dice'){
         if(session.status!=='running'&&session.status!=='paused')throw new ConflictException('Dice can only roll in an active session');
         assertRunnableBoard(session.board_definition);
-        const task = await pendingTravel(client, sessionId);
-        const lockedMovement = await client.query('SELECT 1 FROM session_movement_locks WHERE session_id=$1', [sessionId]);
-        if (task && !lockedMovement.rowCount) {
-          const decision = task.payload.reservedTurnCommandId ? decideTravel(task.payload, false) : reserveTravelTurn(task.payload, body.commandId);
-          if (task.payload.reservedTurnCommandId && decision.type === 'wait') throw new ConflictException('여행 목적지를 확정하거나 여행을 취소해 주세요.');
-          result = await applyTravelDecision(client, session, task, decision, body.commandId, operator.id, afterCommands);
-        } else result = await executeNormalRoll(client, session, body.commandId, operator.id, afterCommands);
+        result=await executeRollTurn(client,session,body.commandId,operator.id,afterCommands);
       }else if(body.type==='set_direction'){result={direction:body.payload.direction};session.direction=body.payload.direction;
       }else if(body.type==='set_position'){ if(!session.board_definition.path.includes(body.payload.cellId)) throw new UnprocessableEntityException('Cell is not on board path');
         const fromCellId=session.current_cell_id;session.current_cell_id=body.payload.cellId;session.automatic_movement_paused=true;session.status='paused';
         const effects=body.payload.triggerArrivalEffects?await executeCellEffects(client,session,session.board_definition,body.payload.cellId,'land',body.commandId,operator.id,afterCommands,{index:0,movements:0,reservations:new Map()}):[];
         result={fromCellId,toCellId:session.current_cell_id,automaticMovementPaused:true,effects}; }
       else if(body.type==='choose_destination'||body.type==='cancel_destination') {
+        const donationTask=(await client.query<any>(`SELECT * FROM session_effect_tasks WHERE id=$1 AND session_id=$2 AND task_type='donation_destination' FOR UPDATE`,[body.payload.taskId,sessionId])).rows[0];
+        if(donationTask){
+          if(donationTask.status!=='pending'||Number(donationTask.revision)!==body.payload.expectedTaskRevision)throw new ConflictException('Destination request changed');
+          if(body.type==='cancel_destination'){
+            await client.query(`UPDATE session_effect_tasks SET status='cancelled',revision=revision+1,resolved_at=now() WHERE id=$1`,[donationTask.id]);
+            result={taskId:donationTask.id,status:'destination_cancelled'};
+          }else{
+            const payload={...donationTask.payload};
+            if(!['operator','both'].includes(payload.selection))throw new ForbiddenException('This request accepts donor chat only');
+            if(payload.selectedCellId||Date.parse(payload.expiresAt)<=Date.now())throw new ConflictException('Destination already selected or expired');
+            const allowed=payload.allowedCellIds??session.board_definition.path;
+            if(!session.board_definition.path.includes(body.payload.cellId)||!allowed.includes(body.payload.cellId)||(payload.excludeCurrentCell&&body.payload.cellId===session.current_cell_id))throw new UnprocessableEntityException('Invalid destination');
+            payload.selectedCellId=body.payload.cellId;
+            await client.query('UPDATE session_effect_tasks SET payload=$2,revision=revision+1 WHERE id=$1',[donationTask.id,payload]);
+            result={taskId:donationTask.id,status:'destination_selected',cellId:body.payload.cellId};
+          }
+        }else{
         const task = await pendingTravel(client, sessionId);
         if (!task || task.id !== body.payload.taskId) throw new NotFoundException('Travel reservation not found');
         if (Number(task.revision) !== body.payload.expectedTaskRevision) throw new ConflictException('Travel reservation changed');
@@ -136,6 +149,7 @@ export class ApiService {
         const lockedMovement=await client.query('SELECT 1 FROM session_movement_locks WHERE session_id=$1',[sessionId]);
         const decision=decideTravel(reservation,session.status==='paused'||Boolean(lockedMovement.rowCount));
         result=await applyTravelDecision(client,session,task,decision,body.commandId,operator.id,afterCommands);
+        }
       }
       else if(body.type==='adjust_counter'){
         const counter=(await client.query<any>('SELECT * FROM session_counters WHERE session_id=$1 AND counter_id=$2 FOR UPDATE',[sessionId,body.payload.counterId])).rows[0];
@@ -213,6 +227,7 @@ export class ApiService {
       await client.query(`INSERT INTO operation_ledger(id,command_id,channel_id,session_id,operator_id,operation_type,before_state,after_state,reason)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[randomUUID(),body.commandId,channelId,sessionId,operator.id,body.type,before,after,body.reason]);
       await client.query(`INSERT INTO game_outbox(id,aggregate_id,event_type,payload) VALUES($1,$2,'session.command.completed',$3)`,[randomUUID(),sessionId,{commandId:body.commandId,result,session:after}]);
+      if(isMovementResult(result)){const delay=movementPresentationDelay(result);await client.query(`INSERT INTO collector_dispatch_state(channel_id,next_movement_at) VALUES($1,now()+($2::text||' milliseconds')::interval) ON CONFLICT(channel_id) DO UPDATE SET next_movement_at=GREATEST(collector_dispatch_state.next_movement_at,excluded.next_movement_at),updated_at=now()`,[channelId,delay]);}
       return commandDto(inserted.rows[0]);
     });
   }
@@ -292,12 +307,12 @@ async function effectTaskState(db:Queryable,sessionId:string){const result=await
 async function movementLockState(db:Queryable,sessionId:string){const result=await db.query<any>('SELECT * FROM session_movement_locks WHERE session_id=$1',[sessionId]);if(!result.rowCount)return null;const row=result.rows[0];return{releaseType:row.release_type,rollsRemaining:row.rolls_remaining,release:row.release_payload,createdAt:new Date(row.created_at).toISOString()};}
 async function rollModifierState(db:Queryable,sessionId:string){const result=await db.query<any>('SELECT * FROM session_roll_modifiers WHERE session_id=$1 ORDER BY created_at,id',[sessionId]);return result.rows.map(row=>({id:row.id,type:row.modifier_type,factor:row.factor,usesRemaining:row.uses_remaining,createdAt:new Date(row.created_at).toISOString()}));}
 
-type EffectContext={index:number;movements:number;reservations:Map<string,number>;travelCreated?:boolean};
-async function executeMovementEffects(client:pg.PoolClient,session:SessionRow,board:BoardDefinition,path:readonly string[],commandId:string,operatorId:string,after:(()=>Promise<void>)[],ctx:EffectContext={index:0,movements:0,reservations:new Map()}){
+export type EffectContext={index:number;movements:number;reservations:Map<string,number>;travelCreated?:boolean};
+async function executeMovementEffects(client:pg.PoolClient,session:SessionRow,board:BoardDefinition,path:readonly string[],commandId:string,operatorId:string|null,after:(()=>Promise<void>)[],ctx:EffectContext={index:0,movements:0,reservations:new Map()}){
   const results:any[]=[];for(const cellId of path.slice(0,-1))results.push(...await executeCellEffects(client,session,board,cellId,'pass',commandId,operatorId,after,ctx));
   const destination=path.at(-1);if(destination)results.push(...await executeCellEffects(client,session,board,destination,'land',commandId,operatorId,after,ctx));return results;
 }
-async function executeCellEffects(client:pg.PoolClient,session:SessionRow,board:BoardDefinition,cellId:string,trigger:'pass'|'land',commandId:string,operatorId:string,after:(()=>Promise<void>)[],ctx:EffectContext):Promise<any[]>{
+export async function executeCellEffects(client:pg.PoolClient,session:SessionRow,board:BoardDefinition,cellId:string,trigger:'pass'|'land',commandId:string,operatorId:string|null,after:(()=>Promise<void>)[],ctx:EffectContext):Promise<any[]>{
   const cell=board.cells.find(candidate=>candidate.id===cellId);if(!cell)throw new UnprocessableEntityException('Effect cell missing');const effects=trigger==='pass'?cell.onPass:cell.onLand;const results:any[]=[];
   for(const effect of effects){if(++ctx.index>128)throw new UnprocessableEntityException('Effect chain exceeds safety limit');const index=ctx.index;let result:unknown={};
     if(effect.type==='none'){result={};}
@@ -306,7 +321,7 @@ async function executeCellEffects(client:pg.PoolClient,session:SessionRow,board:
     else if(effect.type==='counter_add'){const changed=(await client.query<any>('UPDATE session_counters SET value=value+$3,revision=revision+1,updated_at=now() WHERE session_id=$1 AND counter_id=$2 RETURNING value,revision',[session.id,effect.counterId,effect.quantity])).rows[0];if(!changed)throw new UnprocessableEntityException('Counter missing');result={counterId:effect.counterId,value:changed.value,revision:Number(changed.revision)};}
     else if(effect.type==='counter_settle'){const counter=(await client.query<any>('SELECT value FROM session_counters WHERE session_id=$1 AND counter_id=$2 FOR UPDATE',[session.id,effect.counterId])).rows[0];if(!counter)throw new UnprocessableEntityException('Counter missing');const persisted=Number((await client.query<any>(`SELECT COALESCE(sum(settlement_amount),0) value FROM missions WHERE session_id=$1 AND settlement_counter_id=$2 AND settlement_on='mission_completion' AND status='pending'`,[session.id,effect.counterId])).rows[0].value),reserved=persisted+(ctx.reservations.get(effect.counterId)??0);const amount=counter.value-reserved;if(amount>0){const id=randomUUID(),createdAt=new Date();if(effect.settleOn==='creation')await client.query('UPDATE session_counters SET value=value-$3,revision=revision+1,updated_at=now() WHERE session_id=$1 AND counter_id=$2',[session.id,effect.counterId,amount]);else ctx.reservations.set(effect.counterId,(ctx.reservations.get(effect.counterId)??0)+amount);after.push(()=>client.query(`INSERT INTO missions(id,session_id,message,quantity,status,shield_item_id,shield_quantity,created_by_command_id,source_effect_index,settlement_counter_id,settlement_amount,settlement_on,created_at) VALUES($1,$2,$3,$4,'pending',$5,$6,$7,$8,$9,$4,$10,$11)`,[id,session.id,effect.message,amount,effect.shield?.itemId??null,effect.shield?.quantity??null,commandId,index,effect.counterId,effect.settleOn,createdAt]).then(()=>undefined));result={missionId:id,counterId:effect.counterId,quantity:amount,settleOn:effect.settleOn};}else result={counterId:effect.counterId,quantity:0};}
     else if(effect.type==='modify_roll'&&effect.modifier.type==='movement_multiplier'){const factor=effect.modifier.factor,uses=effect.uses;after.push(()=>client.query(`INSERT INTO session_roll_modifiers(id,session_id,modifier_type,factor,uses_remaining,source_command_id,source_effect_index) VALUES($1,$2,'movement_multiplier',$3,$4,$5,$6) ON CONFLICT(session_id,modifier_type) DO UPDATE SET id=excluded.id,factor=excluded.factor,uses_remaining=excluded.uses_remaining,source_command_id=excluded.source_command_id,source_effect_index=excluded.source_effect_index,created_at=now()`,[randomUUID(),session.id,factor,uses,commandId,index]).then(()=>undefined));result={modifierType:'movement_multiplier',factor,uses};}
-    else if(effect.type==='grant_item'){const definition=(await client.query<any>('SELECT max_quantity FROM item_definitions WHERE channel_id=$1 AND item_id=$2 AND active=true',[session.channel_id,effect.itemId])).rows[0];if(!definition)throw new UnprocessableEntityException('Effect item unavailable');await client.query('INSERT INTO session_inventory(session_id,item_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[session.id,effect.itemId]);const before=(await client.query<any>('SELECT * FROM session_inventory WHERE session_id=$1 AND item_id=$2 FOR UPDATE',[session.id,effect.itemId])).rows[0];if(before.quantity+effect.quantity>definition.max_quantity)throw new UnprocessableEntityException('Effect item maximum exceeded');const changed=(await client.query<any>('UPDATE session_inventory SET quantity=quantity+$3,revision=revision+1,updated_at=now() WHERE session_id=$1 AND item_id=$2 RETURNING *',[session.id,effect.itemId,effect.quantity])).rows[0];after.push(()=>client.query(`INSERT INTO inventory_ledger(id,command_id,source_effect_index,session_id,item_id,before_quantity,delta,after_quantity,before_revision,after_revision,operator_id,reason) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'board effect')`,[randomUUID(),commandId,index,session.id,effect.itemId,before.quantity,effect.quantity,changed.quantity,before.revision,changed.revision,operatorId]).then(()=>undefined));result={itemId:effect.itemId,quantity:changed.quantity};}
+    else if(effect.type==='grant_item'){const definition=(await client.query<any>('SELECT max_quantity FROM item_definitions WHERE channel_id=$1 AND item_id=$2 AND active=true',[session.channel_id,effect.itemId])).rows[0];if(!definition)throw new UnprocessableEntityException('Effect item unavailable');await client.query('INSERT INTO session_inventory(session_id,item_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[session.id,effect.itemId]);const before=(await client.query<any>('SELECT * FROM session_inventory WHERE session_id=$1 AND item_id=$2 FOR UPDATE',[session.id,effect.itemId])).rows[0];if(before.quantity+effect.quantity>definition.max_quantity)throw new UnprocessableEntityException('Effect item maximum exceeded');const changed=(await client.query<any>('UPDATE session_inventory SET quantity=quantity+$3,revision=revision+1,updated_at=now() WHERE session_id=$1 AND item_id=$2 RETURNING *',[session.id,effect.itemId,effect.quantity])).rows[0];after.push(()=>client.query(`INSERT INTO inventory_ledger(id,command_id,source_effect_index,session_id,item_id,before_quantity,delta,after_quantity,before_revision,after_revision,operator_id,reason,source_kind,donation_inbox_id) SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'board effect',source_kind,donation_inbox_id FROM game_commands WHERE command_id=$2`,[randomUUID(),commandId,index,session.id,effect.itemId,before.quantity,effect.quantity,changed.quantity,before.revision,changed.revision,operatorId]).then(()=>undefined));result={itemId:effect.itemId,quantity:changed.quantity};}
     else if(effect.type==='move_steps'){ctx.movements+=effect.steps;if(ctx.movements>1000)throw new UnprocessableEntityException('Effect movement exceeds safety limit');const direction=effect.direction==='with_current'?session.direction:effect.direction==='against_current'?(session.direction==='forward'?'reverse':'forward'):effect.direction;const start=board.path.indexOf(session.current_cell_id),sign=direction==='forward'?1:-1;const path=Array.from({length:effect.steps},(_,i)=>board.path[(start+sign*(i+1)+board.path.length*effect.steps)%board.path.length]);session.current_cell_id=path.at(-1)!;const nested:any[]=[];if(effect.onPass==='trigger')for(const passed of path.slice(0,-1))nested.push(...await executeCellEffects(client,session,board,passed,'pass',commandId,operatorId,after,ctx));if(effect.onArrival==='trigger')nested.push(...await executeCellEffects(client,session,board,session.current_cell_id,'land',commandId,operatorId,after,ctx));result={direction,path,toCellId:session.current_cell_id,effects:nested};}
     else if(effect.type==='choose_destination'&&effect.timing==='next_turn'&&effect.selection!=='donor_chat'){
       if(ctx.travelCreated||await pendingTravel(client,session.id))throw new ConflictException('A travel reservation is already pending');
@@ -327,7 +342,7 @@ async function pendingTravel(client:pg.PoolClient,sessionId:string):Promise<Trav
 function assertTravelDestination(session:SessionRow,reservation:TravelReservation,cellId:string){
   if(!session.board_definition!.path.includes(cellId)||(reservation.allowedCellIds&&!reservation.allowedCellIds.includes(cellId))||(reservation.excludeCurrentCell&&cellId===session.current_cell_id))throw new UnprocessableEntityException('Destination is not allowed from the current position');
 }
-async function applyTravelDecision(client:pg.PoolClient,session:SessionRow,task:TravelRow,decision:ReturnType<typeof decideTravel>,commandId:string,operatorId:string,after:(()=>Promise<void>)[]):Promise<unknown>{
+async function applyTravelDecision(client:pg.PoolClient,session:SessionRow,task:TravelRow,decision:ReturnType<typeof decideTravel>,commandId:string,operatorId:string|null,after:(()=>Promise<void>)[]):Promise<unknown>{
   const fromCellId=session.current_cell_id;
   if(decision.type==='wait'){
     await client.query('UPDATE session_effect_tasks SET payload=$2,revision=revision+1 WHERE id=$1',[task.id,JSON.stringify(decision.reservation)]);
@@ -342,7 +357,15 @@ async function applyTravelDecision(client:pg.PoolClient,session:SessionRow,task:
   const effects=decision.reservation.onArrival==='trigger'?await executeCellEffects(client,session,session.board_definition!,decision.cellId,'land',commandId,operatorId,after,{index:0,movements:0,reservations:new Map()}):[];
   return{dice:[],distance:0,direction:session.direction,path:[decision.cellId],fromCellId,toCellId:session.current_cell_id,effects,travelTaskId:task.id,travelStatus:'moved',reservedTurnCommandId:decision.turnCommandId};
 }
-async function executeNormalRoll(client:pg.PoolClient,session:SessionRow,commandId:string,operatorId:string,after:(()=>Promise<void>)[]){
+export async function executeRollTurn(client:pg.PoolClient,session:SessionRow,commandId:string,operatorId:string|null,after:(()=>Promise<void>)[]){
+  const task=await pendingTravel(client,session.id);
+  const lockedMovement=await client.query('SELECT 1 FROM session_movement_locks WHERE session_id=$1',[session.id]);
+  if(!task||lockedMovement.rowCount)return executeNormalRoll(client,session,commandId,operatorId,after);
+  const decision=task.payload.reservedTurnCommandId?decideTravel(task.payload,false):reserveTravelTurn(task.payload,commandId);
+  if(task.payload.reservedTurnCommandId&&decision.type==='wait')throw new ConflictException('여행 목적지를 확정하거나 여행을 취소해 주세요.');
+  return applyTravelDecision(client,session,task,decision,commandId,operatorId,after);
+}
+export async function executeNormalRoll(client:pg.PoolClient,session:SessionRow,commandId:string,operatorId:string|null,after:(()=>Promise<void>)[],effectContext?:EffectContext){
   const board=session.board_definition!;assertRunnableBoard(board);
   const active=(await client.query<any>('SELECT * FROM session_movement_locks WHERE session_id=$1 FOR UPDATE',[session.id])).rows[0];
   const count=active?.release_type==='dice_faces'?1:active?.release_type==='skip_rolls_or_doubles'?2:board.dice.count;
@@ -366,6 +389,8 @@ async function executeNormalRoll(client:pg.PoolClient,session:SessionRow,command
   const direction=session.direction,sign=direction==='forward'?1:-1;
   const path=Array.from({length:distance},(_,i)=>board.path[((start+sign*(i+1))%board.path.length+board.path.length)%board.path.length]);
   const fromCellId=session.current_cell_id;session.current_cell_id=path.at(-1)??fromCellId;
-  const effects=await executeMovementEffects(client,session,board,path,commandId,operatorId,after);
+  const effects=await executeMovementEffects(client,session,board,path,commandId,operatorId,after,effectContext);
   return{dice,distance,direction,path,fromCellId,toCellId:session.current_cell_id,effects,...(active?{lockAttempt:active.release_type}:{})};
 }
+function isMovementResult(value:unknown):value is {dice:unknown[];path:unknown[]}{return !!value&&typeof value==='object'&&Array.isArray((value as any).dice)&&Array.isArray((value as any).path);}
+export function movementPresentationDelay(value:unknown){let steps=0;const visit=(item:unknown,key='')=>{if(Array.isArray(item)){if(key==='path')steps+=item.length;else for(const child of item)visit(child);}else if(item&&typeof item==='object')for(const [childKey,child] of Object.entries(item))visit(child,childKey);};visit(value);return Math.min(30000,3500+steps*600);}

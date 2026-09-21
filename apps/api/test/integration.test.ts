@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import pg from 'pg';
@@ -29,7 +29,7 @@ async function waitFor(url:string,attempts=120):Promise<void>{
 async function startApi(extraEnv:NodeJS.ProcessEnv={}):Promise<void>{
   apiOutput='';
   api=spawn(process.execPath,['apps/api/dist/apps/api/src/main.js'],{cwd:root,env:{...process.env,DATABASE_URL:databaseUrl,
-    SESSION_SECRET:sessionSecret,COOKIE_SECURE:'false',PORT:String(apiPort),...extraEnv},stdio:['ignore','pipe','pipe']});
+    SESSION_SECRET:sessionSecret,COOKIE_SECURE:'false',PASSWORD_RECOVERY_ENABLED:'true',PORT:String(apiPort),...extraEnv},stdio:['ignore','pipe','pipe']});
   api.stdout?.on('data',chunk=>{apiOutput+=String(chunk);});api.stderr?.on('data',chunk=>{apiOutput+=String(chunk);});
   try{await waitFor(`http://127.0.0.1:${apiPort}/health`,480);}catch(error){throw new Error(`${String(error)}; api=${apiOutput.slice(-2000)}`);}
 }
@@ -40,11 +40,15 @@ async function stopApi():Promise<void>{
   if(api.exitCode===null)api.kill('SIGKILL');
 }
 async function login(username='admin',origin?:string){
-  const response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/login`,{method:'POST',headers:{'content-type':'application/json',...(origin?{origin}:{})},
-    body:JSON.stringify({username,password:adminPassword})});
-  assert.equal(response.status,200); const body=await response.json() as {csrfToken:string};
+  let path='/v1/auth/login',requestBody:unknown={username,password:adminPassword};
+  if(!['admin','password-user'].includes(username)){
+    const raw=`rma_${randomBytes(32).toString('base64url')}`,digest=createHash('sha256').update(raw).digest('hex');
+    const db=new pg.Client({connectionString:databaseUrl});await db.connect();await db.query(`INSERT INTO operator_access_tokens(id,operator_id,token_hash,label,expires_at) SELECT $1,id,$2,'integration login',now()+interval '1 hour' FROM operators WHERE username=$3`,[randomUUID(),digest,username]);await db.end();path='/v1/auth/token';requestBody={token:raw};
+  }
+  const response=await fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'POST',headers:{'content-type':'application/json',...(origin?{origin}:{})},body:JSON.stringify(requestBody)});
+  assert.equal(response.status,200); const sessionBody=await response.json() as {csrfToken:string};
   const cookie=response.headers.get('set-cookie')?.split(';')[0]; assert.ok(cookie);
-  return {csrf:body.csrfToken,cookie};
+  return {csrf:sessionBody.csrfToken,cookie};
 }
 function client(auth:{csrf:string;cookie:string}){
   const get=(path:string)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{headers:{cookie:auth.cookie}});
@@ -244,7 +248,7 @@ test('configuration rejects stale revisions and read-only writes; OBS permits co
 
 test('password change keeps the current session and revokes other sessions',async()=>{
   command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-v','ON_ERROR_STOP=1','-c',
-    `INSERT INTO operators(id,username,password_hash,role) SELECT '${randomUUID()}','password-user',password_hash,'operator' FROM operators WHERE username='admin';`]);
+    `INSERT INTO operators(id,username,password_hash,role) SELECT '${randomUUID()}','password-user',password_hash,'admin' FROM operators WHERE username='admin';`]);
   const first=await login('password-user'),second=await login('password-user');
   const nextPassword=randomBytes(24).toString('base64url');
   assert.equal((await client(first).post('/v1/auth/password',{currentPassword:'incorrect',newPassword:nextPassword})).status,401);
@@ -264,17 +268,16 @@ test('array item configuration round-trips as JSON and publishes active definiti
   const state=await (await http.get(path)).json() as any;assert.deepEqual(state.published.document,document);assert.deepEqual(state.effectiveDocument,document);
 });
 
-test('shared mode still issues and validates explicit local operator sessions',async()=>{
-  await stopApi();
-  await startApi({AUTH_MODE:'rogichat_shared_cookie',ROGICHAT_COOKIE_NAME:'__Secure-rogi_session',ROGICHAT_SESSION_URL:'https://api.rogi.chat/v1/auth/session',WEB_ORIGIN:'https://marble.rogi.chat'});
-  assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/auth/login`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:'admin',password:adminPassword})})).status,403);
-  const auth=await login('admin','https://marble.rogi.chat');
-  let response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/session`,{headers:{cookie:auth.cookie}});assert.equal(response.status,200);assert.equal((await response.json() as any).authMode,'local');
-  response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/session`,{headers:{cookie:'rogimarble_session=bad.bad'}});assert.equal(response.status,401);
-  response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/login`,{method:'POST',headers:{origin:'https://attacker.invalid','content-type':'application/json'},body:JSON.stringify({username:'admin',password:adminPassword})});assert.equal(response.status,403);
-  command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-c',`UPDATE operators SET disabled_at=now() WHERE username='admin';`]);
-  response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/session`,{headers:{cookie:auth.cookie}});assert.equal(response.status,401);
-  command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-c',`UPDATE operators SET disabled_at=NULL WHERE username='admin';`]);
+test('access token exchange stores only a hash and revocation invalidates its sessions',async()=>{
+  const recovery=await login(),http=client(recovery);
+  let response=await http.post('/v1/auth/tokens',{label:'integration browser'});assert.equal(response.status,201);const issued=await response.json() as any;assert.match(issued.token,/^rma_[A-Za-z0-9_-]{43}$/);
+  response=await fetch(`http://127.0.0.1:${apiPort}/v1/auth/token`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:issued.token})});assert.equal(response.status,200);const exchanged=await response.json() as any;assert.equal(exchanged.authMode,'token');const cookie=response.headers.get('set-cookie')!.split(';')[0];
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/auth/session`,{headers:{cookie}})).status,200);
+  const stored=command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-At','-c',`SELECT token_hash FROM operator_access_tokens WHERE id='${issued.id}'`]).trim();assert.equal(stored.length,64);assert.notEqual(stored,issued.token);
+  const listed=await (await http.get('/v1/auth/tokens')).text();assert.equal(listed.includes(issued.token),false);
+  assert.equal((await http.del(`/v1/auth/tokens/${issued.id}`)).status,204);assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/auth/session`,{headers:{cookie}})).status,401);
+  response=await http.post('/v1/auth/tokens',{label:'expired fixture'});const expired=await response.json() as any;command('docker',['exec',container,'psql','-U','postgres','-d','rogimarble_test','-c',`UPDATE operator_access_tokens SET created_at=now()-interval '2 seconds',expires_at=now()-interval '1 second' WHERE id='${expired.id}'`]);
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/auth/token`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:expired.token})})).status,401);
 });
 
 test('supported arrival effects persist counters, reservations, missions, modifiers, locks and chained movement',async()=>{
@@ -344,4 +347,18 @@ test('next-turn travel reserves exactly one turn and supports selection, pause, 
     response=await send('roll_dice',{});assert.equal(response.status,201);const resumed=(await response.json() as any).result;assert.equal(resumed.travelStatus,cancel?'returned':'moved');assert.equal(resumed.reservedTurnCommandId,waiting.reservedTurnCommandId);
   }
 
+});
+
+test('collector donation ingestion runs against the integration PostgreSQL database',()=>{
+  const result=spawnSync(process.execPath,[
+    '--experimental-strip-types',
+    '--test',
+    'apps/api/test/donation-ingestion.integration.test.ts',
+  ],{
+    cwd:root,
+    env:{...process.env,DONATION_TEST_DATABASE_URL:databaseUrl},
+    encoding:'utf8',
+    timeout:120_000,
+  });
+  assert.equal(result.status,0,result.stderr||result.stdout);
 });

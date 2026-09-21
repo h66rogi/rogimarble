@@ -1,10 +1,11 @@
-import type { InventoryItemDto, MissionDto, SessionStatus, SessionCounterDto, SessionEffectTaskDto, SessionMovementLockDto, SessionRollModifierDto } from '@rogimarble/contracts';
+import type { InventoryItemDto, MissionDto, SessionStatus, SessionCounterDto, SessionEffectTaskDto, SessionMovementLockDto, SessionRollModifierDto, SessionCommandDto } from '@rogimarble/contracts';
 
 export type Direction = 'forward' | 'reverse';
 
 export type { BoardDefinition } from '@rogimarble/game-core/board';
 
 export interface OperatorSnapshot {
+  latestCommand?: SessionCommandDto | null;
   revision: number;
   session: { id: string; status: SessionStatus; channelName: string; sessionEpoch: number; boardVersionId?: string; presentationEpoch: number; previewOnly: boolean } | null;
   token: { cellId: string; direction: Direction; moving?: boolean };

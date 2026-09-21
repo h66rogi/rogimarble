@@ -37,7 +37,10 @@ EBS 삭제/교체 guard도 유지한다. 실제 tfvars, state, plan, account·re
 [EC2 과금 안내](https://aws.amazon.com/ec2/pricing/on-demand/),
 [공인 IPv4 과금](https://aws.amazon.com/vpc/pricing/))
 
-## rogichat 인증 연결
+## 이전 rogichat 인증 연결 조사 (독립 토큰 인증으로 대체)
+
+2026-09-21 사용자 요청으로 아래 공유 쿠키 계획을 종료하고 독립 접근 토큰으로 변경했다.
+현재 구현과 운영 연결 계약은 [토큰·collector 연결](collector-integration.md)을 따른다. 아래는 이전 조사 기록이다.
 
 최신 rogichat 코드의 인증은 JWT가 아닌 DB에서 검증하는 opaque session이다. 기존
 `https://api.rogi.chat/v1/auth/session`을 서버에서 호출해 검증하는 adapter를 구현한다.

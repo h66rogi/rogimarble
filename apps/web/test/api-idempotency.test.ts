@@ -55,10 +55,10 @@ test('snapshot authorization failure does not discard an acknowledged intent', a
   assert.equal(api.pending()?.commandId, commandId);
 });
 
-test('shared auth bootstrap stores the API-issued CSRF token', async () => {
+test('token auth bootstrap stores the API-issued CSRF token without retaining the bearer', async () => {
   sessionStorage.clear();
-  globalThis.fetch = (async input => { const url = String(input); if (url.endsWith('/v1/auth/config')) return response({ mode: 'shared', loginUrl: 'https://rogi.chat' }); if (url.endsWith('/v1/auth/session')) return response({ operator: { id: 'o1', username: 'operator', role: 'operator' }, csrfToken: 'bound-token' }); throw new Error(url); }) as typeof fetch;
-  assert.deepEqual(await api.authConfig(), { mode: 'shared', loginUrl: 'https://rogi.chat' });
+  globalThis.fetch = (async input => { const url = String(input); if (url.endsWith('/v1/auth/config')) return response({ mode: 'token', loginUrl: null, localLoginEnabled: false }); if (url.endsWith('/v1/auth/session')) return response({ operator: { id: 'o1', username: 'operator', role: 'operator' }, csrfToken: 'bound-token', authMode: 'token' }); throw new Error(url); }) as typeof fetch;
+  assert.deepEqual(await api.authConfig(), { mode: 'token', loginUrl: null, localLoginEnabled: false });
   await api.bootstrapSession(); assert.equal(sessionStorage.getItem('rogimarble.csrf'), 'bound-token');
 });
 

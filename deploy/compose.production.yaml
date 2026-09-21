@@ -120,10 +120,9 @@ services:
       DATABASE_URL_FILE: /run/rogimarble-secrets/api_database_url
       SESSION_SECRET_FILE: /run/rogimarble-secrets/session_secret
       COOKIE_SECURE: "true"
-      AUTH_MODE: rogichat_shared_cookie
-      ROGICHAT_COOKIE_NAME: __Secure-rogi_session
-      ROGICHAT_SESSION_URL: https://api.rogi.chat/v1/auth/session
+      AUTH_MODE: token
       WEB_ORIGIN: https://marble.rogi.chat
+      COLLECTOR_CONFIG_FILE: /run/collector-client/collector.env
     volumes:
       - type: bind
         source: ${RUNTIME_SECRET_ROOT}/api_database_url
@@ -133,6 +132,11 @@ services:
       - type: bind
         source: ${RUNTIME_SECRET_ROOT}/session_secret
         target: /run/rogimarble-secrets/session_secret
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${RUNTIME_COLLECTOR_ROOT:?collector runtime directory required}
+        target: /run/collector-client
         read_only: true
         bind: {create_host_path: false}
     expose: ["4000"]

@@ -1,36 +1,197 @@
-'use client';
-
-import { FormEvent, useEffect, useState } from 'react';
-import { ArrowLeft, Loader2 } from 'lucide-react';
-import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
-import { Label } from '@/shared/components/ui/label';
-import { api } from '../../lib/api';
-
+"use client";
+import { FormEvent, useEffect, useState } from "react";
+import { ArrowLeft, Copy, Loader2, Trash2 } from "lucide-react";
+import type { AccessTokenDto } from "@rogimarble/contracts";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
+import { api } from "../../lib/api";
 export default function AccountPage() {
-  const [account, setAccount] = useState<{username:string;mode?:'local'|'shared'} | null>(null);
-  const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
-  useEffect(()=>{api.bootstrapSession().then(value=>setAccount({username:value.operator.username,mode:value.authMode})).catch(()=>setError('로그인이 필요합니다.'));},[]);
-  async function submit(event:FormEvent<HTMLFormElement>) {
-    event.preventDefault();setMessage('');setError('');
-    const form=event.currentTarget,data=new FormData(form);
-    if(data.get('newPassword')!==data.get('confirmPassword')){setError('새 비밀번호가 일치하지 않습니다.');return;}
+  const [account, setAccount] = useState<string | null>(null),
+    [tokens, setTokens] = useState<readonly AccessTokenDto[]>([]),
+    [issued, setIssued] = useState(""),
+    [busy, setBusy] = useState(false),
+    [message, setMessage] = useState(""),
+    [error, setError] = useState("");
+  const refresh = async () => {
+    const [session, list] = await Promise.all([
+      api.bootstrapSession(),
+      api.accessTokens(),
+    ]);
+    setAccount(session.operator.username);
+    setTokens(list);
+  };
+  useEffect(() => {
+    refresh().catch(() => setError("로그인이 필요합니다."));
+  }, []);
+  async function issue(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setBusy(true);
-    try{await api.changePassword(String(data.get('currentPassword')),String(data.get('newPassword')));form.reset();setMessage('비밀번호를 변경했습니다. 다른 기기의 운영자 세션은 로그아웃됐습니다.');}
-    catch(e){setError(e instanceof Error?e.message:'비밀번호를 변경하지 못했습니다.');}
-    finally{setBusy(false);}
+    setIssued("");
+    setMessage("");
+    setError("");
+    const form = event.currentTarget,
+      data = new FormData(form),
+      localExpiry = String(data.get("expiresAt") || "");
+    try {
+      const result = await api.issueAccessToken(
+        String(data.get("label")).trim(),
+        localExpiry ? new Date(localExpiry).toISOString() : undefined,
+      );
+      setIssued(result.token);
+      form.reset();
+      await refresh();
+      setMessage("새 토큰을 발급했습니다. 아래 값은 지금 한 번만 표시됩니다.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "토큰을 발급하지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
   }
-  return <main className="min-h-screen bg-background text-foreground">
-    <header className="flex h-12 items-center gap-3 border-b px-4"><a href="/" className="inline-flex items-center gap-1 text-sm"><ArrowLeft className="size-4" />운영 콘솔</a><span className="text-sm text-muted-foreground">계정 관리</span></header>
-    <section className="mx-auto max-w-md space-y-5 px-5 py-10"><div><h1 className="text-xl font-semibold">계정 관리</h1>{account&&<p className="mt-2 text-sm text-muted-foreground">{account.username}</p>}</div>
-      {!account?<Button asChild variant="outline"><a href="/login">로그인</a></Button>:account.mode==='shared'?<p className="text-sm text-muted-foreground">로기챗 계정의 비밀번호는 로기챗에서 변경하세요.</p>:<form className="space-y-4" onSubmit={submit}>
-        <div className="space-y-2"><Label htmlFor="currentPassword">현재 비밀번호</Label><Input id="currentPassword" name="currentPassword" type="password" autoComplete="current-password" required disabled={busy}/></div>
-        <div className="space-y-2"><Label htmlFor="newPassword">새 비밀번호</Label><Input id="newPassword" name="newPassword" type="password" autoComplete="new-password" minLength={12} maxLength={128} required disabled={busy}/><p className="text-xs text-muted-foreground">12~128자로 입력하세요.</p></div>
-        <div className="space-y-2"><Label htmlFor="confirmPassword">새 비밀번호 확인</Label><Input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" minLength={12} maxLength={128} required disabled={busy}/></div>
-        <Button disabled={busy}>{busy&&<Loader2 className="mr-2 size-4 animate-spin"/>}비밀번호 변경</Button>
-      </form>}
-      {error&&<p role="alert" className="rounded-md border border-destructive/30 p-3 text-sm text-destructive">{error}</p>}
-      {message&&<p role="status" className="rounded-md border p-3 text-sm">{message}</p>}
-    </section>
-  </main>;
+  async function revoke(id: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await api.revokeAccessToken(id);
+      await refresh();
+      setMessage("토큰과 연결된 로그인 세션을 회수했습니다.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "토큰을 회수하지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <main className="min-h-screen bg-background text-foreground">
+      <header className="flex h-12 items-center gap-3 border-b px-4">
+        <a href="/" className="inline-flex items-center gap-1 text-sm">
+          <ArrowLeft className="size-4" />
+          운영 콘솔
+        </a>
+        <span className="text-sm text-muted-foreground">접근 토큰 관리</span>
+      </header>
+      <section className="mx-auto max-w-2xl space-y-6 px-5 py-10">
+        <div>
+          <h1 className="text-xl font-semibold">접근 토큰</h1>
+          {account && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              {account} 계정의 토큰을 발급하고 회수합니다.
+            </p>
+          )}
+        </div>
+        {!account ? (
+          <Button asChild variant="outline">
+            <a href="/login">로그인</a>
+          </Button>
+        ) : (
+          <>
+            <form
+              className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_190px_auto] sm:items-end"
+              onSubmit={issue}
+            >
+              <div className="space-y-2">
+                <Label htmlFor="label">토큰 이름</Label>
+                <Input
+                  id="label"
+                  name="label"
+                  maxLength={80}
+                  placeholder="방송용 노트북"
+                  required
+                  disabled={busy}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expiresAt">만료 시각 (선택)</Label>
+                <Input
+                  id="expiresAt"
+                  name="expiresAt"
+                  type="datetime-local"
+                  disabled={busy}
+                />
+              </div>
+              <Button disabled={busy}>
+                {busy && <Loader2 className="mr-2 size-4 animate-spin" />}새
+                토큰 발급
+              </Button>
+            </form>
+            {issued && (
+              <div className="space-y-2 rounded-lg border border-amber-400/50 bg-amber-50 p-4 text-amber-950">
+                <strong className="text-sm">
+                  지금 안전한 곳에 복사하세요. 다시 표시되지 않습니다.
+                </strong>
+                <div className="flex gap-2">
+                  <Input readOnly value={issued} aria-label="새 접근 토큰" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void navigator.clipboard.writeText(issued)}
+                  >
+                    <Copy className="mr-2 size-4" />
+                    복사
+                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIssued("")}
+                >
+                  표시 닫기
+                </Button>
+              </div>
+            )}
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold">발급 내역</h2>
+              {tokens.length ? (
+                tokens.map((token) => (
+                  <div
+                    key={token.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
+                  >
+                    <div>
+                      <div className="text-sm font-medium">{token.label}</div>
+                      <div className="text-xs text-muted-foreground">
+                        만료 {new Date(token.expiresAt).toLocaleString("ko-KR")}{" "}
+                        · 최근 사용{" "}
+                        {token.lastUsedAt
+                          ? new Date(token.lastUsedAt).toLocaleString("ko-KR")
+                          : "없음"}
+                        {token.revokedAt ? " · 회수됨" : ""}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy || !!token.revokedAt}
+                      onClick={() => void revoke(token.id)}
+                    >
+                      <Trash2 className="mr-2 size-4" />
+                      회수
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  발급된 토큰이 없습니다.
+                </p>
+              )}
+            </div>
+          </>
+        )}
+        {error && (
+          <p
+            role="alert"
+            className="rounded-md border border-destructive/30 p-3 text-sm text-destructive"
+          >
+            {error}
+          </p>
+        )}
+        {message && (
+          <p role="status" className="rounded-md border p-3 text-sm">
+            {message}
+          </p>
+        )}
+      </section>
+    </main>
+  );
 }

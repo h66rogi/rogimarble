@@ -36,6 +36,7 @@ install -d -m 0700 /etc/rogimarble/secrets
 install -d -m 0750 /run/rogimarble
 install -m 0755 "$repo_dir/tools/ops/supervise.sh" /usr/local/lib/rogimarble/supervise.sh
 install -m 0755 "$repo_dir/tools/ops/prepare-secrets.sh" /usr/local/lib/rogimarble/prepare-secrets.sh
+install -m 0755 "$repo_dir/tools/ops/prepare-collector-client.py" /usr/local/lib/rogimarble/prepare-collector-client.py
 install -m 0755 "$repo_dir/tools/ops/release.py" /usr/local/lib/rogimarble/release.py
 install -m 0755 "$repo_dir/tools/ops/fetch-release.py" /usr/local/lib/rogimarble/fetch-release.py
 install -m 0755 "$repo_dir/tools/ops/production-status.py" /usr/local/lib/rogimarble/production-status.py
