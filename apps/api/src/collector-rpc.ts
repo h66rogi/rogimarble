@@ -42,6 +42,9 @@ export class CollectorRpc {
   private call<T>(method:string,body:Record<string,unknown>):Promise<T>{
     return new Promise((resolve,reject)=>this.client[method](this.scoped(body),{deadline:Date.now()+10000},(error:ServiceError|null,result:T)=>error?reject(error):resolve(result)));
   }
+  startChatTest(targetChannelId:string,sessionId:string){return this.call<ChatTestStatus>('startChatTest',{targetChannelId,sessionId});}
+  getChatTest(){return this.call<ChatTestStatus>('getChatTest',{});}
+  stopChatTest(sessionId:string){return this.call<ChatTestStatus>('stopChatTest',{sessionId});}
   status(){return this.call<CollectorStatus>('getCollectionStatus',{});}
   checkBroadcast(targetChannelId:string){return this.call<BroadcastStatus>('checkBroadcast',{targetChannelId});}
   list(cursor:CollectorCursor,recoveryRevision:string){return this.call<{donations:any[];recoveryRevision:string}>('listDonations',{afterCursor:cursor,recoveryRevision,limit:100});}
@@ -75,4 +78,19 @@ export function chatInput(event:any,config:CollectorConnection):CollectorChat{
   if(event.channelId!==config.collectorChannelId||event.platform!=='PLATFORM_SOOP'||!event.cursor)throw new Error('Unsupported chat envelope');
   const observedAt=timestamp(event.observedAt);if(!observedAt)throw new Error('Missing chat observation timestamp');
   return{consumerId:config.consumerId,collectorChannelId:event.channelId,eventId:event.eventId,userId:event.userId,userDisplayName:event.userDisplayName,message:event.message,cursor:event.cursor,observedAt,occurredAt:timestamp(event.occurredAt),payload:event};
+}
+
+export interface ChatTestStatus {
+  sessionId:string;channelId:string;state:string;active:boolean;
+  startedAt?:{seconds:string;nanos:number};expiresAt?:{seconds:string;nanos:number};joinedAt?:{seconds:string;nanos:number};lastReceivedAt?:{seconds:string;nanos:number};
+  receivedCount:string;messages:{sequence:string;displayName:string;message:string;receivedAt:{seconds:string;nanos:number}}[];
+}
+export const chatTestIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export function chatTestStatus(result:ChatTestStatus){
+  const states=['idle','connecting','joined','receiving','stopping','stopped','expired','disconnected','offline','cookie_required','auth_required','failed','blocked'];
+  if(!states.includes(result.state)||!isUint64(result.receivedCount)||!Array.isArray(result.messages)||result.messages.length>20||typeof result.active!=='boolean')throw new Error('Invalid chat test response');
+  if(result.state!=='idle'&&(!chatTestIdPattern.test(result.sessionId)||!/^[A-Za-z0-9_-]{1,50}$/.test(result.channelId)))throw new Error('Invalid chat test scope');
+  return {sessionId:result.sessionId,channelId:result.channelId,state:result.state,active:result.active,
+    startedAt:timestamp(result.startedAt),expiresAt:timestamp(result.expiresAt),joinedAt:timestamp(result.joinedAt),lastReceivedAt:timestamp(result.lastReceivedAt),receivedCount:result.receivedCount,
+    messages:result.messages.map(item=>{if(!isUint64(item.sequence)||BigInt(item.sequence)>BigInt(result.receivedCount)||typeof item.displayName!=='string'||[...item.displayName].length>80||typeof item.message!=='string'||[...item.message].length>1000)throw new Error('Invalid chat test sample');return {sequence:item.sequence,displayName:item.displayName,message:item.message,receivedAt:timestamp(item.receivedAt)};})};
 }

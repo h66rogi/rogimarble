@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChatReceptionTest } from "./chat-reception-test";
 import {
   useCallback,
   useEffect,
@@ -508,6 +509,11 @@ export default function CollectorPage() {
             </div>
           )}
         </section>
+        <ChatReceptionTest
+          target={target}
+          onTargetChange={setTarget}
+          allowed={Boolean(status?.canCheckBroadcast) && !login}
+        />
         <details className="rounded-2xl border bg-card p-5">
           <summary className="cursor-pointer text-sm font-semibold">
             상세 진단 정보

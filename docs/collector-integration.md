@@ -45,3 +45,6 @@ collector의 private 운영 설정, 플랫폼 계정, 원본 저장소의 전체
 운영 권한 사용자는 다른 SOOP 채널도 조회할 수 있다. `CheckBroadcast`는 기존 consumer/channel의
 인증 범위를 유지하고 조회할 ID를 별도로 전달한다. 테스트 채널의 수집 구독이나 게임 입력을 만들지 않는다.
 자세한 사용법·권한·실패 상태는 [방송·수집 관리](collector-management.md)를 따른다.
+
+입장 테스트는 `StartChatTest`/`GetChatTest`/`StopChatTest`를 통해 기존 worker의 SOOP connector를
+일시 실행한다. 운영 수신 루프와 분리된 서버 연결을 사용하고 조회 전용 계정에는 샘플을 제공하지 않는다.
