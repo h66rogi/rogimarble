@@ -425,14 +425,25 @@ test("failed configuration loads require retry and never expose a blank writable
 
 test("board themes preview without game writes and publish only the selected visual setting", async ({ page }) => {
   const state = await fixture(page);
+  if (page.viewportSize()!.width >= 1280) {
+    await page.setViewportSize({ width: 2200, height: 1000 });
+  }
   await page.getByRole("tab", { name: "방송 테마·배치", exact: true }).click();
   await expect(page.getByRole("button", { name: /클래식 파티/ })).toHaveCount(0);
   const region = page.getByRole("region", { name: "방송 테마·배치 설정", exact: true });
   await expect(region.getByRole("note")).toContainText("운영 화면·OBS에 반영");
   const editorBox = await region.getByTestId("broadcast-layout-editor").boundingBox();
   const regionBox = await region.boundingBox();
+  const workspaceBox = await page.getByTestId("configuration-workspace").boundingBox();
   expect(editorBox).not.toBeNull();
   expect(regionBox).not.toBeNull();
+  expect(workspaceBox).not.toBeNull();
+  expect(workspaceBox!.width).toBeLessThanOrEqual(1601);
+  expect(workspaceBox!.width).toBeGreaterThanOrEqual(regionBox!.width);
+  if (page.viewportSize()!.width >= 2200) {
+    expect(workspaceBox!.width).toBeGreaterThanOrEqual(1599);
+    expect(workspaceBox!.x).toBeGreaterThan(200);
+  }
   expect(editorBox!.width).toBeGreaterThan(regionBox!.width * 0.95);
   await expect(region.getByRole("group", { name: "기본 테마 선택" }).getByRole("button")).toHaveCount(6);
   if (page.viewportSize()!.width >= 1280) {

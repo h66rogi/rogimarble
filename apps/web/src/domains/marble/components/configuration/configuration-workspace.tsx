@@ -61,7 +61,7 @@ export function ConfigurationWorkspace({ section }: { section: ConfigurationSect
     [],
   );
   return (
-    <div className="w-full min-w-0 space-y-6">
+    <div className="mx-auto w-full max-w-[1600px] space-y-6" data-testid="configuration-workspace">
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight">
