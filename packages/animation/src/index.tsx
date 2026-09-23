@@ -4,9 +4,9 @@ import Lottie from 'lottie-react';
 import type { PawnStyleId } from '@rogimarble/contracts';
 
 export const PAWN_ARTWORK_URL: Record<PawnStyleId, string> = {
-  'star-medal': '/artwork/pawn-star-medal.svg',
-  'heart-chip': '/artwork/pawn-heart-chip.svg',
-  'bunny-face': '/artwork/pawn-bunny-face.svg',
+  'star-medal': '/artwork/pawn-star-medal.webp',
+  'heart-chip': '/artwork/pawn-heart-chip.webp',
+  'bunny-face': '/artwork/pawn-bunny-face.webp',
 };
 
 /** The same first-party artwork is used by the picker and live board. */

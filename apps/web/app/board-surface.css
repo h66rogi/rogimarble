@@ -74,7 +74,7 @@
 .marble-board .photo-pawn img { width: 100%; height: 100%; object-fit: cover; }
 .marble-board .token-wrapper.is-moving { transition: left .48s cubic-bezier(.22,.8,.25,1), top .48s cubic-bezier(.22,.8,.25,1); }
 .marble-board .default-pawn { position: absolute; inset: 0; display: block; }
-.marble-board .default-pawn img { display: block; width: 100%; height: 100%; }
+.marble-board .default-pawn img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .marble-board .default-pawn.is-moving img { animation: marble-pawn-hop .24s ease-in-out infinite alternate; transform-origin: center bottom; }
 @keyframes marble-pawn-hop { from { transform: translateY(0) scale(1,1); } to { transform: translateY(-8px) scale(.96,1.04); } }
 .marble-board .landing-lottie { position: absolute; inset: -32%; width: 164%; height: 164%; pointer-events: none; }

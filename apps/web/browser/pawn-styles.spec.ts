@@ -15,15 +15,15 @@ test('the live board starts with the star medal and follows saved pawn style cha
   await page.goto('/overlay#token=synthetic-overlay');
   const pawn = page.locator('.token-wrapper');
   await expect(pawn).toHaveAttribute('data-pawn-style', 'star-medal');
-  await expect(pawn.locator('img')).toHaveAttribute('src', '/artwork/pawn-star-medal.svg');
+  await expect(pawn.locator('img')).toHaveAttribute('src', '/artwork/pawn-star-medal.webp');
 
   state.pawnAppearance.styleId = 'heart-chip';
   state.pawnAppearance.revision++;
   await expect(pawn).toHaveAttribute('data-pawn-style', 'heart-chip');
-  await expect(pawn.locator('img')).toHaveAttribute('src', '/artwork/pawn-heart-chip.svg');
+  await expect(pawn.locator('img')).toHaveAttribute('src', '/artwork/pawn-heart-chip.webp');
 
   state.pawnAppearance.styleId = 'bunny-face';
   state.pawnAppearance.revision++;
   await expect(pawn).toHaveAttribute('data-pawn-style', 'bunny-face');
-  await expect(pawn.locator('img')).toHaveAttribute('src', '/artwork/pawn-bunny-face.svg');
+  await expect(pawn.locator('img')).toHaveAttribute('src', '/artwork/pawn-bunny-face.webp');
 });
