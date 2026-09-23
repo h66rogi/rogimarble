@@ -73,6 +73,53 @@ function widgetSwitch(page: Page, label: string) {
   return page.getByText(label, { exact: true }).last().locator('..').getByRole('switch');
 }
 
+test('board preview fills its actual OBS widget bounds instead of a square', async ({ page }) => {
+  await fixture(page);
+  const boardWidget = page.locator('.react-draggable').filter({ has: page.locator('.marble-board') });
+  const bounds = await boardWidget.boundingBox();
+  const preview = await boardWidget.locator('.marble-board').boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(preview).not.toBeNull();
+  expect(Math.abs(preview!.width - bounds!.width)).toBeLessThan(2);
+  expect(Math.abs(preview!.height - bounds!.height)).toBeLessThan(2);
+});
+
+test('resizing and moving the board keeps the visual bounds in sync with saved OBS coordinates', async ({ page }) => {
+  const state = await fixture(page);
+  const boardWidget = page.locator('.react-draggable').filter({ has: page.locator('.marble-board') });
+  const handle = boardWidget.locator('.rogimarble-resize-bottom-right');
+  const initial = await boardWidget.boundingBox();
+  const handleBounds = await handle.boundingBox();
+  expect(initial).not.toBeNull();
+  expect(handleBounds).not.toBeNull();
+
+  await page.mouse.move(handleBounds!.x + 2, handleBounds!.y + 2);
+  await page.mouse.down();
+  await page.mouse.move(handleBounds!.x - 120, handleBounds!.y - 70, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(() => state.writes.at(-1)?.layout.widgets.find(widget => widget.id === 'board')?.bounds.width).toBeLessThan(1);
+  const resized = await boardWidget.boundingBox();
+  const preview = await boardWidget.locator('.marble-board').boundingBox();
+  expect(resized).not.toBeNull();
+  expect(preview).not.toBeNull();
+  expect(Math.abs(preview!.height - resized!.height)).toBeLessThan(2);
+  expect(Math.abs(preview!.width - resized!.width)).toBeLessThan(2);
+
+  await page.mouse.move(resized!.x + 30, resized!.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(resized!.x + 90, resized!.y + 65, { steps: 8 });
+  await expect.poll(() => state.writes.at(-1)?.layout.widgets.find(widget => widget.id === 'board')?.bounds.x).toBeGreaterThan(0);
+  const duringDrag = await boardWidget.boundingBox();
+  expect(duringDrag!.x).toBeGreaterThan(resized!.x + 40);
+  expect(duringDrag!.y).toBeGreaterThan(resized!.y + 20);
+  await page.mouse.up();
+  const moved = await boardWidget.boundingBox();
+  expect(moved).not.toBeNull();
+  expect(moved!.x).toBeGreaterThan(resized!.x + 40);
+  expect(moved!.y).toBeGreaterThan(resized!.y + 20);
+  await expect.poll(() => state.writes.at(-1)?.layout.widgets.find(widget => widget.id === 'board')?.bounds.x).toBeGreaterThan(0);
+});
+
 test('original Rnd editor throttles held drag, persists final resize, and recovers a 409 before the next save', async ({ page }) => {
   const state = await fixture(page);
   await widgetSwitch(page, '후원 메뉴').click();

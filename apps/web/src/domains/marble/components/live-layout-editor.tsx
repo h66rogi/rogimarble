@@ -10,7 +10,7 @@ import { ConsoleNotice } from '@/shared/components/common/console-ui';
 import { Button } from '@/shared/components/ui/button';
 import { TotalOverlayLayoutSettings, type TotalOverlayLayoutAdapter } from '@/domains/overlay/components/total-overlay-layout-settings';
 import { DEFAULT_MARBLE_TOTAL_OVERLAY_LAYOUT, type TotalOverlayLayout, type TotalOverlayWidgetId } from '@/domains/overlay/constants/total-layout';
-import { OverlayLayoutPreview } from './configuration/board-preview';
+import { OverlayWidgetPreview } from './configuration/board-preview';
 
 const WIDGET_IDS: readonly TotalOverlayWidgetId[] = ['board', 'direction', 'inventory', 'current_mission', 'dice', 'menu', 'dice_price'];
 
@@ -148,18 +148,10 @@ export function LiveLayoutEditor() {
     }
   }, [applySnapshot, refresh]);
 
-  const renderWidget = useCallback((id: TotalOverlayWidgetId, width: number, height: number) => {
+  const renderWidget = useCallback((id: TotalOverlayWidgetId) => {
     const layout = snapshotRef.current?.layout;
     if (!layout) return null;
-    const preview: OverlayLayoutDto = {
-      ...layout,
-      width: Math.max(1, Math.round(width * 1000)),
-      height: Math.max(1, Math.round(height * 1000)),
-      aspectRatio: 'custom',
-      background: 'transparent',
-      widgets: [{ id: id as OverlayWidgetId, bounds: { x: 0, y: 0, width: 1, height: 1 }, z: 1 }],
-    };
-    return <OverlayLayoutPreview value={preview} board={board ?? undefined} rules={rules} />;
+    return <OverlayWidgetPreview id={id as OverlayWidgetId} value={layout} board={board ?? undefined} rules={rules} />;
   }, [board, rules]);
 
   const adapter = useMemo<TotalOverlayLayoutAdapter | null>(() => snapshot ? ({

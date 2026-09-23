@@ -22,9 +22,15 @@ test('OBS applies layout.updated immediately and an older poll cannot undo the p
   await expect.poll(()=>typeof send).toBe('function');
   const before=await panel.boundingBox();
   expect(before!.x).toBeCloseTo(1920*.13,0);
-  const moved={...layout,widgets:layout.widgets.map(widget=>widget.id==='menu'?{...widget,bounds:{...widget.bounds,x:.55,y:.35}}:widget)};
+  const moved={...layout,widgets:layout.widgets.map(widget=>widget.id==='menu'?{...widget,bounds:{...widget.bounds,x:.55,y:.35}}:widget.id==='board'?{...widget,bounds:{x:.1,y:.08,width:.7,height:.7}}:widget)};
   send!(`42${JSON.stringify(['overlay:event',{event:'layout.updated',payload:JSON.stringify({widgetType:'total',layout:moved,layoutVersion:2,layoutUpdatedAt:'2026-09-22T00:00:00Z'})}])}`);
   await expect.poll(async()=>(await panel.boundingBox())?.x,{timeout:700,intervals:[20,50,100]}).toBeCloseTo(1920*.55,0);
+  const boardWidget=page.locator('[data-overlay-widget="board"]');
+  await expect.poll(async()=>(await boardWidget.boundingBox())?.x).toBeCloseTo(1920*.1,0);
+  const boardBounds=await boardWidget.boundingBox();
+  expect(boardBounds!.y).toBeCloseTo(1080*.08,0);
+  expect(boardBounds!.width).toBeCloseTo(1920*.7,0);
+  expect(boardBounds!.height).toBeCloseTo(1080*.7,0);
   const pushedPolls=polls;
   await expect.poll(()=>polls).toBeGreaterThan(pushedPolls+1);
   expect((await panel.boundingBox())!.x).toBeCloseTo(1920*.55,0);

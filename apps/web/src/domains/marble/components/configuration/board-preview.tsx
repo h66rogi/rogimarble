@@ -342,16 +342,37 @@ export function ResizePreview({
     </div>
   );
 }
+
+const overlayWidgetLabels = {
+  board: "게임판",
+  dice: "주사위",
+  current_mission: "현재 미션",
+  inventory: "보유 아이템",
+  direction: "진행 방향",
+  menu: "후원 메뉴",
+  dice_price: "주사위 가격",
+};
+
+export function OverlayWidgetPreview({ id, value, board, rules = [] }: {
+  id: OverlayLayoutDto["widgets"][number]["id"];
+  value: OverlayLayoutDto;
+  board?: BoardDefinition;
+  rules?: readonly BroadcastDonationRule[];
+}) {
+  if (id === "board" && board) {
+    return <div className="h-full w-full">
+      <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "lime-clover"} fontId={value.fontId} fit reducedMotion />
+    </div>;
+  }
+  if (id === "menu" || id === "dice_price") {
+    return <BroadcastPanel kind={id} layout={value} rules={rules} />;
+  }
+  return <div className="flex h-full w-full items-center justify-center rounded border border-primary/30 bg-primary/10 text-sm text-foreground">
+    {overlayWidgetLabels[id]}
+  </div>;
+}
+
 export function OverlayLayoutPreview({ value, board, rules = [] }: { value: OverlayLayoutDto; board?: BoardDefinition; rules?: readonly BroadcastDonationRule[] }) {
-  const labels = {
-    board: "게임판",
-    dice: "주사위",
-    current_mission: "현재 미션",
-    inventory: "보유 아이템",
-    direction: "진행 방향",
-    menu: "후원 메뉴",
-    dice_price: "주사위 가격",
-  };
   return (
     <div
       className="relative overflow-hidden rounded-lg border bg-muted"
@@ -360,7 +381,7 @@ export function OverlayLayoutPreview({ value, board, rules = [] }: { value: Over
       {value.widgets.map((w) => (
         <div
           key={w.id}
-          className={(w.id === "board" && board) || w.id === "menu" || w.id === "dice_price" ? "absolute" : "absolute flex items-center justify-center rounded border border-primary/30 bg-primary/10 text-sm text-foreground"}
+          className="absolute"
           style={{
             left: `${w.bounds.x * 100}%`,
             top: `${w.bounds.y * 100}%`,
@@ -369,7 +390,7 @@ export function OverlayLayoutPreview({ value, board, rules = [] }: { value: Over
             zIndex: w.z,
           }}
         >
-          {w.id === "board" && board ? <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "lime-clover"} fontId={value.fontId} fit reducedMotion /> : w.id === "menu" || w.id === "dice_price" ? <BroadcastPanel kind={w.id} layout={value} rules={rules} /> : labels[w.id]}
+          <OverlayWidgetPreview id={w.id} value={value} board={board} rules={rules} />
         </div>
       ))}
     </div>
