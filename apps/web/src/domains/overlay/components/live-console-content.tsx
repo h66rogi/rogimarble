@@ -26,7 +26,10 @@ import {
   Settings,
   Home,
   LayoutDashboard,
+  LayoutGrid,
   ListMusic,
+  MonitorCog,
+  ReceiptText,
   MoreVertical,
   GripVertical,
   FileText,
@@ -4074,7 +4077,7 @@ export function LiveConsoleContent({
               )}
             >
               <span className="flex items-center gap-1.5">
-                <ListMusic className="size-3.5" />
+                <ReceiptText className="size-3.5" />
                 후원 내역
                 {queue.length > 0 && (
                   <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
@@ -4129,7 +4132,7 @@ export function LiveConsoleContent({
               )}
             >
               <span className="flex items-center gap-1.5">
-                <Ban className="size-3.5" />
+                <LayoutGrid className="size-3.5" />
                 규칙·보드
               </span>
               {activeTab === 'blocks' && (
@@ -4155,7 +4158,7 @@ export function LiveConsoleContent({
               )}
             >
               <span className="flex items-center gap-1.5">
-                <Video className="size-3.5" />
+                <MonitorCog className="size-3.5" />
                 OBS 설정
               </span>
               {activeTab === 'overlay' && (
@@ -4181,7 +4184,7 @@ export function LiveConsoleContent({
               )}
             >
               <span className="flex items-center gap-1.5">
-                <Settings className="size-3.5" />
+                <History className="size-3.5" />
                 운영 기록
               </span>
               {activeTab === 'settings' && (
