@@ -1712,12 +1712,12 @@ export function LiveConsoleContent({
   canGlobalBlock = false,
 }: LiveConsoleContentProps) {
   const [activeTab, setActiveTab] = useState<
-    'home' | 'queue' | 'omakase' | 'blocks' | 'overlay' | 'settings' | 'session-history'
+    'home' | 'queue' | 'omakase' | 'game-rules' | 'board-settings' | 'overlay' | 'settings' | 'session-history'
   >('home');
   // Preserve the imported shell; new product UI lives in the marble components.
   const [hasVisitedConfig, setHasVisitedConfig] = useState(false);
   useEffect(() => {
-    if (activeTab === 'blocks') setHasVisitedConfig(true);
+    if (activeTab === 'game-rules' || activeTab === 'board-settings') setHasVisitedConfig(true);
   }, [activeTab]);
   const [marbleState, setMarbleState] = useState<OperatorSnapshot | null>(null);
   useEffect(() => {
@@ -4089,22 +4089,48 @@ export function LiveConsoleContent({
             <button
               type="button"
               role="tab"
-              data-console-tab="blocks"
-              id="console-tab-blocks"
-              aria-controls="console-panel-blocks"
-              aria-selected={activeTab === 'blocks'}
-              tabIndex={activeTab === 'blocks' ? 0 : -1}
-              onClick={() => setActiveTab('blocks')}
+              data-console-tab="game-rules"
+              id="console-tab-game-rules"
+              aria-controls="console-panel-configuration"
+              aria-selected={activeTab === 'game-rules'}
+              tabIndex={activeTab === 'game-rules' ? 0 : -1}
+              onClick={() => setActiveTab('game-rules')}
               className={cn(
                 "relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
-                activeTab === 'blocks' ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                activeTab === 'game-rules' ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <span className="flex items-center gap-1.5">
+                <Tags className="size-3.5" />
+                게임 규칙
+              </span>
+              {activeTab === 'game-rules' && (
+                <motion.div
+                  layoutId="tab-indicator"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                />
+              )}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              data-console-tab="board-settings"
+              id="console-tab-board-settings"
+              aria-controls="console-panel-configuration"
+              aria-selected={activeTab === 'board-settings'}
+              tabIndex={activeTab === 'board-settings' ? 0 : -1}
+              onClick={() => setActiveTab('board-settings')}
+              className={cn(
+                "relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
+                activeTab === 'board-settings' ? "text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
               <span className="flex items-center gap-1.5">
                 <LayoutGrid className="size-3.5" />
-                규칙·보드
+                보드 설정
               </span>
-              {activeTab === 'blocks' && (
+              {activeTab === 'board-settings' && (
                 <motion.div
                   layoutId="tab-indicator"
                   className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
@@ -4883,20 +4909,20 @@ export function LiveConsoleContent({
               </ScrollArea>
             </motion.div>
           )}
-          {(hasVisitedConfig || activeTab === 'blocks') && (
+          {(hasVisitedConfig || activeTab === 'game-rules' || activeTab === 'board-settings') && (
             <motion.div
               key="marble-config"
-              id="console-panel-blocks"
+              id="console-panel-configuration"
               role="tabpanel"
-              aria-labelledby="console-tab-blocks"
+              aria-labelledby={activeTab === 'board-settings' ? 'console-tab-board-settings' : 'console-tab-game-rules'}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className={cn("relative h-full overflow-y-auto bg-background p-6", activeTab !== 'blocks' && "hidden")}
+              className={cn("relative h-full overflow-y-auto bg-background p-6", activeTab !== 'game-rules' && activeTab !== 'board-settings' && "hidden")}
             >
-              <MarbleDataPanel view="config" />
+              <MarbleDataPanel view="config" configSection={activeTab === 'board-settings' ? 'board' : 'rules'} />
             </motion.div>
           )}
-          {activeTab !== 'home' && activeTab !== 'blocks' && (
+          {activeTab !== 'home' && activeTab !== 'game-rules' && activeTab !== 'board-settings' && (
             <motion.div
               key={`marble-${activeTab}`}
               id={`console-panel-${activeTab}`}
@@ -4910,7 +4936,7 @@ export function LiveConsoleContent({
               <MarbleDataPanel view={activeTab === 'queue' ? 'donations' : activeTab === 'overlay' ? 'obs' : activeTab === 'settings' ? 'operations' : activeTab === 'session-history' ? 'sessions' : 'missions'} />
             </motion.div>
           )}
-          {false && activeTab === 'blocks' && (
+          {false && activeTab === 'game-rules' && (
             <motion.div
               key="blocks"
               initial={{ opacity: 0, x: 20 }}

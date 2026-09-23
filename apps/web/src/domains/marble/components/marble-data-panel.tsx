@@ -14,6 +14,7 @@ import {
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { ConfigurationWorkspace } from "./configuration/configuration-workspace";
+import type { ConfigurationSection } from "./configuration/configuration-workspace";
 import { LiveLayoutEditor } from "./live-layout-editor";
 import { OVERLAY_PARTS, overlayPartUrl } from '../overlay-parts';
 
@@ -63,9 +64,11 @@ const reasonNames: Record<string, string> = {
 export function MarbleDataPanel({
   view,
   embedded = false,
+  configSection = "rules",
 }: {
   view: "donations" | "operations" | "obs" | "config" | "sessions" | "missions";
   embedded?: boolean;
+  configSection?: ConfigurationSection;
 }) {
   const [items, setItems] = useState<readonly unknown[]>([]);
   const [tokens, setTokens] = useState<readonly ObsTokenDto[]>([]);
@@ -436,7 +439,7 @@ export function MarbleDataPanel({
         {feedback}
       </Panel>
     );
-  if (view === "config") return <ConfigurationWorkspace />;
+  if (view === "config") return <ConfigurationWorkspace section={configSection} />;
   return (
     <Panel
       title={view === "missions" ? "보상·미션" : "세션 기록"}

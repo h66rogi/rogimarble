@@ -19,6 +19,7 @@ async function fixture(
   options: { conflict?: boolean; loadError?: boolean; legacyTheme?: boolean } = {},
 ) {
   const writes: { kind: string; verb: string; body: any }[] = [];
+  let pawnAppearance = { revision: 0, styleId: "star-medal", image: null };
   const documents: Record<string, any> = {
     board: structuredClone(board),
     rules: structuredClone(rules),
@@ -105,9 +106,18 @@ async function fixture(
         boardDefinition: board,
         inventory: [],
         missions: [],
-        pawnAppearance: { revision: 0, image: null },
+        pawnAppearance,
         capabilities: {},
       };
+    else if (path.endsWith("/pawn-style")) {
+      if (request.method() === "PUT") {
+        const body = request.postDataJSON();
+        expect(body.expectedRevision).toBe(pawnAppearance.revision);
+        pawnAppearance = { ...pawnAppearance, revision: pawnAppearance.revision + 1, styleId: body.styleId };
+      }
+      data = pawnAppearance;
+    }
+    else if (path.endsWith("/pawn-image")) data = pawnAppearance;
     else if (path.endsWith("/collector"))
       data = { enabled: false, transport: "disconnected", counts: {} };
     else if (path.endsWith("/donations"))
@@ -131,9 +141,9 @@ async function fixture(
   await expect(
     page.getByRole("button", { name: "로그아웃", exact: true }),
   ).toBeVisible();
-  await page.getByRole("tab", { name: "규칙·보드", exact: true }).click();
+  await page.getByRole("tab", { name: "보드 설정", exact: true }).click();
   await expect(
-    page.getByRole("tab", { name: "규칙·보드", exact: true }),
+    page.getByRole("tab", { name: "보드 설정", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   return { writes, documents, errors };
 }
@@ -153,13 +163,14 @@ test("board editing keeps identities, actions and unsaved values across both lev
   await config(page)
     .getByLabel("칸 이름", { exact: true })
     .fill("방향전환이라는 이름의 미션");
-  await page.getByRole("tab", { name: "후원 규칙", exact: true }).click();
-  await page.getByRole("tab", { name: /게임판/ }).click();
+  await page.getByRole("tablist", { name: "운영 콘솔 메뉴" }).getByRole("tab", { name: "게임 규칙" }).click();
+  await expect(page.getByRole("region", { name: "후원 규칙 설정" })).toBeVisible();
+  await page.getByRole("tablist", { name: "운영 콘솔 메뉴" }).getByRole("tab", { name: "보드 설정" }).click();
   await expect(config(page).getByLabel("칸 이름", { exact: true })).toHaveValue(
     "방향전환이라는 이름의 미션",
   );
   await page.getByRole("tab", { name: "홈", exact: true }).click();
-  await page.getByRole("tab", { name: "규칙·보드", exact: true }).click();
+  await page.getByRole("tab", { name: "보드 설정", exact: true }).click();
   await expect(config(page).getByLabel("칸 이름", { exact: true })).toHaveValue(
     "방향전환이라는 이름의 미션",
   );
@@ -180,6 +191,35 @@ test("board editing keeps identities, actions and unsaved values across both lev
     config(page).getByRole("button", { name: "게시됨", exact: true }),
   ).toBeDisabled();
   expect(state.writes.at(-1)?.body.expectedRevision).toBe(2);
+  expect(state.errors).toEqual([]);
+});
+
+test("game rules and board settings group their own menus and move pawn design out of home", async ({ page }) => {
+  const state = await fixture(page);
+  const top = page.getByRole("tablist", { name: "운영 콘솔 메뉴" });
+  await expect(top.getByRole("tab", { name: "규칙·보드" })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "방송 테마·배치" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "말 디자인" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "아이템" })).toHaveCount(0);
+
+  await top.getByRole("tab", { name: "게임 규칙" }).click();
+  await expect(page.getByRole("tab", { name: "후원 규칙" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "아이템" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "방송 테마·배치" })).toHaveCount(0);
+  await page.getByRole("tab", { name: "아이템" }).click();
+  await expect(page.getByRole("region", { name: "아이템 설정" })).toBeVisible();
+
+  await top.getByRole("tab", { name: "보드 설정" }).click();
+  await page.getByRole("tab", { name: "말 디자인" }).click();
+  const pawn = page.getByRole("region", { name: "말 디자인 설정" });
+  await expect(pawn.getByText("말 디자인", { exact: true })).toBeVisible();
+  await pawn.getByRole("button", { name: /하트 칩/ }).click();
+  await expect(pawn.getByText("2번 하트 칩 말을 적용했습니다.")).toBeVisible();
+  await top.getByRole("tab", { name: "홈" }).click();
+  await expect(page.locator("#console-panel-home").getByText("말 디자인", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("말 위치 보정", { exact: true })).toBeVisible();
+  await expect(page.locator("#console-panel-home .token-wrapper")).toHaveAttribute("data-pawn-style", "heart-chip");
+  expect(state.writes).toEqual([]);
   expect(state.errors).toEqual([]);
 });
 
@@ -267,7 +307,7 @@ test("donation cards use exact matching and show duplicate amounts and disabled 
   page,
 }) => {
   const state = await fixture(page);
-  await page.getByRole("tab", { name: "후원 규칙", exact: true }).click();
+  await page.getByRole("tablist", { name: "운영 콘솔 메뉴" }).getByRole("tab", { name: "게임 규칙" }).click();
   const region = page.getByRole("region", {
     name: "후원 규칙 설정",
     exact: true,
@@ -374,7 +414,7 @@ test("board themes preview without game writes and publish only the selected vis
   await expect(region.getByRole("button", { name: "핑크 버니 선택됨", exact: true })).toHaveAttribute("aria-pressed", "true");
   expect(state.writes).toEqual([]);
   await page.getByRole("tab", { name: "홈", exact: true }).click();
-  await page.getByRole("tab", { name: "규칙·보드", exact: true }).click();
+  await page.getByRole("tab", { name: "보드 설정", exact: true }).click();
   await expect(region.getByRole("button", { name: "핑크 버니 선택됨", exact: true })).toBeVisible();
   await region.getByRole("button", { name: "검사하고 게시", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();

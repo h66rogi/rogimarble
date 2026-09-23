@@ -225,9 +225,9 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   await donations.getByRole("tab", { name: "후원 내역" }).click();
   await nav.getByRole("tab", { name: "홈", exact: true }).focus();
   await page.keyboard.press("ArrowRight");
-  await expect(nav.getByRole("tab", { name: "규칙·보드" })).toBeFocused();
+  await expect(nav.getByRole("tab", { name: "게임 규칙" })).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(nav.getByRole("tab", { name: "규칙·보드" })).toHaveAttribute(
+  await expect(nav.getByRole("tab", { name: "게임 규칙" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
@@ -277,20 +277,20 @@ test("configuration remains mounted when leaving its top-level tab", async ({
 }) => {
   await page.goto("/");
   const nav = page.getByRole("tablist", { name: "운영 콘솔 메뉴" });
-  await nav.getByRole("tab", { name: "규칙·보드" }).click();
+  await nav.getByRole("tab", { name: "게임 규칙" }).click();
   await expect(
-    page.getByRole("heading", { name: "규칙·보드", exact: true }),
+    page.getByRole("heading", { name: "게임 규칙", exact: true }),
   ).toBeVisible();
   // Tag the mounted workspace DOM to detect a remount, without relying on editor-specific field names.
   const workspace = page.getByRole("heading", {
-    name: "규칙·보드",
+    name: "게임 규칙",
     exact: true,
   });
   await workspace.evaluate((element) =>
     element.setAttribute("data-mount-test", "preserved"),
   );
   await nav.getByRole("tab", { name: "홈", exact: true }).click();
-  await nav.getByRole("tab", { name: "규칙·보드" }).click();
+  await nav.getByRole("tab", { name: "게임 규칙" }).click();
   await expect(workspace).toHaveAttribute("data-mount-test", "preserved");
   expect(
     await page.evaluate(

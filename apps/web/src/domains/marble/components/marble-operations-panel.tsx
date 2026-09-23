@@ -27,7 +27,6 @@ import {
 import { Separator } from "@/shared/components/ui/separator";
 import { useRollPresentation } from "../../../../lib/use-roll-presentation";
 import { GameEffectsPanel } from "./game-effects-panel";
-import { PawnImageControl } from "./pawn-image-control";
 
 const board = boardPreset as unknown as BoardDefinition;
 
@@ -287,14 +286,6 @@ export function MarbleOperationsPanel({
   };
 
   const locked = busy || Boolean(pending);
-  const updatePawnAppearance = (
-    pawnAppearance: OperatorSnapshot["pawnAppearance"],
-  ) => {
-    if (!canonical.current) return;
-    canonical.current = { ...canonical.current, pawnAppearance };
-    setState(canonical.current);
-  };
-
   const controls = (
     <div className="space-y-4">
       {error && <ConsoleNotice variant="destructive">{error}</ConsoleNotice>}
@@ -466,13 +457,6 @@ export function MarbleOperationsPanel({
           </Button>
         </div>
       </ConsolePanel>
-      {state && (
-        <PawnImageControl
-          appearance={state.pawnAppearance}
-          disabled={locked}
-          onChange={updatePawnAppearance}
-        />
-      )}
       <ConsolePanel
         title="말 위치 보정"
         description="기본은 위치만 보정합니다. 도착 효과를 선택하면 해당 칸의 실제 효과도 실행됩니다."
