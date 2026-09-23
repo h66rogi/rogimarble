@@ -3,7 +3,8 @@ import test from 'node:test';
 import { OVERLAY_PARTS, isOverlayPartId, overlayPartUrl } from '../src/domains/marble/overlay-parts.ts';
 
 test('every overlay part has a distinct OBS URL with a recommended source size', () => {
-  assert.equal(new Set(OVERLAY_PARTS.map((part) => part.id)).size, 7);
+  assert.equal(new Set(OVERLAY_PARTS.map((part) => part.id)).size, 8);
+  assert.equal(isOverlayPartId('chatbox'), true);
   for (const part of OVERLAY_PARTS) {
     assert.ok(part.width > 0 && part.height > 0);
     assert.equal(overlayPartUrl('https://example.test/overlay#token=secret', part.id), `https://example.test/overlay/${part.id}#token=secret`);

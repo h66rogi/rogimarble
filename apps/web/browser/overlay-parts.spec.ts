@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 const board = JSON.parse(readFileSync(new URL('../../../presets/streamer-board.json', import.meta.url), 'utf8'));
 const parts = [
   ['board', 1920, 1080], ['dice', 480, 240], ['current_mission', 640, 180],
-  ['inventory', 640, 180], ['direction', 480, 180], ['menu', 480, 640], ['dice_price', 480, 160],
+  ['inventory', 640, 180], ['direction', 480, 180], ['menu', 480, 640], ['dice_price', 480, 160], ['chatbox', 400, 600],
 ] as const;
 
 test('each OBS part renders alone at its recommended size with its own style', async ({ page }, info) => {
@@ -38,5 +38,7 @@ test('each OBS part renders alone at its recommended size with its own style', a
   await expect(page.locator('[data-broadcast-panel="menu"]')).toHaveAttribute('data-board-font', 'jua');
   await page.goto('/overlay/board#token=synthetic-overlay');
   await expect(page.locator('.marble-board')).toHaveAttribute('data-board-theme', 'pink-bunny');
+  await page.goto('/overlay/chatbox#token=synthetic-overlay');
+  await expect(page.getByText('실시간 채팅')).toBeVisible();
   expect(requests.every((url) => !url.includes('synthetic-overlay'))).toBe(true);
 });

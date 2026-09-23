@@ -351,6 +351,7 @@ const overlayWidgetLabels = {
   direction: "진행 방향",
   menu: "후원 메뉴",
   dice_price: "주사위 가격",
+  chatbox: "채팅창",
 };
 
 export function OverlayWidgetPreview({ id, value, board, rules = [] }: {

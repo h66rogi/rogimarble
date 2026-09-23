@@ -8,6 +8,7 @@ export const OVERLAY_PARTS: readonly { id: OverlayWidgetId; label: string; width
   { id: 'direction', label: '이동 방향', width: 480, height: 180 },
   { id: 'menu', label: '후원 메뉴', width: 480, height: 640 },
   { id: 'dice_price', label: '주사위 가격', width: 480, height: 160 },
+  { id: 'chatbox', label: '채팅창', width: 400, height: 600 },
 ];
 
 export function isOverlayPartId(value: string): value is OverlayWidgetId {

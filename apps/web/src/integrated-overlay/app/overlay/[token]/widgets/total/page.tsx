@@ -9,8 +9,9 @@ import { rollPlayback } from '@/integrated-overlay/roll-playback';
 import { useRollPresentation } from '@/lib/use-roll-presentation';
 import { apiAssetUrl } from '@/lib/api';
 import { OVERLAY_PARTS } from '@/domains/marble/overlay-parts';
+import { RogimarbleChatbox } from '@/integrated-overlay/domains/overlay/components/RogimarbleChatbox';
 
-type WidgetId = 'board' | 'dice' | 'current_mission' | 'inventory' | 'direction' | 'menu' | 'dice_price';
+type WidgetId = OverlayWidgetId;
 type LayoutWidget = { id: WidgetId; enabled: boolean; x: number; y: number; w: number; h: number; z: number };
 type TotalLayout = Pick<OverlayLayoutDto, 'fontId' | 'widgetStyles' | 'menu' | 'dicePrice'> & { boardThemeId: BoardThemeId; version: number; aspect: string; width: number; height: number; background: string; widgets: readonly LayoutWidget[] };
 
@@ -30,6 +31,7 @@ const DEFAULT_TOTAL_OVERLAY_LAYOUT: TotalLayout = {
     { id: 'current_mission', enabled: true, x: 0.39, y: 0.69, w: 0.22, h: 0.095, z: 3 },
     { id: 'inventory', enabled: true, x: 0.51, y: 0.255, w: 0.16, h: 0.075, z: 3 },
     { id: 'direction', enabled: true, x: 0.33, y: 0.255, w: 0.16, h: 0.075, z: 3 },
+    { id: 'chatbox', enabled: false, x: 0.78, y: 0.38, w: 0.2, h: 0.5, z: 4 },
   ],
 };
 
@@ -155,6 +157,7 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status,
           {widget.id === 'current_mission' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="현재 미션" value={currentMission ? `${currentMission.message} × ${currentMission.quantity}` : '진행 중인 미션 없음'} />}
           {widget.id === 'inventory' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="보유 아이템" value={state?.inventory.length ? state.inventory.map((item) => `${item.name} ${item.quantity}`).join(' · ') : '없음'} align="left" />}
           {widget.id === 'direction' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="이동 방향" value={session?.direction === 'reverse' ? '역방향' : '정방향'} />}
+          {widget.id === 'chatbox' && <RogimarbleChatbox />}
         </div>;
       })}
       {shouldRenderWidgets && displayStatus !== 'live' && <div className="pointer-events-none absolute left-1/2 top-3 z-[101] -translate-x-1/2 rounded-full bg-black/70 px-4 py-2 text-center text-xs font-semibold text-white backdrop-blur">{label}</div>}

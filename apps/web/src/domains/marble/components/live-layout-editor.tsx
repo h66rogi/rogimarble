@@ -17,7 +17,7 @@ import { TotalOverlayLayoutSettings, type TotalOverlayLayoutAdapter } from '@/do
 import { DEFAULT_MARBLE_TOTAL_OVERLAY_LAYOUT, type TotalOverlayLayout, type TotalOverlayWidgetId } from '@/domains/overlay/constants/total-layout';
 import { OverlayWidgetPreview } from './configuration/board-preview';
 
-const WIDGET_IDS: readonly TotalOverlayWidgetId[] = ['board', 'direction', 'inventory', 'current_mission', 'dice', 'menu', 'dice_price'];
+const WIDGET_IDS: readonly TotalOverlayWidgetId[] = ['board', 'direction', 'inventory', 'current_mission', 'dice', 'menu', 'dice_price', 'chatbox'];
 
 function toEditorLayout(layout: OverlayLayoutDto): TotalOverlayLayout {
   const byId = new Map(layout.widgets.map((widget) => [widget.id, widget]));

@@ -181,5 +181,6 @@ export const DEFAULT_MARBLE_TOTAL_OVERLAY_LAYOUT: TotalOverlayLayout = {
     { id: "dice", enabled: false, x: 0.43, y: 0.44, w: 0.14, h: 0.12, z: 4 },
     { id: "menu", enabled: false, x: 0.13, y: 0.32, w: 0.22, h: 0.35, z: 5 },
     { id: "dice_price", enabled: false, x: 0.13, y: 0.24, w: 0.22, h: 0.065, z: 5 },
+    { id: "chatbox", enabled: false, x: 0.78, y: 0.38, w: 0.2, h: 0.5, z: 4 },
   ],
 };

@@ -57,6 +57,7 @@ function formatAmount(event: OverlayChatEvent): string | null {
   if (event.type !== 'donation') return null;
   const amount = event.amountKrw ?? event.amount;
   if (typeof amount !== 'number' || amount <= 0) return null;
+  if (event.currency === '별풍선') return `별풍선 ${event.amount.toLocaleString('ko-KR')}개`;
   return `${amount.toLocaleString('ko-KR')}원`;
 }
 
