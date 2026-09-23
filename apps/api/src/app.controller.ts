@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Header, Headers, HttpCode, HttpException, HttpStatus, Param, Post, Put, Query, Req, Res, ServiceUnavailableException, Sse, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, Headers, HttpCode, HttpException, HttpStatus, Param, Patch, Post, Put, Query, Req, Res, ServiceUnavailableException, Sse, UnauthorizedException, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import type { AuthConfigResponse, AuthSessionResponse, CreateSessionRequest, LoginRequest, LoginResponse, SessionCommandRequest } from '../../../packages/contracts/src/index.ts';
 import { pool, transaction } from '../../../packages/database/src/index.ts';
@@ -14,9 +14,9 @@ export class AppController {
   constructor(private readonly api: ApiService,private readonly configuration:ConfigurationService,private readonly overlayLayout:OverlayLayoutService,private readonly feedRealtime:OperatorFeedRealtimeService) {}
   @Get('/health') health() { return { status: 'ok' }; }
   @Get('/ready') async ready() {
-    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['014_retrievable_obs_tokens.sql']);
+    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['015_single_channel_overlay_token.sql']);
       if(!result.rowCount)throw new Error('required migration missing');
-      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0');await pool().query('SELECT 1 FROM pawn_assets LIMIT 0');await pool().query('SELECT style_id FROM channel_pawn_appearances LIMIT 0');await pool().query('SELECT 1 FROM channel_live_overlay_layouts LIMIT 0');await pool().query('SELECT token_value FROM obs_access_tokens LIMIT 0'); return { status:'ready',schemaVersion:'014_retrievable_obs_tokens.sql' }; }
+      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0');await pool().query('SELECT 1 FROM pawn_assets LIMIT 0');await pool().query('SELECT style_id FROM channel_pawn_appearances LIMIT 0');await pool().query('SELECT 1 FROM channel_live_overlay_layouts LIMIT 0');await pool().query('SELECT token_value FROM obs_access_tokens LIMIT 0'); return { status:'ready',schemaVersion:'015_single_channel_overlay_token.sql' }; }
     catch { throw new ServiceUnavailableException('Database or migrations are not ready'); }
   }
   @Post('/v1/auth/login') @HttpCode(200) @Header('Cache-Control','no-store')
@@ -118,12 +118,10 @@ export class AppController {
   async feedEvents(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string){await this.configuration.access(req.operator!,channelId);return this.feedRealtime.stream(channelId);}
   @Get('/v1/channels/:channelId/operations') @UseGuards(SessionGuard)
   operations(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Query() query:unknown){return this.configuration.operations(req.operator!,channelId,query);}
-  @Get('/v1/channels/:channelId/obs-tokens') @UseGuards(SessionGuard) @Header('Cache-Control','no-store')
-  obsTokens(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string){return this.configuration.tokens(req.operator!,channelId);}
-  @Post('/v1/channels/:channelId/obs-tokens') @UseGuards(SessionGuard,CsrfGuard) @Header('Cache-Control','no-store')
-  issueObsToken(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Body() body:unknown){return this.configuration.issueToken(req.operator!,channelId,body);}
-  @Delete('/v1/channels/:channelId/obs-tokens/:tokenId') @UseGuards(SessionGuard,CsrfGuard) @HttpCode(204)
-  async revokeObsToken(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Param('tokenId') id:string){await this.configuration.revokeToken(req.operator!,channelId,id);}
+  @Get('/v1/channels/:channelId/overlay-token') @UseGuards(SessionGuard) @Header('Cache-Control','no-store')
+  overlayToken(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string){return this.configuration.overlayToken(req.operator!,channelId);}
+  @Patch('/v1/channels/:channelId/overlay-token/rotate') @UseGuards(SessionGuard,CsrfGuard) @Header('Cache-Control','no-store')
+  rotateOverlayToken(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Body() body:{expectedTokenId?:unknown}){return this.configuration.rotateOverlayToken(req.operator!,channelId,body);}
   @Get('/v1/overlay/state') @Header('Cache-Control','no-store')
   overlayState(@Headers('authorization') authorization:string|undefined){return this.configuration.overlay(authorization);}
 }

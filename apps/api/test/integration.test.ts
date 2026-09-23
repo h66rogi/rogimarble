@@ -56,8 +56,9 @@ function client(auth:{csrf:string;cookie:string}){
   const post=(path:string,body:unknown,csrf:string|null=auth.csrf)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'POST',
     headers:{origin:'https://console.example',cookie:auth.cookie,'content-type':'application/json',...(csrf?{'x-csrf-token':csrf}:{})},body:JSON.stringify(body)});
   const put=(path:string,body:unknown)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'PUT',headers:{origin:'https://console.example',cookie:auth.cookie,'content-type':'application/json','x-csrf-token':auth.csrf},body:JSON.stringify(body)});
+  const patch=(path:string,body:unknown,csrf:string|null=auth.csrf)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'PATCH',headers:{origin:'https://console.example',cookie:auth.cookie,'content-type':'application/json',...(csrf?{'x-csrf-token':csrf}:{})},body:JSON.stringify(body)});
   const del=(path:string)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'DELETE',headers:{origin:'https://console.example',cookie:auth.cookie,'x-csrf-token':auth.csrf}});
-  return {get,post,put,del};
+  return {get,post,put,patch,del};
 }
 
 test.before(async()=>{
@@ -119,14 +120,18 @@ test('live overlay layout persists, uses CAS, scopes channels, and revoked OBS t
   assert.equal((await http.put(path,{layout:initial.layout,expectedVersion:0})).status,409);
   response=await http.get(path);assert.equal(response.status,200);const reloaded=await response.json() as any;assert.equal(reloaded.layoutVersion,1);assert.deepEqual(reloaded.layout.widgets,changed.widgets);
   assert.equal((await http.get('/v1/channels/unrelated-channel/overlay-layout/live')).status,403);
-  response=await http.post('/v1/channels/test-channel/obs-tokens',{label:'layout integration'});assert.equal(response.status,201);const issued=await response.json() as any;
+  response=await http.get('/v1/channels/test-channel/overlay-token');assert.equal(response.status,200);const issued=await response.json() as any;
   response=await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}});assert.equal(response.status,200);const overlay=await response.json() as any;assert.equal(overlay.layoutVersion,1);assert.deepEqual(overlay.layout.widgets,changed.widgets);
   const hostile=io(`http://127.0.0.1:${apiPort}`,{path:'/socket.io',transports:['websocket'],auth:{token:issued.token},extraHeaders:{origin:'https://hostile.example'},reconnection:false});
   await new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('hostile origin was not rejected')),3000);hostile.once('connect_error',()=>{clearTimeout(timeout);resolve();});hostile.once('connect',()=>reject(new Error('hostile origin connected')));});hostile.close();
   const socket=io(`http://127.0.0.1:${apiPort}`,{path:'/socket.io',transports:['websocket'],auth:{token:issued.token},extraHeaders:{origin:'https://console.example'},reconnection:false});
   await new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('socket connect timeout')),3000);socket.once('connect',()=>{clearTimeout(timeout);resolve();});socket.once('connect_error',reject);});
   const db=new pg.Client({connectionString:databaseUrl});await db.connect();await db.query(`INSERT INTO channels(id,display_name,owner_operator_id) SELECT 'second-channel','Second',id FROM operators WHERE username='admin' ON CONFLICT DO NOTHING`);await db.query(`INSERT INTO channel_operators(channel_id,operator_id,permission) SELECT 'second-channel',id,'manage' FROM operators WHERE username='admin' ON CONFLICT DO NOTHING`);await db.end();
-  const secondIssued=await (await http.post('/v1/channels/second-channel/obs-tokens',{label:'isolated reader'})).json() as any;
+  const secondReads=await Promise.all(Array.from({length:4},()=>http.get('/v1/channels/second-channel/overlay-token')));
+  assert.deepEqual(secondReads.map(read=>read.status),[200,200,200,200]);
+  const secondTokens=await Promise.all(secondReads.map(read=>read.json() as Promise<any>));
+  assert.equal(new Set(secondTokens.map(token=>token.id)).size,1);
+  const secondIssued=secondTokens[0];
   const secondSocket=io(`http://127.0.0.1:${apiPort}`,{path:'/socket.io',transports:['websocket'],auth:{token:secondIssued.token},extraHeaders:{origin:'https://console.example'},reconnection:false});
   await new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('second socket connect timeout')),3000);secondSocket.once('connect',()=>{clearTimeout(timeout);resolve();});secondSocket.once('connect_error',reject);});
   try{
@@ -134,8 +139,8 @@ test('live overlay layout persists, uses CAS, scopes channels, and revoked OBS t
     const pushed=new Promise<any>((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('layout.updated timeout')),3000);socket.once('overlay:event',message=>{clearTimeout(timeout);resolve(message);});});
     const changedAgain={...changed,background:'#445566'};response=await http.put(path,{layout:changedAgain,expectedVersion:1});assert.equal(response.status,200);const message=await pushed;assert.equal(message.event,'layout.updated');assert.equal(JSON.parse(message.payload).layoutVersion,2);await new Promise(resolve=>setTimeout(resolve,100));assert.equal(crossRoomEvent,false);
     const disconnected=new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('socket revoke timeout')),3000);socket.once('disconnect',()=>{clearTimeout(timeout);resolve();});});
-    assert.equal((await http.del(`/v1/channels/test-channel/obs-tokens/${issued.id}`)).status,204);await disconnected;
-  }finally{socket.close();secondSocket.close();await http.del(`/v1/channels/second-channel/obs-tokens/${secondIssued.id}`);}
+    const rotated=await http.patch('/v1/channels/test-channel/overlay-token/rotate',{expectedTokenId:issued.id});assert.equal(rotated.status,200);await disconnected;
+  }finally{socket.close();secondSocket.close();}
   assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})).status,401);
 });
 
@@ -168,10 +173,9 @@ test('pawn image upload is revisioned, sanitized, replaced, and deleted',async()
   response=await selectStyle('bunny-face',8);assert.equal(response.status,200);assert.deepEqual(await response.json(),{revision:9,styleId:'bunny-face',image:null});
   assert.equal((await fetch(`http://127.0.0.1:${apiPort}${photo.image.url}`)).status,404);
   const state=await (await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/operator-state`,{headers:{origin:'https://console.example',cookie:auth.cookie}})).json() as any;assert.deepEqual(state.pawnAppearance,{revision:9,styleId:'bunny-face',image:null});
-  const issued=await (await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/obs-tokens`,{method:'POST',headers:{origin:'https://console.example',cookie:auth.cookie,'x-csrf-token':auth.csrf,'content-type':'application/json'},body:JSON.stringify({label:'pawn style reader'})})).json() as any;
+  const issued=await (await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/overlay-token`,{headers:{origin:'https://console.example',cookie:auth.cookie}})).json() as any;
   const overlay=await (await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})).json() as any;
   assert.deepEqual(overlay.pawnAppearance,{revision:9,styleId:'bunny-face',image:null});
-  await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/obs-tokens/${issued.id}`,{method:'DELETE',headers:{origin:'https://console.example',cookie:auth.cookie,'x-csrf-token':auth.csrf}});
 });
 
 test('the initial effect board registers once through the shared runtime gate',()=>{
@@ -307,14 +311,18 @@ test('versioned configuration, honest donation feed and revocable OBS snapshot a
   response=await http.post(`/v1/channels/test-channel/config/rules/${version.id}/validate`,{expectedRevision:version.revision});assert.equal(response.status,201);version=await response.json();assert.equal(version.status,'validated');
   response=await http.post(`/v1/channels/test-channel/config/rules/${version.id}/publish`,{expectedRevision:version.revision});assert.equal(response.status,201);assert.equal((await response.json() as any).status,'published');
   const feed=await (await http.get('/v1/channels/test-channel/donations?limit=10')).json() as any;assert.equal(feed.collectionConnected,false);assert.deepEqual(feed.items,[]);
-  response=await http.post('/v1/channels/test-channel/obs-tokens',{label:'integration OBS'});assert.equal(response.status,201);const issued=await response.json() as any;assert.match(issued.token,/^[A-Za-z0-9_-]{43}$/);
-  const listed=await (await http.get('/v1/channels/test-channel/obs-tokens')).json() as any[];
-  assert.equal(listed.find(x=>x.id===issued.id)?.overlayUrlPath,issued.overlayUrlPath);
+  response=await http.get('/v1/channels/test-channel/overlay-token');assert.equal(response.status,200);const issued=await response.json() as any;assert.match(issued.token,/^[A-Za-z0-9_-]{43}$/);
+  const reread=await (await http.get('/v1/channels/test-channel/overlay-token')).json() as any;
+  assert.equal(reread.id,issued.id);assert.equal(reread.overlayUrlPath,issued.overlayUrlPath);
   response=await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}});assert.equal(response.status,200);const overlay=await response.json() as any;assert.equal(overlay.channelId,'test-channel');assert.equal(overlay.capabilities.donations,false);assert.ok(overlay.session);assert.ok(overlay.boardDefinition);
-  assert.equal((await http.del(`/v1/channels/test-channel/obs-tokens/${issued.id}`)).status,204);
-  const revoked=await (await http.get('/v1/channels/test-channel/obs-tokens')).json() as any[];
-  assert.equal(revoked.find(x=>x.id===issued.id)?.overlayUrlPath,null);
+  assert.equal((await http.patch('/v1/channels/test-channel/overlay-token/rotate',{expectedTokenId:issued.id},null)).status,403);
+  const rotatedResponse=await http.patch('/v1/channels/test-channel/overlay-token/rotate',{expectedTokenId:issued.id});assert.equal(rotatedResponse.status,200);
+  const rotated=await rotatedResponse.json() as any;assert.notEqual(rotated.id,issued.id);assert.notEqual(rotated.token,issued.token);
+  assert.equal((await http.patch('/v1/channels/test-channel/overlay-token/rotate',{expectedTokenId:issued.id})).status,409);
+  const activeRows=new pg.Client({connectionString:databaseUrl});await activeRows.connect();
+  try{const rows=await activeRows.query('SELECT id FROM obs_access_tokens WHERE channel_id=$1 AND revoked_at IS NULL',['test-channel']);assert.equal(rows.rowCount,1);assert.equal(rows.rows[0].id,rotated.id);}finally{await activeRows.end();}
   assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})).status,401);
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${rotated.token}`}})).status,200);
 });
 
 test('configuration rejects stale revisions and read-only writes; OBS permits concurrent readers',async()=>{
@@ -325,7 +333,7 @@ test('configuration rejects stale revisions and read-only writes; OBS permits co
   const beforeTheme=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
   assert.equal(beforeTheme.boardThemeId,'lime-clover');
   assert.equal((await viewer.post(path,{document})).status,403);
-  assert.equal((await viewer.post('/v1/channels/test-channel/obs-tokens',{label:'forbidden'})).status,403);
+  assert.equal((await viewer.patch('/v1/channels/test-channel/overlay-token/rotate',{expectedTokenId:'stale'})).status,403);
   for(const boardThemeId of ['classic-party','unknown-theme',null,42]){
     let invalid=await http.post(path,{document:{...document,boardThemeId}});assert.equal(invalid.status,201);const invalidVersion=await invalid.json() as any;
     invalid=await http.post(`${path}/${invalidVersion.id}/validate`,{expectedRevision:invalidVersion.revision});assert.equal(invalid.status,201);
@@ -345,7 +353,7 @@ test('configuration rejects stale revisions and read-only writes; OBS permits co
   response=await http.post(path,{document:{...document,widgets:[{id:'board',bounds:{x:0.8,y:0,width:1,height:1},z:0}]}});version=await response.json();
   response=await http.post(`${path}/${version.id}/validate`,{expectedRevision:version.revision});version=await response.json();assert.equal(version.status,'draft');assert.ok(version.validationErrors.length);
   assert.equal((await http.post(`${path}/${version.id}/publish`,{expectedRevision:version.revision})).status,409);
-  const issued=await (await http.post('/v1/channels/test-channel/obs-tokens',{label:'concurrent readers'})).json() as any;
+  const issued=await (await http.get('/v1/channels/test-channel/overlay-token')).json() as any;
   const readers=await Promise.all(Array.from({length:4},()=>fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})));
   assert.deepEqual(readers.map(x=>x.status),[200,200,200,200]);
   const expectedEffectiveLayout={...document,widgets:liveBeforePublish.layout.widgets};
@@ -358,7 +366,6 @@ test('configuration rejects stale revisions and read-only writes; OBS permits co
     const legacyOverlay=await (await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})).json() as any;
     assert.deepEqual(legacyOverlay.layout,expectedEffectiveLayout);
   } finally {await legacyClient.end();}
-  assert.equal((await http.del(`/v1/channels/test-channel/obs-tokens/${issued.id}`)).status,204);
   const first=await (await http.get('/v1/channels/test-channel/operations?limit=1')).json() as any;assert.equal(first.items.length,1);assert.ok(first.nextCursor);
   const second=await (await http.get(`/v1/channels/test-channel/operations?limit=1&cursor=${encodeURIComponent(first.nextCursor)}`)).json() as any;assert.equal(second.items.length,1);assert.notEqual(first.items[0].id,second.items[0].id);
   assert.equal((await http.get('/v1/channels/test-channel/operations?cursor=invalid')).status,400);

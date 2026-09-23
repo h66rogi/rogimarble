@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { DonationEventDto, ObsTokenDto } from "@rogimarble/contracts";
+import type { ChannelOverlayTokenDto, DonationEventDto } from "@rogimarble/contracts";
 import { api } from "../../../../lib/api";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -13,6 +13,17 @@ import {
 } from "@/shared/components/common/console-ui";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/shared/components/ui/alert-dialog";
 import { ConfigurationWorkspace } from "./configuration/configuration-workspace";
 import type { ConfigurationSection } from "./configuration/configuration-workspace";
 import { LiveLayoutEditor } from "./live-layout-editor";
@@ -71,8 +82,7 @@ export function MarbleDataPanel({
   configSection?: ConfigurationSection;
 }) {
   const [items, setItems] = useState<readonly unknown[]>([]);
-  const [tokens, setTokens] = useState<readonly ObsTokenDto[]>([]);
-  const [label, setLabel] = useState("방송 오버레이");
+  const [overlayToken, setOverlayToken] = useState<ChannelOverlayTokenDto | null>(null);
   const [origin, setOrigin] = useState("");
   const [message, setMessage] = useState("");
   const [connected, setConnected] = useState(false);
@@ -126,8 +136,8 @@ export function MarbleDataPanel({
         );
         setCursor(page.nextCursor);
       } else if (view === "obs") {
-        const values = await api.obsTokens();
-        if (requestId === sequence.current) setTokens(values);
+        const value = await api.overlayToken();
+        if (requestId === sequence.current) setOverlayToken(value);
       }
     } catch (cause) {
       if (!background && requestId === sequence.current)
@@ -147,6 +157,7 @@ export function MarbleDataPanel({
   useEffect(() => {
     setItems([]);
     setCursor(null);
+    setOverlayToken(null);
     hasAdditionalPages.current = false;
     void load();
     const timer =
@@ -169,75 +180,52 @@ export function MarbleDataPanel({
         description="방송 화면 주소와 파츠별 권장 크기·스타일을 설정합니다."
       >
         <LiveLayoutEditor />
-        <form
-          className="flex gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setBusy(true);
-            setMessage("");
-            void api
-              .issueObsToken(label)
-              .then(async () => { await load(); })
-              .catch((error) => setMessage(error.message))
-              .finally(() => setBusy(false));
-          }}
-        >
-          <Input
-            aria-label="오버레이 이름"
-            value={label}
-            maxLength={80}
-            onChange={(event) => setLabel(event.target.value)}
-          />
-          <Button disabled={busy || !label.trim()}>주소 발급</Button>
-        </form>
-        {tokens.map((token) => (
-          <Card key={token.id}>
+        {overlayToken && (
+          <Card>
             <CardContent className="space-y-3">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="flex-1">
-                  {token.label} · …{token.tokenSuffix}
+                  채널 오버레이 주소 · …{overlayToken.tokenSuffix}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {token.revokedAt ? "회수됨" : "사용 가능"}
-                </span>
-                {!token.revokedAt && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={busy}
-                    onClick={() => {
-                      setBusy(true);
-                      void api
-                        .revokeObsToken(token.id)
-                        .then(async () => {
-                          await load();
-                        })
-                        .catch((error) => setMessage(error.message))
-                        .finally(() => setBusy(false));
-                    }}
-                  >
-                    회수
-                  </Button>
-                )}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" disabled={busy}>주소 회전</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>오버레이 주소를 회전할까요?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        기존 주소는 즉시 중단됩니다. OBS 브라우저 소스에 새 주소를 다시 입력해야 합니다.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>취소</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => {
+                        setBusy(true);
+                        setMessage("");
+                        void api.rotateOverlayToken(overlayToken.id)
+                          .then(setOverlayToken)
+                          .catch(async (error) => { await load(); setMessage(error.message); })
+                          .finally(() => setBusy(false));
+                      }}>주소 회전</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
-              {token.overlayUrlPath && origin && !token.revokedAt && (
+              {overlayToken.overlayUrlPath && origin && (
                 <OverlayTokenUrls
-                  baseUrl={new URL(token.overlayUrlPath, origin).href}
+                  key={overlayToken.id}
+                  baseUrl={new URL(overlayToken.overlayUrlPath, origin).href}
                   onMessage={setMessage}
                 />
               )}
-              {!token.overlayUrlPath && !token.revokedAt && (
+              {!overlayToken.overlayUrlPath && (
                 <ConsoleNotice variant="warning">
-                  기존 주소는 원문이 저장되지 않아 다시 표시할 수 없습니다. 새 주소를 발급한 뒤 OBS에서 교체해 주세요.
+                  기존 주소는 원문이 저장되지 않아 다시 표시할 수 없습니다. 주소를 회전한 뒤 OBS에서 교체해 주세요.
                 </ConsoleNotice>
               )}
             </CardContent>
           </Card>
-        ))}
-        {!tokens.length && (
-          <p className="text-sm text-muted-foreground">
-            발급한 주소가 없습니다.
-          </p>
         )}
         {feedback}
       </Panel>

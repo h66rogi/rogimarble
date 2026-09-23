@@ -22,7 +22,7 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
   let layout = structuredClone(baseLayout);
   let conflictNext = false;
   let editable = role !== 'viewer';
-  const issuedTokens: Array<{ id: string; label: string; tokenSuffix: string; createdAt: string; lastUsedAt: null; revokedAt: null; overlayUrlPath: string; token?: string }> = [];
+  let currentToken = { id: 'first', token: 'synthetic-overlay', tokenSuffix: 'rlay', createdAt: '2026-09-23T00:00:00Z', lastUsedAt: null, overlayUrlPath: '/overlay#token=synthetic-overlay' };
   const writes: Array<{ expectedVersion: number; layout: OverlayLayoutDto }> = [];
 
   await page.route('**/v1/**', async route => {
@@ -44,10 +44,10 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
       version += 1;
       return route.fulfill({ json: { layout, layoutVersion: version, layoutUpdatedAt: '2026-09-22T00:00:00Z' } });
     }
-    if (path.endsWith('/obs-tokens') && request.method() === 'POST') {
-      const issued = { id: 'issued', label: '방송 오버레이', token: 'synthetic-overlay', tokenSuffix: 'rlay', createdAt: '2026-09-23T00:00:00Z', lastUsedAt: null, revokedAt: null, overlayUrlPath: '/overlay#token=synthetic-overlay' };
-      issuedTokens.unshift(issued);
-      return route.fulfill({ json: issued });
+    if (path.endsWith('/overlay-token/rotate') && request.method() === 'PATCH') {
+      expect(request.postDataJSON().expectedTokenId).toBe(currentToken.id);
+      currentToken = { ...currentToken, id: 'rotated', token: 'rotated-overlay', tokenSuffix: 'erlay', overlayUrlPath: '/overlay#token=rotated-overlay' };
+      return route.fulfill({ json: currentToken });
     }
     let data: unknown;
     if (path.endsWith('/auth/session')) data = { csrfToken: 'synthetic-csrf', operator: { id: 'synthetic', username: '테스트', role } };
@@ -55,7 +55,7 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
     else if (path.endsWith('/operator-state')) data = { session: null, boardDefinition: board, inventory: [], missions: [], pawnAppearance: { revision: 0, image: null }, capabilities: {} };
     else if (path.endsWith('/config/rules')) data = { draft: null, published: { id: 'rules', revision: 1, status: 'published', document: rules }, effectiveDocument: rules };
     else if (path.endsWith('/collector')) data = { enabled: false, transport: 'disconnected', counts: {} };
-    else if (path.endsWith('/obs-tokens')) data = issuedTokens;
+    else if (path.endsWith('/overlay-token')) data = currentToken;
     else if (path.endsWith('/auth/tokens') || path.includes('/board-versions/runnable')) data = [];
     else if (path.endsWith('/donations')) data = { items: [], nextCursor: null, collectionConnected: false };
     else if (path.endsWith('/chats')) data = { items: [], nextCursor: null, collectionConnected: false };
@@ -80,7 +80,8 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
 }
 
 function widgetSwitch(page: Page, label: string) {
-  return page.getByText(label, { exact: true }).last().locator('..').getByRole('switch');
+  const priorityCard = page.getByText('위젯 우선순위', { exact: true }).locator('xpath=ancestor::*[@data-slot="card"][1]');
+  return priorityCard.getByText(label, { exact: true }).locator('..').getByRole('switch');
 }
 
 test('board preview fills its actual OBS widget bounds instead of a square', async ({ page }) => {
@@ -207,24 +208,32 @@ test('viewer sees the live layout but every edit entry point is disabled', async
   expect(state.writes).toEqual([]);
 });
 
-test('overlay tab saves a part style and restores its URLs after reload', async ({ page }) => {
+test('overlay tab keeps one channel URL after reload and rotates it on request', async ({ page }) => {
   const state = await fixture(page);
+  const menuStyleTab = page.getByRole('tablist', { name: '스타일을 편집할 파츠' }).getByRole('tab', { name: '후원 메뉴' });
+  if (await menuStyleTab.count()) await menuStyleTab.click();
   await page.getByRole('combobox', { name: '후원 메뉴 테마' }).click();
   await page.getByRole('option', { name: '스카이 소다' }).click();
   await expect.poll(() => state.writes.at(-1)?.layout.widgetStyles?.menu?.themeId).toBe('sky-soda');
   await page.getByRole('combobox', { name: '후원 메뉴 글꼴' }).click();
   await page.getByRole('option', { name: '주아' }).click();
   await expect.poll(() => state.writes.at(-1)?.layout.widgetStyles?.menu?.fontId).toBe('jua');
-  await page.getByRole('button', { name: '주소 발급' }).click();
+  await expect(page.getByRole('button', { name: '주소 발급' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '회수' })).toHaveCount(0);
   await page.getByRole('button', { name: '주소 표시' }).click();
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=synthetic-overlay');
-  await expect(page.getByText('OBS 권장 크기 480 × 640px')).toBeVisible();
+  await expect(page.getByText('OBS 권장 크기 480 × 640px').first()).toBeVisible();
   await expect(page.getByRole('textbox', { name: '주루마블 보드 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/board#token=synthetic-overlay');
   await page.reload();
   await page.getByRole('tab', { name: '오버레이 설정', exact: true }).click();
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('주소 표시를 눌러 확인');
   await page.getByRole('button', { name: '주소 표시' }).click();
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=synthetic-overlay');
+  await page.getByRole('button', { name: '주소 회전' }).click();
+  await expect(page.getByText('기존 주소는 즉시 중단됩니다. OBS 브라우저 소스에 새 주소를 다시 입력해야 합니다.')).toBeVisible();
+  await page.getByRole('alertdialog').getByRole('button', { name: '주소 회전' }).click();
+  await page.getByRole('button', { name: '주소 표시' }).click();
+  await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=rotated-overlay');
 });
 
 test('visible editor polls a newer published layout and permission without requiring a failed gesture', async ({ page }) => {

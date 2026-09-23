@@ -1,4 +1,4 @@
-import { resolveBoardFontId, resolveBoardThemeId, operatorApi, type AccessTokenDto, type ChannelConfigKind, type ChannelConfigStateDto, type ChannelConfigVersionDto, type ChatPageDto, type DonationPageDto, type GameSessionDto, type IssuedAccessTokenDto, type IssuedObsTokenDto, type LoginResponse, type ObsTokenDto, type OperationPageDto, type OperatorStateDto, type OverlayStateDto, type PawnAppearanceDto, type PawnStyleId, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
+import { resolveBoardFontId, resolveBoardThemeId, operatorApi, type AccessTokenDto, type ChannelConfigKind, type ChannelConfigStateDto, type ChannelConfigVersionDto, type ChannelOverlayTokenDto, type ChatPageDto, type DonationPageDto, type GameSessionDto, type IssuedAccessTokenDto, type LoginResponse, type OperationPageDto, type OperatorStateDto, type OverlayStateDto, type PawnAppearanceDto, type PawnStyleId, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
 import type { OperatorCommand, OperatorSnapshot } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
@@ -99,9 +99,8 @@ export const api = {
   chats: (filters: { search?: string; cursor?: string } = {}) => request<ChatPageDto>(`${operatorApi.chats(channelId())}?${new URLSearchParams({ limit: '50', ...filters })}`, { cache: 'no-store' }),
   feedEventsUrl: () => `${API_BASE}${operatorApi.feedEvents(channelId())}`,
   operations: (cursor?: string) => request<OperationPageDto>(`${operatorApi.operations(channelId())}?${new URLSearchParams({ limit: '50', ...(cursor ? { cursor } : {}) })}`, { cache: 'no-store' }),
-  obsTokens: () => request<readonly ObsTokenDto[]>(operatorApi.obsTokens(channelId()), { cache: 'no-store' }),
-  issueObsToken: (label: string) => request<IssuedObsTokenDto>(operatorApi.obsTokens(channelId()), { method: 'POST', body: JSON.stringify({ label }) }),
-  revokeObsToken: (tokenId: string) => request<void>(`${operatorApi.obsTokens(channelId())}/${tokenId}`, { method: 'DELETE' }),
+  overlayToken: () => request<ChannelOverlayTokenDto>(operatorApi.overlayToken(channelId()), { cache: 'no-store' }),
+  rotateOverlayToken: (expectedTokenId: string) => request<ChannelOverlayTokenDto>(`${operatorApi.overlayToken(channelId())}/rotate`, { method: 'PATCH', body: JSON.stringify({ expectedTokenId }) }),
   createSession: async (board: RunnableBoardVersionDto) => {
     if (getPendingIntent()) throw new PendingCommandError();
     const commandId = crypto.randomUUID();

@@ -73,7 +73,7 @@ async function mockApi(page: Page) {
     else if (path.endsWith("/collector"))
       response = { enabled: false, transport: "disconnected", counts: {} };
     else if (path.includes("/board-versions/runnable")) response = [];
-    else if (path.endsWith("/obs-tokens")) response = [];
+    else if (path.endsWith("/overlay-token")) response = {id:"test-overlay",token:"synthetic-overlay",tokenSuffix:"rlay",createdAt:"2026-09-23T00:00:00Z",lastUsedAt:null,overlayUrlPath:"/overlay#token=synthetic-overlay"};
     else if (path.endsWith("/overlay-layout/live")) response = {canEdit:true,layoutVersion:0,layoutUpdatedAt:null,layout:{schemaVersion:1,width:1920,height:1080,aspectRatio:"16:9",background:"transparent",widgets:[{id:"board",bounds:{x:0,y:0,width:1,height:1},z:1}]}};
     else if (path.endsWith("/donations"))
       response = {

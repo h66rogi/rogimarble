@@ -128,10 +128,11 @@ async function fixture(
       data = { items: [], nextCursor: null };
     else if (
       path.includes("/board-versions/") ||
-      path.endsWith("/obs-tokens") ||
       path.endsWith("/auth/tokens")
     )
       data = [];
+    else if (path.endsWith("/overlay-token"))
+      data = { id: "test-overlay", token: "synthetic-overlay", tokenSuffix: "rlay", createdAt: "2026-09-23T00:00:00Z", lastUsedAt: null, overlayUrlPath: "/overlay#token=synthetic-overlay" };
     else throw new Error(`Unexpected API ${request.method()} ${path}`);
     await route.fulfill({ json: data });
   });
