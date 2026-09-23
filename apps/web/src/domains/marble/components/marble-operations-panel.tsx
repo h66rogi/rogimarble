@@ -17,7 +17,6 @@ import { shouldAcceptSnapshot } from "../../../../lib/snapshot-order";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
-import { MoveRight } from "lucide-react";
 import {
   ConsolePanel,
   ConsoleNotice,
@@ -756,7 +755,7 @@ export function MarbleOperationsPanel({
           selectedCellId={selectedCell ?? undefined}
           selectedCellAction={selectedCell && selectedCell !== state?.token.cellId && (
             <Button
-              size="icon-xs"
+              size="xs"
               variant="destructive"
               aria-label="이 칸으로 이동"
               title="이 칸으로 이동"
@@ -769,7 +768,7 @@ export function MarbleOperationsPanel({
                 ...base,
               }).then((applied) => { if (applied) setSelectedCell(null); })}
             >
-              <MoveRight aria-hidden="true" />
+              이동
             </Button>
           )}
           onCellSelect={(cellId) => setSelectedCell((current) =>

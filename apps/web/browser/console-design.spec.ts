@@ -167,6 +167,7 @@ test("a board cell opens the position action and sends the selected cell", async
   await expect(move).toHaveCount(0);
   await boardCells.nth(2).click();
   await expect(move).toBeVisible();
+  await expect(move).toHaveText("이동");
   const thirdCell = await boardCells.nth(2).boundingBox();
   const thirdAction = await move.boundingBox();
   expect(thirdCell && thirdAction && Math.abs(thirdAction.x + thirdAction.width / 2 - thirdCell.x - thirdCell.width / 2) < 15).toBe(true);
