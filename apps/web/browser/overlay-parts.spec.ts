@@ -19,7 +19,7 @@ test('each OBS part renders alone at its recommended size with its own style', a
     donationMenu: [{ id: 'roll', label: '굴리기', amount: 10, rollCount: 1 }],
     layoutVersion: 1,
     layoutUpdatedAt: '2026-09-23T00:00:00.000Z',
-    layout: { schemaVersion: 1, boardThemeId: 'lime-clover', fontId: 'nanum-square-neo', widgetStyles: { board: { themeId: 'pink-bunny' }, menu: { themeId: 'sky-soda', fontId: 'jua' } }, width: 1920, height: 1080, aspectRatio: '16:9', background: 'transparent', widgets: [{ id: 'board', bounds: { x: 0, y: 0, width: 1, height: 1 }, z: 1 }] },
+    layout: { schemaVersion: 1, boardThemeId: 'lime-clover', fontId: 'nanum-square-neo', widgetStyles: { board: { themeId: 'pink-bunny' }, menu: { themeId: 'sky-soda', fontId: 'jua' }, chatbox: { themeId: 'midnight-pop', fontId: 'do-hyeon' } }, width: 1920, height: 1080, aspectRatio: '16:9', background: 'transparent', widgets: [{ id: 'board', bounds: { x: 0, y: 0, width: 1, height: 1 }, z: 1 }] },
   };
   await page.route('**/v1/**', route => {
     requests.push(route.request().url());
@@ -40,5 +40,7 @@ test('each OBS part renders alone at its recommended size with its own style', a
   await expect(page.locator('.marble-board')).toHaveAttribute('data-board-theme', 'pink-bunny');
   await page.goto('/overlay/chatbox#token=synthetic-overlay');
   await expect(page.getByText('실시간 채팅')).toBeVisible();
+  await expect(page.locator('[data-board-theme="midnight-pop"][data-board-font="do-hyeon"]')).toBeVisible();
+  await expect(page.getByText('실시간 채팅')).toHaveCSS('font-family', /do-hyeon|Do Hyeon|DoHyeon/i);
   expect(requests.every((url) => !url.includes('synthetic-overlay'))).toBe(true);
 });

@@ -157,7 +157,7 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status,
           {widget.id === 'current_mission' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="현재 미션" value={currentMission ? `${currentMission.message} × ${currentMission.quantity}` : '진행 중인 미션 없음'} />}
           {widget.id === 'inventory' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="보유 아이템" value={state?.inventory.length ? state.inventory.map((item) => `${item.name} ${item.quantity}`).join(' · ') : '없음'} align="left" />}
           {widget.id === 'direction' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="이동 방향" value={session?.direction === 'reverse' ? '역방향' : '정방향'} />}
-          {widget.id === 'chatbox' && <RogimarbleChatbox />}
+          {widget.id === 'chatbox' && <RogimarbleChatbox themeId={themeId} fontId={resolveBoardFontId(fontId)} />}
         </div>;
       })}
       {shouldRenderWidgets && displayStatus !== 'live' && <div className="pointer-events-none absolute left-1/2 top-3 z-[101] -translate-x-1/2 rounded-full bg-black/70 px-4 py-2 text-center text-xs font-semibold text-white backdrop-blur">{label}</div>}
