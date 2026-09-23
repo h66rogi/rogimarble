@@ -10,9 +10,9 @@ const cardVariants = cva(
       variant: {
         default: "",
         floating:
-          "gap-0 rounded-2xl border-border/80 bg-card/75 px-4 py-4 shadow-2xl backdrop-blur-2xl sm:px-5",
+          "relative isolate gap-0 rounded-2xl border-border/80 bg-card/60 px-4 py-4 shadow-none backdrop-blur-2xl sm:px-5",
         "floating-warning":
-          "gap-0 rounded-2xl border-warning/60 bg-warning-background/75 px-4 py-4 text-warning shadow-2xl shadow-warning/20 ring-2 ring-warning/30 backdrop-blur-2xl sm:px-5",
+          "relative isolate gap-0 rounded-2xl border-warning/70 bg-warning-background/60 px-4 py-4 text-warning shadow-none ring-2 ring-warning/30 backdrop-blur-2xl sm:px-5",
       },
     },
     defaultVariants: { variant: "default" },
@@ -22,15 +22,26 @@ const cardVariants = cva(
 function Card({
   className,
   variant,
+  children,
   ...props
 }: React.ComponentProps<"div"> & VariantProps<typeof cardVariants>) {
+  const floating = variant === "floating" || variant === "floating-warning";
   return (
     <div
       data-slot="card"
       data-variant={variant ?? "default"}
       className={cn(cardVariants({ variant }), className)}
       {...props}
-    />
+    >
+      {floating && (
+        <span
+          aria-hidden="true"
+          data-slot="card-frosted-backdrop"
+          className="pointer-events-none absolute -inset-5 -z-10 rounded-3xl bg-background/20 backdrop-blur-3xl"
+        />
+      )}
+      {children}
+    </div>
   );
 }
 

@@ -166,18 +166,24 @@ test("board editing keeps identities, actions and unsaved values across both lev
   await expect(saveBar).toHaveAttribute("data-variant", "floating");
   const savedAppearance = await saveBar.evaluate((element) => {
     const style = getComputedStyle(element);
-    return { position: style.position, bottom: style.bottom, background: style.backgroundColor, blur: style.backdropFilter, shadow: style.boxShadow };
+    return { position: style.position, bottom: style.bottom, background: style.backgroundColor, blur: style.backdropFilter };
   });
   expect(savedAppearance.position).toBe("sticky");
   expect(savedAppearance.bottom).toBe("16px");
   expect(savedAppearance.blur).toContain("blur(");
-  expect(savedAppearance.shadow).not.toBe("none");
+  await expect(saveBar).toHaveClass(/shadow-none/);
+  const frostedBackdrop = saveBar.locator('[data-slot="card-frosted-backdrop"]');
+  await expect(frostedBackdrop).toHaveCount(1);
+  expect(await frostedBackdrop.evaluate((element) => getComputedStyle(element).backdropFilter)).toContain("blur(");
   const saveBarBox = await saveBar.boundingBox();
   const panelBox = await page.locator("#console-panel-configuration").boundingBox();
   expect(saveBarBox).not.toBeNull();
   expect(panelBox).not.toBeNull();
   expect(saveBarBox!.x).toBeGreaterThan(panelBox!.x + 24);
   expect(saveBarBox!.width).toBeLessThan(panelBox!.width - 48);
+  const backdropBox = await frostedBackdrop.boundingBox();
+  expect(backdropBox).not.toBeNull();
+  expect(backdropBox!.x).toBeLessThan(saveBarBox!.x - 16);
   await selectCell(page, 2);
   await config(page)
     .getByLabel("칸 이름", { exact: true })
