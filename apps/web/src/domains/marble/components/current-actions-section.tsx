@@ -8,6 +8,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
 import { HomeControlSection } from "./home-control-section";
+import { DestinationTaskControls, needsDestinationChoice } from "./destination-task-controls";
 
 export function CurrentActionsSection({
   state,
@@ -28,18 +29,19 @@ export function CurrentActionsSection({
   start: (board: RunnableBoardVersionDto) => Promise<void>;
   send: (command: OperatorCommand) => Promise<boolean>;
 }) {
-  const [destinations, setDestinations] = useState<Record<string, string>>({});
   const [remainingInput, setRemainingInput] = useState("");
   const session = state?.session;
   const canOperate = Boolean(state?.capabilities?.manualRoll);
   const tasks = state?.effectTasks?.filter((task) =>
     task.status === "pending" && ["choose_destination", "donation_destination"].includes(task.type),
   ) ?? [];
+  const choiceTasks = tasks.filter((task) => needsDestinationChoice(task, canOperate));
   const waitingForDestination = tasks.some((task) => {
     const payload = task.payload && typeof task.payload === "object" ? task.payload as Record<string, unknown> : {};
     return Boolean(payload.reservedTurnCommandId) && !payload.selectedCellId;
   });
   const lock = state?.movementLock;
+  const canAdjustLock = Boolean(lock && canOperate);
   const hasQuickAction = !session
     ? boards.length > 0
     : canOperate || Boolean(state?.capabilities?.sessionLifecycle);
@@ -73,47 +75,11 @@ export function CurrentActionsSection({
             {session.status === "paused" ? "게임 재개" : "일시정지"}
           </Button>}
         </div>
-        {tasks.map((task) => {
-          const payload = task.payload && typeof task.payload === "object" ? task.payload as Record<string, unknown> : {};
-          const allowed = Array.isArray(payload.allowedCellIds) ? payload.allowedCellIds.filter((id): id is string => typeof id === "string") : board.path;
-          const candidates = board.path.filter((id) => allowed.includes(id) && (!payload.excludeCurrentCell || id !== state.token.cellId));
-          const stored = typeof payload.selectedCellId === "string" ? payload.selectedCellId : "";
-          const selected = destinations[task.id] ?? stored;
-          const donorOnly = task.type === "donation_destination" && payload.selection === "donor_chat";
-          const canChoose = canOperate && !donorOnly && !(task.type === "donation_destination" && Boolean(stored));
-          return <div key={task.id} className="space-y-2 border-t pt-3">
-            <div className="flex items-center justify-between gap-2">
-              <strong className="text-sm">{task.type === "donation_destination" ? "후원 목적지" : "세계여행 목적지"}</strong>
-              {stored && <Badge variant="secondary">{board.cells.find((cell) => cell.id === stored)?.label ?? stored}</Badge>}
-            </div>
-            {donorOnly ? <p className="text-sm text-muted-foreground">후원자의 채팅 선택을 기다리고 있습니다.</p>
-              : <p className="text-sm text-muted-foreground">이동할 칸을 선택한 뒤 목적지를 저장하세요.</p>}
-            {canChoose && <div role="group" aria-label="이동할 칸 선택" className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto">
-              {candidates.map((id) => <Button key={id} size="sm" variant={selected === id ? "default" : "outline"}
-                aria-pressed={selected === id} disabled={locked}
-                onClick={() => setDestinations((current) => ({ ...current, [task.id]: id }))}>
-                {board.path.indexOf(id) + 1}. {board.cells.find((cell) => cell.id === id)?.label ?? id}
-              </Button>)}
-            </div>}
-            <div className="flex flex-wrap gap-2">
-              {canChoose && <Button size="sm" disabled={locked || !candidates.includes(selected) || selected === stored}
-                onClick={() => void send({ type: "choose_destination", taskId: task.id, cellId: selected,
-                  expectedTaskRevision: task.revision, expectedRevision: state.revision, reason })}>
-                {stored ? "목적지 변경" : "목적지 저장"}
-              </Button>}
-              {canOperate && <Button size="sm" variant="outline" disabled={locked}
-                onClick={() => void send({ type: "cancel_destination", taskId: task.id,
-                  expectedTaskRevision: task.revision, expectedRevision: state.revision, reason })}>예약 취소</Button>}
-            </div>
-          </div>;
-        })}
-        {lock && <div className="space-y-2 border-t pt-3">
-          <strong className="text-sm">이동 제한</strong>
-          <p className="text-sm text-muted-foreground">
-            {lock.rollsRemaining === null ? "운영자 해제 또는 주사위 판정을 기다립니다."
-              : `현재 남은 휴식 ${lock.rollsRemaining}회${lock.releaseType === "skip_rolls_or_doubles" ? " · 더블이면 탈출" : ""}`}
-          </p>
-          {canOperate && lock.rollsRemaining !== null && <>
+        {choiceTasks.map((task) => <DestinationTaskControls key={task.id} task={task} state={state}
+          board={board} disabled={locked} reason={reason} send={send} placement="actions" />)}
+        {lock && canAdjustLock && <div className="space-y-2 border-t pt-3">
+          <strong className="text-sm">이동 제한 조정</strong>
+          {lock.rollsRemaining !== null && <>
             <div role="group" aria-label="남은 휴식 횟수 선택" className="flex flex-wrap gap-2">
               {[1, 2, 3, 4].map((count) => <Button key={count} size="sm" variant="outline"
                 disabled={locked || lock.rollsRemaining === count}
@@ -129,12 +95,12 @@ export function CurrentActionsSection({
                   expectedRevision: state.revision, reason }).then((ok) => { if (ok) setRemainingInput(""); })}>횟수 저장</Button>
             </div>
           </>}
-          {canOperate && <Button size="sm" variant="outline" disabled={locked}
+          <Button size="sm" variant="outline" disabled={locked}
             onClick={() => void send({ type: "clear_movement_lock", expectedRevision: state.revision, reason })}>
             이동 제한 바로 해제
-          </Button>}
+          </Button>
         </div>}
-        {!hasQuickAction && !tasks.length && !lock &&
+        {!hasQuickAction && !choiceTasks.length && !canAdjustLock &&
           <p className="text-sm text-muted-foreground">현재 계정에서 실행할 수 있는 액션이 없습니다.</p>}
       </>}
     </HomeControlSection>

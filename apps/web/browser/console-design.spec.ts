@@ -61,6 +61,12 @@ async function mockApi(page: Page) {
         effectTasks: [{
           id: "travel-task", type: "choose_destination", status: "pending", revision: 1,
           payload: { allowedCellIds: [board.path[1], board.path[2]], selection: "operator" },
+        }, {
+          id: "selected-travel-task", type: "choose_destination", status: "pending", revision: 2,
+          payload: { selectedCellId: board.path[3], selection: "operator" },
+        }, {
+          id: "donor-travel-task", type: "donation_destination", status: "pending", revision: 1,
+          payload: { selectedCellId: null, selection: "donor_chat" },
         }],
         movementLock: { releaseType: "skip_rolls", rollsRemaining: 2, release: { type: "skip_rolls", count: 3 }, createdAt: "2026-01-01T00:00:00Z" },
         missions: [{ id: "mission-1", message: "일회성 미션", quantity: 1, status: "pending",
@@ -117,7 +123,9 @@ async function mockApi(page: Page) {
     else if (path.endsWith("/history"))
       response = { items: [
         { commandId: "history-2", type: "roll_dice", source: "operator", reason: "방송 운영 조작",
-          result: { dice: [2, 3], toCellId: board.path[2] }, afterRevision: 1, createdAt: "2026-01-01T00:01:00Z" },
+          result: { dice: [2, 3], toCellId: board.path[2], effects: [{
+            type: "mission", cellId: board.path[2], result: { message: "지난 칸의 미션" },
+          }] }, afterRevision: 1, createdAt: "2026-01-01T00:01:00Z" },
         { commandId: "history-1", type: "create_session", source: "operator", reason: "create session",
           result: {}, afterRevision: 0, createdAt: "2026-01-01T00:00:00Z" },
       ], nextCursor: null };
@@ -399,7 +407,13 @@ test("home controls use full-width sections, contextual actions, rewards, and se
   await page.goto("/");
   const actions = page.getByRole("region", { name: "현재 할 수 있는 액션" });
   await expect(actions.getByRole("heading", { name: "현재 할 수 있는 액션" })).toBeVisible();
-  await expect(actions.getByText("세계여행 목적지")).toBeVisible();
+  await expect(actions.getByText("세계여행 목적지")).toHaveCount(1);
+  await expect(actions.getByText("후원 목적지")).toHaveCount(0);
+  await expect(actions.getByText("선택됨", { exact: false })).toHaveCount(0);
+  const effects = page.getByRole("region", { name: "판 효과" });
+  await expect(effects.getByText("세계여행 목적지")).toBeVisible();
+  await expect(effects.getByText("후원 목적지")).toBeVisible();
+  await expect(effects.getByRole("button", { name: "목적지 변경" })).toBeVisible();
   await expect(actions.getByText("일회성 미션")).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "완료", exact: true })).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "면제", exact: true })).toHaveCount(0);
@@ -419,6 +433,8 @@ test("home controls use full-width sections, contextual actions, rewards, and se
   await details.getByRole("tab", { name: "게임 기록" }).click();
   await expect(details.getByText("게임 시작")).toBeVisible();
   await expect(details.getByText("주사위 2 + 3")).toBeVisible();
+  await expect(details.getByText("지난 칸의 미션", { exact: false })).toBeVisible();
+  await expect(actions.getByText("지난 칸의 미션")).toHaveCount(0);
   await expect(page.getByRole("region", { name: "수동 미션" }).getByText("일회성 미션")).toHaveCount(0);
   for (const name of ["현재 할 수 있는 액션", "방송 조작", "판 효과", "수동 미션"]) {
     const section = page.getByRole("region", { name });

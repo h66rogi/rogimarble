@@ -42,6 +42,35 @@ function detail(entry: SessionHistoryEntryDto, board: BoardDefinition) {
   return entry.reason && !["방송 운영 조작", "create session"].includes(entry.reason) ? entry.reason : "";
 }
 
+function effectDetails(entry: SessionHistoryEntryDto, board: BoardDefinition): string[] {
+  const result = entry.result && typeof entry.result === "object" ? entry.result as Record<string, unknown> : {};
+  const lines: string[] = [];
+  const visit = (effects: unknown) => {
+    if (!Array.isArray(effects)) return;
+    for (const item of effects) {
+      if (!item || typeof item !== "object") continue;
+      const effect = item as Record<string, unknown>;
+      const value = effect.result && typeof effect.result === "object" ? effect.result as Record<string, unknown> : {};
+      const cell = board.cells.find((candidate) => candidate.id === effect.cellId);
+      const prefix = cell ? `${cell.label} · ` : "";
+      if (effect.type === "mission" && typeof value.message === "string") lines.push(`${prefix}${value.message}`);
+      else if (effect.type === "counter_settle" && typeof value.quantity === "number" && value.quantity > 0) {
+        const counter = board.counters.find((candidate) => candidate.id === value.counterId);
+        lines.push(`${prefix}${counter?.label ?? "적립"} ${value.quantity}${counter?.unit ?? ""} 청산`);
+      } else if (effect.type === "counter_add" && typeof value.value === "number") {
+        const counter = board.counters.find((candidate) => candidate.id === value.counterId);
+        lines.push(`${prefix}${counter?.label ?? "적립"} 총 ${value.value}${counter?.unit ?? ""}`);
+      } else if (effect.type === "movement_lock") lines.push(`${prefix}이동 제한 적용`);
+      else if (effect.type === "modify_roll" && typeof value.factor === "number") lines.push(`${prefix}다음 이동 ×${value.factor}`);
+      else if (effect.type === "choose_destination") lines.push(`${prefix}목적지 선택 요청`);
+      else if (effect.type === "move_steps" && Array.isArray(value.path)) lines.push(`${prefix}추가 이동 ${value.path.length}칸`);
+      visit(value.effects);
+    }
+  };
+  visit(result.effects);
+  return lines;
+}
+
 function mergeLatest(latest: readonly SessionHistoryEntryDto[], previous: readonly SessionHistoryEntryDto[]) {
   const known = new Set(latest.map((item) => item.commandId));
   return [...latest, ...previous.filter((item) => !known.has(item.commandId))];
@@ -104,16 +133,23 @@ export function GameHistoryPanel({
     {loadedSession !== sessionId && !error && <p className="text-sm text-muted-foreground">기록을 불러오는 중입니다.</p>}
     {loadedSession === sessionId && <>
       <ol className="divide-y">
-        {items.map((entry) => <li key={entry.commandId} className="space-y-1 py-3 first:pt-0">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <strong className="text-sm">{labels[entry.type] ?? entry.type}</strong>
-            <Badge variant="secondary">{entry.source === "donation" ? "후원 자동 처리" : "운영자 조작"}</Badge>
-          </div>
-          {detail(entry, board) && <p className="text-sm">{detail(entry, board)}</p>}
-          <time className="block text-xs text-muted-foreground" dateTime={entry.createdAt}>
-            {new Date(entry.createdAt).toLocaleString("ko-KR")}
-          </time>
-        </li>)}
+        {items.map((entry) => {
+          const summary = detail(entry, board);
+          const effects = effectDetails(entry, board);
+          return <li key={entry.commandId} className="space-y-1 py-3 first:pt-0">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <strong className="text-sm">{labels[entry.type] ?? entry.type}</strong>
+              <Badge variant="secondary">{entry.source === "donation" ? "후원 자동 처리" : "운영자 조작"}</Badge>
+            </div>
+            {summary && <p className="text-sm">{summary}</p>}
+            {effects.length > 0 && <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+              {effects.map((line, index) => <li key={`${entry.commandId}-${index}`}>{line}</li>)}
+            </ul>}
+            <time className="block text-xs text-muted-foreground" dateTime={entry.createdAt}>
+              {new Date(entry.createdAt).toLocaleString("ko-KR")}
+            </time>
+          </li>;
+        })}
       </ol>
       {!items.length && <p className="text-sm text-muted-foreground">표시할 게임 기록이 없습니다.</p>}
       {cursor && <Button size="sm" variant="outline" disabled={loadingMore} onClick={() => void loadMore()}>

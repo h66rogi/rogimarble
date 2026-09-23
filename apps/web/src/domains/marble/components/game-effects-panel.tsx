@@ -1,16 +1,20 @@
 "use client";
 
 import type { OperatorCommand, OperatorSnapshot } from "../../../../lib/types";
+import type { BoardDefinition } from "@rogimarble/game-core/board";
 import { Button } from "@/shared/components/ui/button";
 import { HomeControlSection } from "./home-control-section";
+import { DestinationTaskControls, needsDestinationChoice } from "./destination-task-controls";
 
 export function GameEffectsPanel({
   state,
+  board,
   disabled,
   reason,
   send,
 }: {
   state: OperatorSnapshot;
+  board: BoardDefinition;
   disabled: boolean;
   reason: string;
   send: (command: OperatorCommand) => Promise<boolean>;
@@ -18,9 +22,12 @@ export function GameEffectsPanel({
   if (!state.session) return null;
   const modifiers = state.rollModifiers ?? [];
   const lock = state.movementLock;
+  const waitingTasks = state.effectTasks?.filter((task) =>
+    task.status === "pending" && ["choose_destination", "donation_destination"].includes(task.type) &&
+    !needsDestinationChoice(task, Boolean(state.capabilities?.manualRoll))) ?? [];
   return (
     <HomeControlSection title="판 효과">
-      {!modifiers.length && !lock && (
+      {!modifiers.length && !lock && !waitingTasks.length && (
         <p className="text-sm text-muted-foreground">적용 중인 판 효과가 없습니다.</p>
       )}
       {modifiers.map((modifier) => (
@@ -48,6 +55,8 @@ export function GameEffectsPanel({
           </p>
         </div>
       )}
+      {waitingTasks.map((task) => <DestinationTaskControls key={task.id} task={task} state={state}
+        board={board} disabled={disabled} reason={reason} send={send} placement="effects" />)}
     </HomeControlSection>
   );
 }

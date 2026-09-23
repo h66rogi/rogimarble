@@ -402,7 +402,7 @@ export function MarbleOperationsPanel({
           </Button>
         </div>
       </HomeControlSection>
-      {state && <GameEffectsPanel state={state} disabled={locked} reason={reason} send={send} />}
+      {state && <GameEffectsPanel state={state} board={liveBoard} disabled={locked} reason={reason} send={send} />}
       <HomeControlSection title="수동 미션">
         <form className="space-y-4" onSubmit={(event) => {
           event.preventDefault();
