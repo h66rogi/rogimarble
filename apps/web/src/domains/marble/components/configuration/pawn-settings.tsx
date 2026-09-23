@@ -24,7 +24,7 @@ export function PawnSettings({ active }: { active: boolean }) {
   }, [active, load]);
 
   return (
-    <section className="mx-auto max-w-4xl space-y-4" aria-label="말 디자인 설정">
+    <section className="w-full min-w-0 space-y-4" aria-label="말 디자인 설정">
       {!appearance && !error && (
         <p role="status" className="text-sm text-muted-foreground">
           말 디자인을 불러오는 중입니다.

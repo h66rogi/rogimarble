@@ -1,10 +1,10 @@
 "use client";
-import { Alert, AlertDescription } from "@/shared/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/shared/components/ui/alert";
 import { Badge } from "@/shared/components/ui/badge";
 import { Disclosure } from "./configuration/editor-fields";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, CheckCircle2, Download, Loader2, Save } from "lucide-react";
+import { Check, CheckCircle2, Clock3, Download, Loader2, Save } from "lucide-react";
 import { upgradeLegacyOverlayLayout } from "@rogimarble/contracts";
 import type {
   ChannelConfigKind,
@@ -55,6 +55,28 @@ export const configLabels: Record<ChannelConfigKind, string> = {
   rules: "후원 규칙",
   items: "아이템",
   "overlay-layout": "방송 테마·배치",
+};
+const applicationTiming: Record<ChannelConfigKind, { detail: string; short: string; published: string }> = {
+  board: {
+    detail: "게시한 게임판은 새 게임을 시작할 때 선택할 수 있어요. 진행 중인 게임판은 바뀌지 않아요.",
+    short: "새 게임을 시작할 때 선택",
+    published: "게임판을 게시했어요. 새 게임을 시작할 때 선택할 수 있어요.",
+  },
+  rules: {
+    detail: "게시한 규칙은 새로 수락하는 후원부터 적용돼요. 이미 대기 중인 요청은 이전 규칙을 유지해요.",
+    short: "새로 수락하는 후원부터 적용",
+    published: "후원 규칙을 게시했어요. 새로 수락하는 후원부터 적용돼요.",
+  },
+  items: {
+    detail: "게시한 아이템은 후원 규칙과 게임판 편집에서 선택할 수 있어요. 초안 저장만으로는 사용할 수 없어요.",
+    short: "게시 후 후원 규칙·게임판에서 선택",
+    published: "아이템을 게시했어요. 후원 규칙과 게임판에서 선택할 수 있어요.",
+  },
+  "overlay-layout": {
+    detail: "게시하면 기본 방송 스타일과 패널 내용이 운영 화면·OBS에 반영돼요. 파츠별 스타일과 위치·크기는 오버레이 설정에서 즉시 저장돼요.",
+    short: "게시 후 운영 화면·OBS에 반영",
+    published: "방송 스타일과 패널 내용을 게시했어요. 운영 화면·OBS에 반영돼요.",
+  },
 };
 
 export function ConfigurationEditor({
@@ -193,11 +215,7 @@ export function ConfigurationEditor({
       const next = await api.publishConfig(kind, version.id, version.revision);
       accept(next);
       setReview(false);
-      setMessage(
-        kind === "board"
-          ? "게임판을 게시했어요. 새 게임을 시작할 때 선택할 수 있어요."
-          : "게시했어요. 새로 수락하는 요청부터 사용해요.",
-      );
+      setMessage(applicationTiming[kind].published);
     } catch (e) {
       setError(textError(e));
     } finally {
@@ -243,6 +261,11 @@ export function ConfigurationEditor({
           </Button>
         )}
       </header>
+      <Alert variant="warning" role="note">
+        <Clock3 aria-hidden="true" />
+        <AlertTitle>게시 후 적용 시점</AlertTitle>
+        <AlertDescription>{applicationTiming[kind].detail}</AlertDescription>
+      </Alert>
       {!ready ? (
         <div
           className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center text-sm text-muted-foreground"
@@ -338,14 +361,8 @@ export function ConfigurationEditor({
                         ? "게시된 설정"
                         : "새 초안"}
               </Badge>
-              <p
-                className="text-sm leading-relaxed text-muted-foreground"
-                role="status"
-              >
-                {message ||
-                  (kind === "board"
-                    ? "게시한 판은 새 게임에서 선택할 수 있어요. 현재 게임은 유지돼요."
-                    : "게시한 뒤 새로 들어오는 요청부터 반영돼요.")}
+              <p className="text-sm font-medium text-foreground" role="status">
+                {message || `적용 시점 · ${applicationTiming[kind].short}`}
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">

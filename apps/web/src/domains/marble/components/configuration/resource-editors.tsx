@@ -15,6 +15,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Field, NumberField, Options } from "./editor-fields";
 import type { NamedItem } from "./editor-model";
 import { OverlayLayoutPreview } from "./board-preview";
+import { Board } from "@rogimarble/overlay-ui";
 
 export function ItemsEditor({
   value,
@@ -118,79 +119,86 @@ export function LayoutEditor({
     return () => { active = false; };
   }, []);
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div className="grid items-start gap-5 xl:grid-cols-2">
-        <Card>
+    <div className="w-full min-w-0 space-y-5" data-testid="broadcast-layout-editor">
+      <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <Card className="min-w-0">
           <CardContent>
             <BoardThemePicker selected={value.boardThemeId ?? "lime-clover"} fontSelected={value.fontId ?? "nanum-square-neo"} changeFont={fontId => change({ ...value, fontId })} change={boardThemeId => change({ ...value, boardThemeId })} />
           </CardContent>
         </Card>
-        <Card className="xl:sticky xl:top-4">
-          <CardHeader className="space-y-1">
-            <CardTitle>방송 화면 미리보기</CardTitle>
-            <p className="text-sm text-muted-foreground">{boardSource} · 저장 전 모습입니다. 현재 방송의 위치·크기는 오버레이 설정에서 조정하세요.</p>
-          </CardHeader>
-          <CardContent>
-            <OverlayLayoutPreview value={value} board={board} rules={rules} />
-          </CardContent>
-        </Card>
+        <div className="min-w-0 space-y-5">
+          <Card className="min-w-0">
+            <CardHeader className="space-y-1">
+              <CardTitle>방송 게임판 미리보기</CardTitle>
+              <p className="text-sm text-muted-foreground">{boardSource}에 선택한 기본 테마와 글꼴을 적용한 모습입니다.</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="aspect-video overflow-hidden">
+                <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "lime-clover"} fontId={value.fontId ?? "nanum-square-neo"} fit reducedMotion />
+              </div>
+              {value.widgets.length > 0 && <Disclosure title={<>전체 오버레이 구성 보기</>}>
+                <OverlayLayoutPreview value={value} board={board} rules={rules} />
+              </Disclosure>}
+            </CardContent>
+          </Card>
+          <Card className="min-w-0">
+            <CardHeader className="space-y-1">
+              <CardTitle>방송 화면 기본값</CardTitle>
+              <p className="text-sm text-muted-foreground">방송 화면의 크기와 배경을 설정합니다.</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <NumberField
+                  label="방송 화면 너비 (px)"
+                  value={value.width}
+                  change={(width) => change({ ...value, width, aspectRatio: "custom" })}
+                />
+                <NumberField
+                  label="방송 화면 높이 (px)"
+                  value={value.height}
+                  change={(height) =>
+                    change({ ...value, height, aspectRatio: "custom" })
+                  }
+                />
+                <Options
+                  label="화면 비율"
+                  value={value.aspectRatio}
+                  options={[
+                    ["16:9", "가로 방송 · 16:9"],
+                    ["9:16", "세로 방송 · 9:16"],
+                    ["4:3", "4:3"],
+                    ["custom", "직접 지정"],
+                  ]}
+                  change={(aspectRatio) => {
+                    const ratio =
+                      aspectRatio === "16:9"
+                        ? 16 / 9
+                        : aspectRatio === "9:16"
+                          ? 9 / 16
+                          : aspectRatio === "4:3"
+                            ? 4 / 3
+                            : null;
+                    change({
+                      ...value,
+                      aspectRatio,
+                      height: ratio ? Math.round(value.width / ratio) : value.height,
+                    });
+                  }}
+                />
+              </div>
+              <Field
+                label="방송 화면 배경"
+                help="투명 배경은 transparent로 입력하세요."
+              >
+                <Input
+                  value={value.background}
+                  onChange={(e) => change({ ...value, background: e.target.value })}
+                />
+              </Field>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-      <Card>
-        <CardHeader className="space-y-1">
-          <CardTitle>방송 화면 기본값</CardTitle>
-          <p className="text-sm text-muted-foreground">방송 화면의 크기와 배경을 설정합니다. 변경한 내용은 게시한 뒤 적용돼요.</p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <NumberField
-              label="방송 화면 너비 (px)"
-              value={value.width}
-              change={(width) => change({ ...value, width, aspectRatio: "custom" })}
-            />
-            <NumberField
-              label="방송 화면 높이 (px)"
-              value={value.height}
-              change={(height) =>
-                change({ ...value, height, aspectRatio: "custom" })
-              }
-            />
-            <Options
-              label="화면 비율"
-              value={value.aspectRatio}
-              options={[
-                ["16:9", "가로 방송 · 16:9"],
-                ["9:16", "세로 방송 · 9:16"],
-                ["4:3", "4:3"],
-                ["custom", "직접 지정"],
-              ]}
-              change={(aspectRatio) => {
-                const ratio =
-                  aspectRatio === "16:9"
-                    ? 16 / 9
-                    : aspectRatio === "9:16"
-                      ? 9 / 16
-                      : aspectRatio === "4:3"
-                        ? 4 / 3
-                        : null;
-                change({
-                  ...value,
-                  aspectRatio,
-                  height: ratio ? Math.round(value.width / ratio) : value.height,
-                });
-              }}
-            />
-          </div>
-          <Field
-            label="방송 화면 배경"
-            help="투명 배경은 transparent로 입력하세요."
-          >
-            <Input
-              value={value.background}
-              onChange={(e) => change({ ...value, background: e.target.value })}
-            />
-          </Field>
-        </CardContent>
-      </Card>
       <BroadcastPanelEditor value={value} rules={rules} change={change} />
     </div>
   );

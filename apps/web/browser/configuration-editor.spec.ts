@@ -160,12 +160,14 @@ test("board editing keeps identities, actions and unsaved values across both lev
   page,
 }) => {
   const state = await fixture(page);
+  await expect(config(page).getByRole("note")).toContainText("새 게임을 시작할 때 선택");
   await selectCell(page, 2);
   await config(page)
     .getByLabel("칸 이름", { exact: true })
     .fill("방향전환이라는 이름의 미션");
   await page.getByRole("tablist", { name: "운영 콘솔 메뉴" }).getByRole("tab", { name: "게임 규칙" }).click();
   await expect(page.getByRole("region", { name: "후원 규칙 설정" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "후원 규칙 설정" }).getByRole("note")).toContainText("새로 수락하는 후원부터 적용");
   await page.getByRole("tablist", { name: "운영 콘솔 메뉴" }).getByRole("tab", { name: "보드 설정" }).click();
   await expect(config(page).getByLabel("칸 이름", { exact: true })).toHaveValue(
     "방향전환이라는 이름의 미션",
@@ -232,9 +234,9 @@ test("game rules and board settings group their own menus and move pawn design o
   await expect(pawn.getByText("2번 하트 칩 말을 적용했습니다.")).toBeVisible();
   await top.getByRole("tab", { name: "홈" }).click();
   await expect(page.locator("#console-panel-home").getByText("말 디자인", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("dialog", { name: "말 위치 보정" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "이 칸으로 이동" })).toHaveCount(0);
   await page.locator("#console-panel-home .board-cell").nth(1).click();
-  await expect(page.getByRole("dialog", { name: "말 위치 보정" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "이 칸으로 이동" })).toBeVisible();
   await expect(page.locator("#console-panel-home .token-wrapper")).toHaveAttribute("data-pawn-style", "heart-chip");
   expect(state.writes).toEqual([]);
   expect(state.errors).toEqual([]);
@@ -426,9 +428,20 @@ test("board themes preview without game writes and publish only the selected vis
   await page.getByRole("tab", { name: "방송 테마·배치", exact: true }).click();
   await expect(page.getByRole("button", { name: /클래식 파티/ })).toHaveCount(0);
   const region = page.getByRole("region", { name: "방송 테마·배치 설정", exact: true });
+  await expect(region.getByRole("note")).toContainText("운영 화면·OBS에 반영");
+  const editorBox = await region.getByTestId("broadcast-layout-editor").boundingBox();
+  const regionBox = await region.boundingBox();
+  expect(editorBox).not.toBeNull();
+  expect(regionBox).not.toBeNull();
+  expect(editorBox!.width).toBeGreaterThan(regionBox!.width * 0.95);
   await expect(region.getByRole("group", { name: "기본 테마 선택" }).getByRole("button")).toHaveCount(6);
-  await expect(region.getByText("방송 화면 미리보기")).toBeVisible();
+  if (page.viewportSize()!.width >= 1280) {
+    const themeBox = await region.getByRole("group", { name: "기본 테마 선택" }).boundingBox();
+    expect(themeBox!.width).toBeGreaterThan(650);
+  }
+  await expect(region.getByText("방송 게임판 미리보기")).toBeVisible();
   const panelTabs = region.getByRole("tablist", { name: "방송 패널 내용" });
+  await expect(region.getByRole("textbox", { name: "메뉴판 제목" })).toHaveCount(0);
   await panelTabs.getByRole("tab", { name: "후원 메뉴" }).click();
   await expect(region.getByRole("tabpanel", { name: "후원 메뉴" }).getByRole("textbox", { name: "메뉴판 제목" })).toBeVisible();
   await panelTabs.getByRole("tab", { name: "주사위 가격" }).click();

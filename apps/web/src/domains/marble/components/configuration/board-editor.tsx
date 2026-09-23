@@ -192,7 +192,7 @@ export function BoardEditor({
   );
   return (
     <div className="min-w-0">
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(400px,480px)]">
         <div className="min-w-0 space-y-4" ref={boardRef}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1" aria-label="편집 모드">
