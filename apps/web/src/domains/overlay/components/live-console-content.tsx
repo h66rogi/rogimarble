@@ -4020,7 +4020,7 @@ export function LiveConsoleContent({
 
       {/* 고정 헤더 - Ant Design 스타일 탭 */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
-        <div className="flex items-center justify-between px-4 gap-2">
+        <div className="flex flex-wrap lg:flex-nowrap items-center justify-between px-4 gap-2">
           {/* Ant Design 스타일 탭 */}
           <div
             role="tablist"
@@ -4034,7 +4034,7 @@ export function LiveConsoleContent({
                 : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : -1;
               if (next >= 0) { event.preventDefault(); tabs[next].focus(); }
             }}
-            className="flex items-center gap-0.5 relative min-w-0 overflow-x-auto scrollbar-none"
+            className="order-2 lg:order-1 flex items-center gap-0.5 relative min-w-0 w-full lg:w-auto lg:flex-1 overflow-x-auto scrollbar-none"
           >
             <button
               type="button"
@@ -4217,11 +4217,14 @@ export function LiveConsoleContent({
           </div>
 
           {/* 우측 컨트롤 */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="order-1 lg:order-2 flex flex-wrap items-center justify-end gap-2 w-full lg:w-auto lg:shrink-0">
             <Badge variant={marbleState?.session?.status === 'running' ? 'default' : 'secondary'}>
               {marbleState?.session ? `${marbleState.session.status === 'running' ? '진행 중' : marbleState.session.status === 'paused' ? '일시정지' : '준비'} · 변경 ${marbleState.revision}` : '세션 없음'}
             </Badge>
             {marbleState ? <>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+              <a href="/collector">개발자도구</a>
+            </Button>
             <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
               <a href="/account">계정 관리</a>
             </Button>
@@ -6002,11 +6005,8 @@ export function LiveConsoleContent({
             </span>
           </div>
 
-          {/* 게임 상태와 방송·수집 관리 */}
+          {/* 게임 상태 */}
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm">
-              <a href="/collector">방송·수집 관리</a>
-            </Button>
             {marbleState?.session?.status === 'running' ? (
               <Badge className="h-5 px-2 text-[10px]">
                 게임 진행 중

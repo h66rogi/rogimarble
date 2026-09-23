@@ -167,10 +167,14 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   await expect
     .poll(async () => (await page.locator("header").boundingBox())?.y)
     .toBe(0);
-  const collectorLink = page
-    .locator("footer")
-    .getByRole("link", { name: "방송·수집 관리", exact: true });
+  const headerLinks = page.locator("header");
+  const collectorLink = headerLinks.getByRole("link", { name: "개발자도구", exact: true });
+  const accountLink = headerLinks.getByRole("link", { name: "계정 관리", exact: true });
   await expect(collectorLink).toHaveAttribute("href", "/collector");
+  expect(await collectorLink.getAttribute("class")).toBe(await accountLink.getAttribute("class"));
+  expect(await headerLinks.locator('a[href="/collector"], a[href="/account"]').allTextContents())
+    .toEqual(["개발자도구", "계정 관리"]);
+  await expect(page.locator("footer").getByRole("link", { name: "개발자도구" })).toHaveCount(0);
   const homeTab = nav.getByRole("tab", { name: "홈", exact: true });
   await expect(homeTab).toHaveAttribute("data-console-tab", "home");
   await expect(homeTab).not.toHaveAttribute("data-slot", "tabs-trigger");
