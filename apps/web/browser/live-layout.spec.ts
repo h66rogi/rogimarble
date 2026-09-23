@@ -27,6 +27,7 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
   await page.route('**/v1/**', async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    if (path.endsWith('/feed/events')) return route.fulfill({ status: 204 });
     if (path.endsWith('/overlay-layout/live')) {
       if (request.method() === 'GET') return route.fulfill({ json: { layout, layoutVersion: version, layoutUpdatedAt: null, canEdit: editable } });
       const body = request.postDataJSON();
@@ -53,6 +54,7 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
     else if (path.endsWith('/collector')) data = { enabled: false, transport: 'disconnected', counts: {} };
     else if (path.endsWith('/obs-tokens') || path.endsWith('/auth/tokens') || path.includes('/board-versions/runnable')) data = [];
     else if (path.endsWith('/donations')) data = { items: [], nextCursor: null, collectionConnected: false };
+    else if (path.endsWith('/chats')) data = { items: [], nextCursor: null, collectionConnected: false };
     else if (path.endsWith('/operations')) data = { items: [], nextCursor: null };
     else throw new Error(`Unexpected API ${request.method()} ${path}`);
     await route.fulfill({ json: data });

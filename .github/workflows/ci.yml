@@ -20,6 +20,7 @@ jobs:
       - run: pnpm --filter @rogimarble/api test:auth
       - run: pnpm --filter @rogimarble/api test:effects
       - run: pnpm --filter @rogimarble/api test:collector
+      - run: pnpm --filter @rogimarble/api test:feed
       - run: pnpm --filter @rogimarble/api test:pawn
       - run: pnpm --filter @rogimarble/api test:integration
       - run: pnpm build

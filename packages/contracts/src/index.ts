@@ -225,6 +225,8 @@ export interface ChannelConfigVersionDto {
 export interface ChannelConfigStateDto { readonly draft: ChannelConfigVersionDto|null; readonly published: ChannelConfigVersionDto|null; readonly effectiveDocument?: unknown }
 export interface DonationEventDto { readonly id:string; readonly sessionId:string|null; readonly donorDisplayName:string; readonly amount:number; readonly message:string|null; readonly ruleId:string|null; readonly result:'matched'|'no_match'|'failed'|'pending'|'held'|'ignored'; readonly resultDetail:unknown; readonly occurredAt:string }
 export interface DonationPageDto { readonly items:readonly DonationEventDto[]; readonly nextCursor:string|null; readonly collectionConnected:boolean }
+export interface ChatEventDto { readonly id:string; readonly userId:string; readonly userDisplayName:string; readonly message:string; readonly occurredAt:string; readonly receivedAt:string; readonly gapBefore:boolean; readonly matchedTaskId:string|null }
+export interface ChatPageDto { readonly items:readonly ChatEventDto[]; readonly nextCursor:string|null; readonly collectionConnected:boolean }
 export interface OperationPageDto { readonly items:readonly unknown[]; readonly nextCursor:string|null }
 export interface ObsTokenDto { readonly id:string; readonly label:string; readonly tokenSuffix:string; readonly createdAt:string; readonly lastUsedAt:string|null; readonly revokedAt:string|null }
 export interface IssuedObsTokenDto extends ObsTokenDto { readonly token:string; readonly overlayUrlPath:string }
@@ -301,6 +303,8 @@ export const operatorApi = {
   command: (channelId: string, commandId: string) => `${API_V1}/channels/${channelId}/commands/${commandId}`,
   config: (channelId:string,kind:ChannelConfigKind) => `${API_V1}/channels/${channelId}/config/${kind}`,
   donations: (channelId:string) => `${API_V1}/channels/${channelId}/donations`,
+  chats: (channelId:string) => `${API_V1}/channels/${channelId}/chats`,
+  feedEvents: (channelId:string) => `${API_V1}/channels/${channelId}/feed/events`,
   operations: (channelId:string) => `${API_V1}/channels/${channelId}/operations`,
   obsTokens: (channelId:string) => `${API_V1}/channels/${channelId}/obs-tokens`,
   pawnImage: (channelId:string) => `${API_V1}/channels/${channelId}/pawn-image`,

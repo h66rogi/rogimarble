@@ -12,6 +12,7 @@ import { PawnAssetsController } from './pawn-assets.controller.ts';
 import { PawnAssetService } from './pawn-assets.ts';
 import { OverlayLayoutService } from './overlay-layout.ts';
 import { OverlayRealtimeService } from './overlay-realtime.ts';
+import { OperatorFeedRealtimeService } from './operator-feed-realtime.ts';
 
-@Module({ controllers:[AppController,AccessTokenController,CollectorController,PawnAssetsController], providers:[ApiService,ConfigurationService,SessionGuard,CsrfGuard,AccessTokenService,CollectorService,DonationIngestionService,PawnAssetService,OverlayLayoutService,OverlayRealtimeService] })
+@Module({ controllers:[AppController,AccessTokenController,CollectorController,PawnAssetsController], providers:[ApiService,ConfigurationService,SessionGuard,CsrfGuard,AccessTokenService,CollectorService,DonationIngestionService,PawnAssetService,OverlayLayoutService,OverlayRealtimeService,OperatorFeedRealtimeService] })
 export class AppModule {}

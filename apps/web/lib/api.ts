@@ -1,4 +1,4 @@
-import { resolveBoardFontId, resolveBoardThemeId, operatorApi, type AccessTokenDto, type ChannelConfigKind, type ChannelConfigStateDto, type ChannelConfigVersionDto, type DonationPageDto, type GameSessionDto, type IssuedAccessTokenDto, type IssuedObsTokenDto, type LoginResponse, type ObsTokenDto, type OperationPageDto, type OperatorStateDto, type OverlayStateDto, type PawnAppearanceDto, type PawnStyleId, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
+import { resolveBoardFontId, resolveBoardThemeId, operatorApi, type AccessTokenDto, type ChannelConfigKind, type ChannelConfigStateDto, type ChannelConfigVersionDto, type ChatPageDto, type DonationPageDto, type GameSessionDto, type IssuedAccessTokenDto, type IssuedObsTokenDto, type LoginResponse, type ObsTokenDto, type OperationPageDto, type OperatorStateDto, type OverlayStateDto, type PawnAppearanceDto, type PawnStyleId, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
 import type { OperatorCommand, OperatorSnapshot } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
@@ -96,6 +96,8 @@ export const api = {
   validateConfig: (kind: ChannelConfigKind, versionId: string, expectedRevision: number) => request<ChannelConfigVersionDto>(`${operatorApi.config(channelId(), kind)}/${versionId}/validate`, { method: 'POST', body: JSON.stringify({ expectedRevision }) }),
   publishConfig: (kind: ChannelConfigKind, versionId: string, expectedRevision: number) => request<ChannelConfigVersionDto>(`${operatorApi.config(channelId(), kind)}/${versionId}/publish`, { method: 'POST', body: JSON.stringify({ expectedRevision }) }),
   donations: (filters: { donor?: string; result?: string; cursor?: string } = {}) => request<DonationPageDto>(`${operatorApi.donations(channelId())}?${new URLSearchParams({ limit: '50', ...filters })}`, { cache: 'no-store' }),
+  chats: (filters: { search?: string; cursor?: string } = {}) => request<ChatPageDto>(`${operatorApi.chats(channelId())}?${new URLSearchParams({ limit: '50', ...filters })}`, { cache: 'no-store' }),
+  feedEventsUrl: () => `${API_BASE}${operatorApi.feedEvents(channelId())}`,
   operations: (cursor?: string) => request<OperationPageDto>(`${operatorApi.operations(channelId())}?${new URLSearchParams({ limit: '50', ...(cursor ? { cursor } : {}) })}`, { cache: 'no-store' }),
   obsTokens: () => request<readonly ObsTokenDto[]>(operatorApi.obsTokens(channelId()), { cache: 'no-store' }),
   issueObsToken: (label: string) => request<IssuedObsTokenDto>(operatorApi.obsTokens(channelId()), { method: 'POST', body: JSON.stringify({ label }) }),

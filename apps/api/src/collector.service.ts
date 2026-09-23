@@ -6,6 +6,7 @@ import { DonationIngestionService } from './donation-ingestion.service.ts';
 import { assertCollectorStatus, collectorConnection, donationInput, chatInput, CollectorRpc, type CollectorConnection, type CollectorStatus, timestamp, chatTestStatus, chatTestIdPattern } from './collector-rpc.ts';
 import { OverlayRealtimeService } from './overlay-realtime.ts';
 import { overlayChatMessage, overlayDonationMessage } from './overlay-chat.ts';
+import { OperatorFeedRealtimeService } from './operator-feed-realtime.ts';
 
 @Injectable()
 export class CollectorService implements OnModuleInit,OnModuleDestroy {
@@ -16,7 +17,7 @@ export class CollectorService implements OnModuleInit,OnModuleDestroy {
   private remote:CollectorStatus|null=null;
   private chatStream:ClientReadableStream<any>|null=null;
   private state={enabled:false,transport:'disabled',collectionState:'disabled',collectionActive:false,lastCheckedAt:null as string|null,lastAcceptedAt:null as string|null,errorCode:null as string|null,chatConnected:false};
-  constructor(private readonly ingestion:DonationIngestionService,private readonly realtime:OverlayRealtimeService){}
+  constructor(private readonly ingestion:DonationIngestionService,private readonly realtime:OverlayRealtimeService,private readonly feedRealtime:OperatorFeedRealtimeService){}
   onModuleInit(){
     try{this.config=collectorConnection();}catch{this.state={...this.state,enabled:true,transport:'error',errorCode:'configuration_missing'};return;}
     if(!this.config)return;
@@ -96,7 +97,7 @@ export class CollectorService implements OnModuleInit,OnModuleDestroy {
         if(event.channelId!==this.config.collectorChannelId)throw new Error('Donation scope mismatch');
         const donation=donationInput(event,this.config,cursor.recoveryRevision);
         const accepted=await this.ingestion.acceptDonation(this.config.gameChannelId,donation);
-        if(!accepted.duplicate){const message=overlayDonationMessage(donation);if(message)this.realtime.publishDonation(this.config.gameChannelId,message);}
+        if(!accepted.duplicate){this.feedRealtime.publish(this.config.gameChannelId,'donation');const message=overlayDonationMessage(donation);if(message)this.realtime.publishDonation(this.config.gameChannelId,message);}
         // This acknowledgement can only follow the inbox+cursor transaction commit.
         const ack=await this.rpc.ack(accepted.cursor,cursor.recoveryRevision);
         if(ack.acceptedCursor.journalGeneration!==accepted.cursor.journalGeneration||ack.acceptedCursor.channelOffset!==accepted.cursor.channelOffset||ack.recoveryRevision!==cursor.recoveryRevision)throw new Error('Acknowledgement scope mismatch');
@@ -131,7 +132,7 @@ export class CollectorService implements OnModuleInit,OnModuleDestroy {
           if(event.channelId!==config.collectorChannelId)throw new Error('Chat scope mismatch');
           const chat=chatInput(event,config);
           const accepted=await this.ingestion.acceptChat(config.gameChannelId,chat);
-          if(!accepted.duplicate)this.realtime.publishChat(config.gameChannelId,overlayChatMessage(chat));
+          if(!accepted.duplicate){this.feedRealtime.publish(config.gameChannelId,'chat');this.realtime.publishChat(config.gameChannelId,overlayChatMessage(chat));}
           this.state.chatConnected=true;
         }
       }catch(error){if((error as {code?:number}).code===GrpcStatus.FAILED_PRECONDITION)await this.ingestion.resetChatCursor(config.gameChannelId,config.consumerId).catch(()=>{});}

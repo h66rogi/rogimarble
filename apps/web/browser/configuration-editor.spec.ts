@@ -47,6 +47,7 @@ async function fixture(
   await page.route("**/v1/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    if (path.endsWith("/feed/events")) return route.fulfill({ status: 204 });
     let data: unknown = {};
     if (path.includes("/config/")) {
       const [, rest] = path.split("/config/");
@@ -110,6 +111,8 @@ async function fixture(
     else if (path.endsWith("/collector"))
       data = { enabled: false, transport: "disconnected", counts: {} };
     else if (path.endsWith("/donations"))
+      data = { items: [], nextCursor: null, collectionConnected: false };
+    else if (path.endsWith("/chats"))
       data = { items: [], nextCursor: null, collectionConnected: false };
     else if (path.endsWith("/operations"))
       data = { items: [], nextCursor: null };

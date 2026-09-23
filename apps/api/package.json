@@ -11,6 +11,7 @@
     "test:auth": "tsc -p tsconfig.test.json --pretty false && node --test dist-test/apps/api/test/auth-shared.test.js",
     "token:cli": "node --experimental-strip-types src/access-token-cli.ts",
     "test:collector": "node --experimental-strip-types --test test/collector-rpc.test.ts",
+    "test:feed": "tsc -p tsconfig.json && node --experimental-strip-types --test test/operator-feed-realtime.test.ts",
     "test:pawn": "tsc -p tsconfig.pawn-test.json --pretty false && node --test dist-pawn/apps/api/test/pawn-assets.test.js"
   },
   "dependencies": {

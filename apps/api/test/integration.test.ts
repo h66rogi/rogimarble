@@ -85,6 +85,31 @@ test('health, readiness, cookie session and CSRF fail closed',async()=>{
   assert.equal((await http.post('/v1/channels/test-channel/sessions',{},null)).status,403);
 });
 
+test('chat history is scoped, searchable, cursor paged, and its live stream requires a session',async()=>{
+  const auth=await login(),http=client(auth),db=new pg.Client({connectionString:databaseUrl});
+  await db.connect();
+  try{
+    for(const [index,name,message] of [[1,'첫 시청자','첫 메시지'],[2,'둘째 시청자','다음 메시지']] as const){
+      await db.query(`INSERT INTO collector_chat_inbox(id,channel_id,consumer_id,collector_channel_id,external_event_id,stream_generation,stream_id,gap_before,payload,received_at) VALUES($1,'test-channel','integration','synthetic',$2,'g1',$3,false,$4,now()+$5::interval)`,
+        [randomUUID(),`chat-${index}`,String(index),{userId:`viewer-${index}`,userDisplayName:name,message,observedAt:'2026-01-01T00:00:00Z',occurredAt:null},`${index} seconds`]);
+    }
+  }finally{await db.end();}
+  const base='/v1/channels/test-channel/chats';
+  let response=await http.get(`${base}?limit=1`);assert.equal(response.status,200);
+  const first=await response.json() as any;assert.equal(first.items.length,1);assert.equal(first.items[0].userDisplayName,'둘째 시청자');assert.ok(first.nextCursor);
+  response=await http.get(`${base}?limit=1&cursor=${encodeURIComponent(first.nextCursor)}`);assert.equal(response.status,200);
+  const second=await response.json() as any;assert.equal(second.items[0].userDisplayName,'첫 시청자');assert.notEqual(first.items[0].id,second.items[0].id);
+  response=await http.get(`${base}?search=${encodeURIComponent('다음 메시지')}`);assert.equal(response.status,200);
+  assert.deepEqual((await response.json() as any).items.map((item:any)=>item.userDisplayName),['둘째 시청자']);
+  assert.equal((await http.get('/v1/channels/unrelated-channel/chats')).status,403);
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/feed/events`)).status,401);
+  const controller=new AbortController();
+  response=await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/feed/events`,{headers:{origin:'https://console.example',cookie:auth.cookie},signal:controller.signal});
+  assert.equal(response.status,200);assert.match(response.headers.get('content-type')??'',/text\/event-stream/);
+  const reader=response.body!.getReader();
+  try{assert.match(new TextDecoder().decode((await reader.read()).value),/heartbeat/);}finally{controller.abort();await reader.cancel().catch(()=>{});}
+});
+
 test('live overlay layout persists, uses CAS, scopes channels, and revoked OBS tokens fail closed',async()=>{
   const auth=await login(),http=client(auth),path='/v1/channels/test-channel/overlay-layout/live';
   let response=await http.get(path);assert.equal(response.status,200);const initial=await response.json() as any;

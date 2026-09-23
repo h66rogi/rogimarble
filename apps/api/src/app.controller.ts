@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Header, Headers, HttpCode, HttpException, HttpStatus, Param, Post, Put, Query, Req, Res, ServiceUnavailableException, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, Headers, HttpCode, HttpException, HttpStatus, Param, Post, Put, Query, Req, Res, ServiceUnavailableException, Sse, UnauthorizedException, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import type { AuthConfigResponse, AuthSessionResponse, CreateSessionRequest, LoginRequest, LoginResponse, SessionCommandRequest } from '../../../packages/contracts/src/index.ts';
 import { pool, transaction } from '../../../packages/database/src/index.ts';
@@ -7,15 +7,16 @@ import { ApiService } from './api.service.ts';
 import { ConfigurationService } from './configuration.service.ts';
 import { AuthenticatedRequest, clearSessionCookie, CsrfGuard, hash, localCsrfToken, newCredential, readSessionCookie, SessionGuard, sessionCookieValue, setSessionCookie } from './auth.ts';
 import { OverlayLayoutService } from './overlay-layout.ts';
+import { OperatorFeedRealtimeService } from './operator-feed-realtime.ts';
 
 @Controller()
 export class AppController {
-  constructor(private readonly api: ApiService,private readonly configuration:ConfigurationService,private readonly overlayLayout:OverlayLayoutService) {}
+  constructor(private readonly api: ApiService,private readonly configuration:ConfigurationService,private readonly overlayLayout:OverlayLayoutService,private readonly feedRealtime:OperatorFeedRealtimeService) {}
   @Get('/health') health() { return { status: 'ok' }; }
   @Get('/ready') async ready() {
-    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['012_pawn_styles.sql']);
+    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['013_chat_feed_index.sql']);
       if(!result.rowCount)throw new Error('required migration missing');
-      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0');await pool().query('SELECT 1 FROM pawn_assets LIMIT 0');await pool().query('SELECT style_id FROM channel_pawn_appearances LIMIT 0');await pool().query('SELECT 1 FROM channel_live_overlay_layouts LIMIT 0'); return { status:'ready',schemaVersion:'012_pawn_styles.sql' }; }
+      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0');await pool().query('SELECT 1 FROM pawn_assets LIMIT 0');await pool().query('SELECT style_id FROM channel_pawn_appearances LIMIT 0');await pool().query('SELECT 1 FROM channel_live_overlay_layouts LIMIT 0'); return { status:'ready',schemaVersion:'013_chat_feed_index.sql' }; }
     catch { throw new ServiceUnavailableException('Database or migrations are not ready'); }
   }
   @Post('/v1/auth/login') @HttpCode(200) @Header('Cache-Control','no-store')
@@ -111,6 +112,10 @@ export class AppController {
   publishConfig(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Param('kind') kind:string,@Param('versionId') id:string,@Body() body:unknown){return this.configuration.publish(req.operator!,channelId,kind,id,body);}
   @Get('/v1/channels/:channelId/donations') @UseGuards(SessionGuard)
   donations(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Query() query:unknown){return this.configuration.donations(req.operator!,channelId,query);}
+  @Get('/v1/channels/:channelId/chats') @UseGuards(SessionGuard) @Header('Cache-Control','no-store')
+  chats(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Query() query:unknown){return this.configuration.chats(req.operator!,channelId,query);}
+  @Sse('/v1/channels/:channelId/feed/events') @UseGuards(SessionGuard) @Header('Cache-Control','no-store')
+  async feedEvents(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string){await this.configuration.access(req.operator!,channelId);return this.feedRealtime.stream(channelId);}
   @Get('/v1/channels/:channelId/operations') @UseGuards(SessionGuard)
   operations(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Query() query:unknown){return this.configuration.operations(req.operator!,channelId,query);}
   @Get('/v1/channels/:channelId/obs-tokens') @UseGuards(SessionGuard) @Header('Cache-Control','no-store')

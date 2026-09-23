@@ -31,6 +31,10 @@ async function mockApi(page: Page) {
   // Everything is synthetic and intercepted in-browser; never connect to a collector or real game.
   await page.route("**/v1/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/feed/events")) {
+      await route.fulfill({ status: 204 });
+      return;
+    }
     let response: unknown = {};
     if (path.endsWith("/auth/config"))
       response = { mode: "token", localLoginEnabled: false };
@@ -83,6 +87,13 @@ async function mockApi(page: Page) {
         }],
         nextCursor: null,
         collectionConnected: true,
+      };
+    else if (path.endsWith("/chats"))
+      response = {
+        items: [{ id: "test-chat", userId: "viewer-1", userDisplayName: "테스트 시청자",
+          message: "안녕하세요", occurredAt: "2026-01-01T00:00:01Z",
+          receivedAt: "2026-01-01T00:00:02Z", gapBefore: false, matchedTaskId: null }],
+        nextCursor: null, collectionConnected: true,
       };
     else if (path.endsWith("/operations"))
       response = {
@@ -205,10 +216,13 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   ).toBe("0px");
   await expect(nav.getByRole("tab", { name: "후원 내역" })).toHaveCount(0);
   await expect(nav.getByRole("tab", { name: "운영 기록" })).toHaveCount(0);
-  const donations = page.locator("#console-panel-home").getByRole("region", { name: "후원 내역" });
+  const donations = page.locator("#console-panel-home").getByRole("region", { name: "실시간 채팅과 후원 내역" });
   await expect(donations).toBeVisible();
-  await expect(donations).toHaveClass(/overflow-y-auto/);
   await expect(donations.getByText("테스트 후원자")).toBeVisible();
+  await donations.getByRole("tab", { name: "채팅 내역" }).click();
+  await expect(donations.getByText("테스트 시청자")).toBeVisible();
+  await expect(donations.getByText("안녕하세요")).toBeVisible();
+  await donations.getByRole("tab", { name: "후원 내역" }).click();
   await nav.getByRole("tab", { name: "홈", exact: true }).focus();
   await page.keyboard.press("ArrowRight");
   await expect(nav.getByRole("tab", { name: "규칙·보드" })).toBeFocused();
