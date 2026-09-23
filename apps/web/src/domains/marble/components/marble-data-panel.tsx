@@ -5,6 +5,7 @@ import type { ChannelOverlayTokenDto, DonationEventDto } from "@rogimarble/contr
 import { api } from "../../../../lib/api";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { MaskedUrlInput } from "@/shared/components/ui/masked-url-input";
 import {
   ConsoleNotice,
   ConsolePanel,
@@ -400,7 +401,6 @@ function OverlayTokenUrls({
   baseUrl: string;
   onMessage: (message: string) => void;
 }) {
-  const [revealed, setRevealed] = useState(false);
   const copy = (url: string, label: string) =>
     void navigator.clipboard.writeText(url)
       .then(() => onMessage(`${label} 주소를 복사했습니다.`))
@@ -408,13 +408,8 @@ function OverlayTokenUrls({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">주소를 복사해 OBS 브라우저 소스에 붙여 넣으세요. 외부에 공유하지 마세요.</p>
-        <Button size="sm" variant="outline" onClick={() => setRevealed(!revealed)}>
-          {revealed ? "주소 숨기기" : "주소 표시"}
-        </Button>
-      </div>
-      <OverlayUrlRow label="통합 오버레이" url={baseUrl} width={1920} height={1080} revealed={revealed} onCopy={copy} />
+      <p className="text-sm text-muted-foreground">주소를 복사해 OBS 브라우저 소스에 붙여 넣으세요. 외부에 공유하지 마세요.</p>
+      <OverlayUrlRow label="통합 오버레이" url={baseUrl} width={1920} height={1080} onCopy={copy} />
       {OVERLAY_PARTS.map((part) => (
         <OverlayUrlRow
           key={part.id}
@@ -422,7 +417,6 @@ function OverlayTokenUrls({
           url={overlayPartUrl(baseUrl, part.id)}
           width={part.width}
           height={part.height}
-          revealed={revealed}
           onCopy={copy}
         />
       ))}
@@ -435,14 +429,12 @@ function OverlayUrlRow({
   url,
   width,
   height,
-  revealed,
   onCopy,
 }: {
   label: string;
   url: string;
   width: number;
   height: number;
-  revealed: boolean;
   onCopy: (url: string, label: string) => void;
 }) {
   return (
@@ -452,7 +444,7 @@ function OverlayUrlRow({
           <span className="text-sm font-semibold">{label}</span>
           <span className="text-xs text-muted-foreground">OBS 권장 크기 {width} × {height}px</span>
         </div>
-        <Input readOnly aria-label={`${label} OBS 주소`} value={revealed ? url : "주소 표시를 눌러 확인"} onFocus={(event) => event.target.select()} />
+        <MaskedUrlInput label={`${label} OBS 주소`} value={url} />
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={() => onCopy(url, label)}>주소 복사</Button>
           <Button size="sm" variant="outline" asChild><a href={url} target="_blank" rel="noopener noreferrer">화면 열기</a></Button>

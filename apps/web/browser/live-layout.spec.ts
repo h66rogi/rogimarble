@@ -221,20 +221,24 @@ test('overlay tab keeps one channel URL after reload and rotates it on request',
   await expect.poll(() => state.writes.at(-1)?.layout.widgetStyles?.menu?.fontId).toBe('jua');
   await expect(page.getByRole('button', { name: '주소 발급' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '회수' })).toHaveCount(0);
-  await page.getByRole('button', { name: '주소 표시' }).click();
-  await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=synthetic-overlay');
+  const menuUrl = page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' });
+  await expect(menuUrl).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=synthetic-overlay');
+  await expect(menuUrl).toHaveCSS('filter', 'blur(6px)');
+  await page.getByRole('button', { name: '후원 메뉴 OBS 주소 표시' }).click();
+  await expect(menuUrl).toHaveCSS('filter', 'none');
   await expect(page.getByRole('tabpanel', { name: '후원 메뉴' }).getByText('OBS 권장 크기 480 × 640px')).toBeVisible();
   await expect(page.getByRole('textbox', { name: '주루마블 보드 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/board#token=synthetic-overlay');
+  await expect(page.getByRole('textbox', { name: '주루마블 보드 OBS 주소' })).toHaveCSS('filter', 'blur(6px)');
   await page.reload();
   await page.getByRole('tab', { name: '오버레이 설정', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('주소 표시를 눌러 확인');
-  await page.getByRole('button', { name: '주소 표시' }).click();
-  await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=synthetic-overlay');
+  await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveCSS('filter', 'blur(6px)');
+  await page.getByRole('button', { name: '후원 메뉴 OBS 주소 표시' }).click();
+  await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveCSS('filter', 'none');
   await page.getByRole('button', { name: '주소 회전' }).click();
   await expect(page.getByText('기존 주소는 즉시 중단됩니다. OBS 브라우저 소스에 새 주소를 다시 입력해야 합니다.')).toBeVisible();
   await page.getByRole('alertdialog').getByRole('button', { name: '주소 회전' }).click();
-  await page.getByRole('button', { name: '주소 표시' }).click();
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=rotated-overlay');
+  await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveCSS('filter', 'blur(6px)');
 });
 
 test('visible editor polls a newer published layout and permission without requiring a failed gesture', async ({ page }) => {
