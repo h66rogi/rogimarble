@@ -1,15 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { Gift, Grid2X2, HeartHandshake, Monitor, UserRound } from "lucide-react";
 import type { ChannelConfigKind } from "@rogimarble/contracts";
 import { api } from "../../../../../lib/api";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/shared/components/ui/tabs";
+import { PillTabs, type PillTabItem } from "@/shared/components/ui/pill-tabs";
 import { Badge } from "@/shared/components/ui/badge";
 import { ConfigurationEditor, configLabels } from "../configuration-editor";
 import type { NamedItem } from "./editor-model";
@@ -24,6 +19,7 @@ const sections = {
 const labels: Record<WorkspaceTab, string> = { ...configLabels, pawn: "말 디자인" };
 
 export function ConfigurationWorkspace({ section }: { section: ConfigurationSection }) {
+  const idPrefix = useId();
   const [selected, setSelected] = useState<Record<ConfigurationSection, WorkspaceTab>>({
     rules: "rules",
     board: "board",
@@ -79,37 +75,38 @@ export function ConfigurationWorkspace({ section }: { section: ConfigurationSect
             : "게임판, 방송 테마·배치, 말 디자인을 설정하세요."}
         </p>
       </header>
-      <Tabs
-        value={tab}
-        onValueChange={(value) => {
-          const kind = value as WorkspaceTab;
-          setSelected((current) => ({ ...current, [section]: kind }));
-          setVisited((current) =>
-            current.includes(kind) ? current : [...current, kind],
-          );
-        }}
-      >
-        <TabsList wrap>
-          {sections[section].map(([kind, Icon]) => (
-            <TabsTrigger key={kind} value={kind}>
-              <Icon className="size-4" />
-              {labels[kind]}
-              {kind !== "pawn" && dirty[kind] && <span aria-label="저장하지 않은 변경">•</span>}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <div>
+        <PillTabs
+          ariaLabel={section === "rules" ? "게임 규칙 세부 메뉴" : "보드 설정 세부 메뉴"}
+          idPrefix={idPrefix}
+          activeTab={tab}
+          tabs={sections[section].map(([kind, Icon]) => ({
+            id: kind,
+            label: labels[kind],
+            icon: Icon,
+            badge: kind !== "pawn" && dirty[kind] ? "•" : undefined,
+            badgeLabel: kind !== "pawn" && dirty[kind] ? "저장하지 않은 변경" : undefined,
+          })) satisfies PillTabItem<WorkspaceTab>[]}
+          onTabChange={(kind) => {
+            setSelected((current) => ({ ...current, [section]: kind }));
+            setVisited((current) =>
+              current.includes(kind) ? current : [...current, kind],
+            );
+          }}
+        />
         {itemError && (
           <p role="status" className="mt-3 text-sm text-muted-foreground">
             {itemError}
           </p>
         )}
         {visited.map((kind) => (
-          <TabsContent
+          <div
             key={kind}
-            value={kind}
-            forceMount
+            id={`${idPrefix}-panel-${kind}`}
+            role="tabpanel"
+            aria-labelledby={`${idPrefix}-tab-${kind}`}
             hidden={tab !== kind}
-            className="mt-6 data-[state=inactive]:hidden"
+            className="mt-6"
           >
             {kind === "pawn" ? (
               <PawnSettings active={section === "board" && tab === "pawn"} />
@@ -124,9 +121,9 @@ export function ConfigurationWorkspace({ section }: { section: ConfigurationSect
                 }}
               />
             )}
-          </TabsContent>
+          </div>
         ))}
-      </Tabs>
+      </div>
     </div>
   );
 }

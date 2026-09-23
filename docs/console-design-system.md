@@ -44,7 +44,7 @@ root layout의 생성 variable class와 `--font-sans`로 연결한다. 이 생�
 테마/설정, controlled Tabs·Select, Card·Alert·Checkbox 조합 문서를 조회했다.
 기존 Radix 기반 new-york와 Tailwind v4를 유지하고 Base UI/React Aria API를 혼합하지 않았다.
 문서에 Shadcn Tabs가 있다는 사실은 원본 상단 메뉴를 교체해야 할 이유가 아니다.
-Shadcn Tabs는 새로 만드는 설정 내부 탭 등에 사용한다.
+게임 규칙·보드 설정의 내부 메뉴는 meloming-front의 PillTabs 모양을 공유 Button으로 구성한다. 탭 역할·방향키 이동·패널 연결을 유지한다.
 
 - [테마](https://ui.shadcn.com/docs/theming): CSS 변수와 `@theme inline`, `.dark`.
 - [설정](https://ui.shadcn.com/docs/components-json): 실제 CSS/alias 경로.

@@ -198,6 +198,20 @@ test("game rules and board settings group their own menus and move pawn design o
   const state = await fixture(page);
   const top = page.getByRole("tablist", { name: "운영 콘솔 메뉴" });
   await expect(top.getByRole("tab", { name: "규칙·보드" })).toHaveCount(0);
+  const boardTabs = page.getByRole("tablist", { name: "보드 설정 세부 메뉴" });
+  const boardTab = boardTabs.getByRole("tab", { name: "게임판" });
+  const themeTab = boardTabs.getByRole("tab", { name: "방송 테마·배치" });
+  await expect(boardTab).toHaveAttribute("data-slot", "button");
+  await expect(boardTab).toHaveClass(/rounded-full/);
+  await expect(themeTab).toHaveClass(/rounded-full/);
+  await expect(boardTab).toHaveAttribute("aria-selected", "true");
+  expect(await boardTab.evaluate((element) => getComputedStyle(element).backgroundColor))
+    .not.toBe(await themeTab.evaluate((element) => getComputedStyle(element).backgroundColor));
+  await boardTab.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(themeTab).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("ArrowLeft");
+  await expect(boardTab).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: "방송 테마·배치" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "말 디자인" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "아이템" })).toHaveCount(0);
