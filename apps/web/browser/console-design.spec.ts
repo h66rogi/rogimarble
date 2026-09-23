@@ -218,6 +218,15 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   await expect(nav.getByRole("tab", { name: "운영 기록" })).toHaveCount(0);
   const donations = page.locator("#console-panel-home").getByRole("region", { name: "실시간 채팅과 후원 내역" });
   await expect(donations).toBeVisible();
+  const feedHeader = donations.locator(":scope > div").first();
+  await expect.poll(async () => (await feedHeader.boundingBox())?.height).toBe(53);
+  const feedTabsBox = await donations.getByRole("tablist").boundingBox();
+  const searchButton = donations.getByRole("button", { name: "내역 검색 및 필터" });
+  const searchButtonBox = await searchButton.boundingBox();
+  expect(feedTabsBox && searchButtonBox && searchButtonBox.x >= feedTabsBox.x + feedTabsBox.width).toBe(true);
+  const quickSearch = donations.getByRole("textbox", { name: "빠른 후원자 검색" });
+  if (test.info().project.name === "desktop") await expect(quickSearch).toBeVisible();
+  else await expect(quickSearch).toBeHidden();
   await expect(donations.getByText("테스트 후원자")).toBeVisible();
   await donations.getByRole("tab", { name: "채팅 내역" }).click();
   await expect(donations.getByText("테스트 시청자")).toBeVisible();
@@ -232,13 +241,16 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
     "true",
   );
   await homeTab.click();
-  const filter = donations.getByRole("combobox", { name: "처리 결과" });
+  await searchButton.click();
+  const filter = page.getByRole("combobox", { name: "처리 결과" });
   await filter.click();
   await page.getByRole("option", { name: "규칙 일치", exact: true }).click();
   await expect(filter).toContainText("규칙 일치");
   await filter.click();
   await page.getByRole("option", { name: "전체 결과", exact: true }).click();
   await expect(filter).toContainText("전체 결과");
+  await page.getByRole("button", { name: "조회" }).click();
+  await expect(filter).not.toBeVisible();
   for (const name of ["오버레이 설정", "홈"]) {
     await nav.getByRole("tab", { name, exact: true }).click();
     await expect(collectorLink).toBeInViewport();

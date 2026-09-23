@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
-import { MessageSquareText, ReceiptText } from "lucide-react";
+import { MessageSquareText, Pause, Play, ReceiptText, Search, SlidersHorizontal } from "lucide-react";
 import type { ChatEventDto, DonationEventDto } from "@rogimarble/contracts";
 import { api } from "../../../../lib/api";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { ConsoleDetails, ConsoleNotice, ConsoleSelect } from "@/shared/components/common/console-ui";
@@ -48,6 +49,7 @@ export function MarbleDonationsSection() {
   const [query, setQuery] = useState("");
   const [result, setResult] = useState("");
   const [resultQuery, setResultQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [rows, setRows] = useState<FeedRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [connected, setConnected] = useState<boolean | null>(null);
@@ -175,42 +177,75 @@ export function MarbleDonationsSection() {
   ], [kind]);
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel(), getRowId: (row) => row.id });
   const selected = rows.find((row) => row.id === selectedId);
+  const connectionStatus = connected === null ? "연결 확인 중" : connected
+    ? streamConnected ? "수집 중 · 실시간 연결" : "수집 중 · 재연결 중"
+    : "수집 연결 확인 필요";
+  const applySearch = () => {
+    const nextQuery = search.trim();
+    setQuery(nextQuery);
+    setResultQuery(kind === "donation" ? result : "");
+    setSearchOpen(false);
+    if (nextQuery === query && (kind === "chat" || result === resultQuery)) void load("reset");
+  };
 
   return <section aria-label="실시간 채팅과 후원 내역" className="flex h-full min-h-0 flex-col border-t bg-background">
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2">
+    <div className="@container flex items-center justify-between gap-2 border-b px-3 py-2">
       <Tabs value={kind} onValueChange={(value) => {
         setKind(value as FeedKind); setSearch(""); setQuery(""); setResult(""); setResultQuery("");
-        setFollowLatest(true);
+        setFollowLatest(true); setSearchOpen(false);
       }}>
         <TabsList>
           <TabsTrigger value="donation"><ReceiptText aria-hidden="true" />후원 내역</TabsTrigger>
           <TabsTrigger value="chat"><MessageSquareText aria-hidden="true" />채팅 내역</TabsTrigger>
         </TabsList>
       </Tabs>
-      <span className="text-xs text-muted-foreground">{connected === null ? "연결 확인 중" : connected ? streamConnected ? "수집 중 · 실시간 연결" : "수집 중 · 재연결 중" : "수집 연결 확인 필요"}</span>
-    </div>
-    <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
-      <form className="flex min-w-0 flex-1 flex-wrap gap-2" onSubmit={(event) => {
-        event.preventDefault(); setQuery(search.trim()); setResultQuery(kind === "donation" ? result : "");
-        if (search.trim() === query && (kind === "chat" || result === resultQuery)) void load("reset");
-      }}>
-        <Input className="min-w-32 flex-1" aria-label={kind === "chat" ? "채팅 검색" : "후원자 검색"}
-          placeholder={kind === "chat" ? "작성자 또는 메시지" : "후원자 이름"}
-          value={search} onChange={(event) => setSearch(event.target.value)} />
-        {kind === "donation" && <ConsoleSelect aria-label="처리 결과" value={result}
-          onValueChange={setResult} options={[{ value: "", label: "전체 결과" },
-            ...Object.entries(resultNames).map(([value, label]) => ({ value, label }))]} />}
-        <Button size="sm" variant="outline" type="submit">조회</Button>
-      </form>
-      <Button size="sm" variant={followLatest ? "secondary" : "outline"}
-        onClick={() => setFollowLatest((value) => !value)} aria-pressed={followLatest}>
-        {followLatest ? "실시간 반영 중" : "실시간 반영 멈춤"}
-      </Button>
-      {newCount > 0 && <Button size="sm" onClick={() => {
-        rowsRef.current = mergeRows(pendingFresh.current, rowsRef.current);
-        setRows(rowsRef.current); pendingFresh.current = []; setNewCount(0);
-        scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-      }}>새 내역 {newCount}건</Button>}
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="sr-only" role="status">{connectionStatus}</span>
+        <form className="hidden items-center gap-2 @min-[520px]:flex"
+          onSubmit={(event) => { event.preventDefault(); applySearch(); }}>
+          <Input className="w-32" aria-label={kind === "chat" ? "빠른 채팅 검색" : "빠른 후원자 검색"}
+            placeholder={kind === "chat" ? "작성자·메시지" : "후원자 이름"}
+            value={search} onChange={(event) => setSearch(event.target.value)} />
+          <Button size="icon" variant="outline" type="submit" aria-label="검색" title="검색">
+            <Search aria-hidden="true" />
+          </Button>
+        </form>
+        <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+          <PopoverTrigger asChild>
+            <Button size="icon" variant={query || resultQuery ? "secondary" : "outline"} className="relative"
+              aria-label="내역 검색 및 필터" title="내역 검색 및 필터">
+              <Search aria-hidden="true" className="@min-[520px]:hidden" />
+              <SlidersHorizontal aria-hidden="true" className="hidden @min-[520px]:block" />
+              {newCount > 0 && <Badge className="absolute -right-1 -top-1"
+                aria-label={`새 내역 ${newCount}건`}>{newCount}</Badge>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="space-y-3">
+            <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); applySearch(); }}>
+              <Input aria-label={kind === "chat" ? "채팅 검색" : "후원자 검색"}
+                placeholder={kind === "chat" ? "작성자 또는 메시지" : "후원자 이름"}
+                value={search} onChange={(event) => setSearch(event.target.value)} />
+              {kind === "donation" && <ConsoleSelect aria-label="처리 결과" value={result}
+                onValueChange={setResult} options={[{ value: "", label: "전체 결과" },
+                  ...Object.entries(resultNames).map(([value, label]) => ({ value, label }))]} />}
+              <Button size="sm" type="submit" className="w-full">조회</Button>
+            </form>
+            {newCount > 0 && <Button size="sm" variant="secondary" className="w-full" onClick={() => {
+              rowsRef.current = mergeRows(pendingFresh.current, rowsRef.current);
+              setRows(rowsRef.current); pendingFresh.current = []; setNewCount(0);
+              scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+              setSearchOpen(false);
+            }}>새 내역 {newCount}건 보기</Button>}
+            <p className="text-xs text-muted-foreground">{connectionStatus}</p>
+          </PopoverContent>
+        </Popover>
+        <Button size="icon" variant={followLatest ? "secondary" : "outline"}
+          onClick={() => setFollowLatest((value) => !value)} aria-pressed={followLatest}
+          aria-label={followLatest ? "실시간 반영 중 · 일시정지" : "실시간 반영 멈춤 · 재개"}
+          title={followLatest ? "실시간 반영 일시정지" : "실시간 반영 재개"}>
+          {followLatest ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
+        </Button>
+      </div>
     </div>
     {error && <ConsoleNotice variant="warning">{error}</ConsoleNotice>}
     <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
