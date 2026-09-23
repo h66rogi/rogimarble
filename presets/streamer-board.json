@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "streamer-reference-board-normal-die-v3",
+  "id": "streamer-reference-board-normal-die-v4",
   "name": "스트리머 전달 주루마블 판",
   "canvas": {
     "width": 1920,
@@ -63,7 +63,10 @@
         "fill": "#e0f1e8",
         "textColor": "#54253b",
         "borderColor": "#85b7a1",
-        "artwork": null
+        "artwork": {
+          "type": "image",
+          "assetId": "party-start-flag-v1"
+        }
       },
       "onLand": [
         {
@@ -227,7 +230,7 @@
         "borderColor": "#edbdd0",
         "artwork": {
           "type": "image",
-          "assetId": "party-punch-v1"
+          "assetId": "party-instant-camera-v1"
         }
       },
       "onLand": [
@@ -620,7 +623,10 @@
         "fill": "#fff1f4",
         "textColor": "#54253b",
         "borderColor": "#edbdd0",
-        "artwork": null
+        "artwork": {
+          "type": "image",
+          "assetId": "party-empty-gift-v1"
+        }
       },
       "onLand": [
         {

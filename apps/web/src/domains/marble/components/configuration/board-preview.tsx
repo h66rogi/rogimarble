@@ -28,15 +28,15 @@ import { cellRect, describeEffect, effectNames } from "./editor-model";
 // Dynamic geometry, artwork and user-selected colours are board data, not console chrome.
 export function CellArt({ assetId }: { assetId: string }) {
   const asset = assetManifestById.get(assetId);
-  if (asset?.kind !== "atlas-image") return <Sparkles size={20} />;
+  if (asset?.kind !== "atlas-image" && asset?.kind !== "image") return <Sparkles size={20} />;
   return (
     <span
       aria-hidden="true"
       className="block aspect-square h-full max-h-full w-full max-w-full bg-no-repeat"
       style={{
         backgroundImage: `url(${asset.path})`,
-        backgroundSize: `${asset.atlas.columns * 100}% ${asset.atlas.rows * 100}%`,
-        backgroundPosition: `${(asset.atlas.x / (asset.atlas.columns - 1)) * 100}% ${(asset.atlas.y / (asset.atlas.rows - 1)) * 100}%`,
+        backgroundSize: asset.kind === "image" ? "contain" : `${asset.atlas.columns * 100}% ${asset.atlas.rows * 100}%`,
+        backgroundPosition: asset.kind === "image" ? "center" : `${(asset.atlas.x / (asset.atlas.columns - 1)) * 100}% ${(asset.atlas.y / (asset.atlas.rows - 1)) * 100}%`,
       }}
     />
   );

@@ -48,6 +48,10 @@
 .marble-board .mission-talk { background-position: 0 100%; }
 .marble-board .mission-turn { background-position: 50% 100%; }
 .marble-board .mission-bank { background-position: 100% 100%; }
+.marble-board .mission-camera,.marble-board .party-start-flag,.marble-board .party-empty-gift { background-size: contain; background-position: center; }
+.marble-board .mission-camera { background-image: url('/artwork/jurumarble-instant-camera.png'); }
+.marble-board .party-start-flag { background-image: url('/artwork/jurumarble-start-flag.png'); }
+.marble-board .party-empty-gift { background-image: url('/artwork/jurumarble-empty-gift.png'); }
 .marble-board .cell-label { align-self: center; max-width: 100%; font-size: 26px; line-height: 1.05; font-weight: 850; letter-spacing: -.035em; word-break: keep-all; overflow-wrap: anywhere; text-wrap: balance; }
 .marble-board.is-fitted .cell-label { font-size: 26px; line-height: 1.05; }
 .marble-board.is-fitted .cell-icon { width: 60px; height: 60px; border-radius: 18px; }

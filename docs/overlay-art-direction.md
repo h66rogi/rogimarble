@@ -35,6 +35,27 @@ PNG 원본 alpha를 그대로 보존하며 파일을 잘라내지 않고 atlas �
 
 - `apps/web/public/artwork/jurumarble-party-atlas.png`: 1536×1024, 3×2. 건배/무인도/여행/하트/마이크/실드.
 - `apps/web/public/artwork/jurumarble-mission-atlas.png`: 1536×1024, 3×2. 안주/키스/글러브/대화/방향/적립.
+- `apps/web/public/artwork/jurumarble-instant-camera.png`: 투명 배경의 즉방(즉석 방셀) 카메라 아이콘.
+- `apps/web/public/artwork/jurumarble-start-flag.png`: 투명 배경의 출발 깃발 아이콘.
+- `apps/web/public/artwork/jurumarble-empty-gift.png`: 투명 배경의 꽝 빈 선물상자 아이콘.
+
+### 추가 칸 아이콘 (2026-09-23)
+
+기존 atlas를 스타일 참조로 삼아 `image_gen`으로 각 이미지를 따로 생성했다. 세 이미지 모두
+1254×1254 RGBA PNG이며 투명 배경을 유지한다. 새 이미지는 atlas를 잘라 쓰지 않고
+각 칸의 `appearance.artwork.assetId`로 지정한다.
+
+```text
+Create one original single square icon for the "즉방" (즉석 방셀, instant selfie) space of the Jurumarble livestream board game. A charming retro instant camera, with a pink body, cream lens and mint details; one small blank instant photo emerging from the top. Match the supplied Jurumarble icon atlas as an art-direction reference: polished 2.5D sculpted glossy enamel / clay, fine burgundy outlines, warm cream highlights, blush pink and sage mint palette, soft local contact shadow, clear silhouette at 64px. Center the whole icon with generous transparent padding. Real transparent alpha background. No text, letters, numbers, logos, faces, dice, or painted backdrop.
+```
+
+```text
+Create one original single square "start" icon for the Jurumarble livestream board game: a playful checkered racing flag on a short pole, with blush-pink and creamy white checks, mint accents and tiny cream sparkles. Match the supplied Jurumarble atlas art direction: polished 2.5D glossy enamel / clay, fine burgundy outlines, cream highlights, pink and sage mint palette, soft local contact shadow, clean silhouette readable at 64px. Center with generous transparent padding. Real transparent alpha background. No text, letters, numbers, logos, dice, or painted backdrop.
+```
+
+```text
+Create one original single square icon for the "꽝" (no prize) space of the Jurumarble livestream board game: a cute opened gift box with an empty interior, a loose lid and ribbon, visibly empty but friendly and playful. Pink, cream and mint gift wrapping. Match the supplied Jurumarble atlas art direction: polished 2.5D glossy enamel / clay, fine burgundy outlines, creamy highlights, soft local contact shadow, clear silhouette readable at 64px. Center with generous transparent padding. Real transparent alpha background. No text, letters, numbers, logos, dice, coins, rewards, or painted backdrop.
+```
 
 ### 첫 atlas
 

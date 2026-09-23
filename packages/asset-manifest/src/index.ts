@@ -24,11 +24,25 @@ export interface AtlasImageAssetManifestEntry {
   };
 }
 
-export type AssetManifestEntry = LottieAssetManifestEntry | AtlasImageAssetManifestEntry;
+export interface CellImageAssetManifestEntry {
+  readonly id: string;
+  readonly kind: 'image';
+  readonly source: 'first-party';
+  readonly usage: 'cell-art';
+  readonly path:
+    | '/artwork/jurumarble-instant-camera.png'
+    | '/artwork/jurumarble-start-flag.png'
+    | '/artwork/jurumarble-empty-gift.png';
+}
+
+export type AssetManifestEntry = LottieAssetManifestEntry | AtlasImageAssetManifestEntry | CellImageAssetManifestEntry;
 
 const atlas = (id:string,path:AtlasImageAssetManifestEntry['path'],x:number,y:number):AtlasImageAssetManifestEntry => ({
   id,kind:'atlas-image',source:'first-party',usage:'cell-art',path,
   atlas:{x,y,columns:3,rows:2,width:1536,height:1024,tileWidth:512,tileHeight:512},
+});
+const image = (id:string,path:CellImageAssetManifestEntry['path']):CellImageAssetManifestEntry => ({
+  id,kind:'image',source:'first-party',usage:'cell-art',path,
 });
 
 export const assetManifest: readonly AssetManifestEntry[] = [
@@ -45,6 +59,9 @@ export const assetManifest: readonly AssetManifestEntry[] = [
   atlas('party-talk-v1','/artwork/jurumarble-mission-atlas.png',0,1),
   atlas('party-turn-v1','/artwork/jurumarble-mission-atlas.png',1,1),
   atlas('party-bank-v1','/artwork/jurumarble-mission-atlas.png',2,1),
+  image('party-instant-camera-v1','/artwork/jurumarble-instant-camera.png'),
+  image('party-start-flag-v1','/artwork/jurumarble-start-flag.png'),
+  image('party-empty-gift-v1','/artwork/jurumarble-empty-gift.png'),
 ];
 
 export const knownAssetIds: readonly string[] = assetManifest.map(({id})=>id);

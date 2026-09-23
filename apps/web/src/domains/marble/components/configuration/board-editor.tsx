@@ -620,7 +620,7 @@ export function BoardEditor({
                             없음
                           </SelectionButton>
                           {assetManifest
-                            .filter((a) => a.kind === "atlas-image")
+                            .filter((a) => a.kind === "atlas-image" || a.kind === "image")
                             .map((asset) => (
                               <SelectionButton
                                 layout="tile"
