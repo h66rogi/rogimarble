@@ -148,7 +148,7 @@ const TOTAL_WIDGET_LABELS: Record<TotalOverlayWidgetId, string> = {
 const TOTAL_WIDGET_MIN_SIZES: Record<TotalOverlayWidgetId, { w: number; h: number }> = {
   queue: { w: 0.12, h: 0.2 },
   'now-playing': { w: 0.2, h: 0.1 },
-  chatbox: { w: 0.2, h: 0.2 },
+  chatbox: { w: 0.1, h: 0.06 },
   alertbox: { w: 0.2, h: 0.15 },
   setlist: { w: 0.18, h: 0.25 },
   lyrics: { w: 0.3, h: 0.15 },

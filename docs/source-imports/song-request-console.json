@@ -775,7 +775,7 @@
       "sourcePath": "src/domains/overlay/components/total-overlay-layout-settings.tsx",
       "targetPath": "apps/web/src/domains/overlay/components/total-overlay-layout-settings.tsx",
       "sourceSha256": "d210de386d407962d067e656614333eddf1aeeba39b9340a6589916bfccc400b",
-      "importedSha256": "68d28375f8bf8ad6aa5a73c91d53e311d6a7a87a7adb055c00f9f07cda545598",
+      "importedSha256": "f77290340657cd382a3c9de2e067aaf9eebd0ff6318847649bd1d6dab0a06015",
       "adaptation": "adapted: retained original Rnd drag/resize, normalized snapping, 150ms throttle and serialized save queue; added optional Rogimarble live-layout adapter and fail-closed permissions"
     },
     {

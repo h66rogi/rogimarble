@@ -130,6 +130,38 @@ test('resizing and moving the board keeps the visual bounds in sync with saved O
   await expect.poll(() => state.writes.at(-1)?.layout.widgets.find(widget => widget.id === 'board')?.bounds.x).toBeGreaterThan(0);
 });
 
+test('chatbox can shrink to the small part minimum and grow again in the combined overlay', async ({ page }) => {
+  const state = await fixture(page);
+  await widgetSwitch(page, '채팅창').click();
+  const widget = page.locator('.react-draggable').filter({ has: page.locator('.rogimarble-chatbox') });
+  await expect(widget).toBeVisible();
+  const resize = async (dx: number, dy: number) => {
+    const beforeWrites = state.writes.length;
+    const handle = widget.locator('.rogimarble-resize-bottom-right');
+    await handle.scrollIntoViewIfNeeded();
+    const box = await handle.boundingBox();
+    expect(box).not.toBeNull();
+    await page.keyboard.down('Shift');
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box!.x + box!.width / 2 + dx, box!.y + box!.height / 2 + dy, { steps: 8 });
+    await page.mouse.up();
+    await page.keyboard.up('Shift');
+    await expect.poll(() => state.writes.length).toBeGreaterThan(beforeWrites);
+    return state.writes.at(-1)!.layout.widgets.find(item => item.id === 'chatbox')!.bounds;
+  };
+
+  const small = await resize(-180, -240);
+  expect(small.width).toBeGreaterThanOrEqual(0.099);
+  expect(small.width).toBeLessThan(0.2);
+  expect(small.height).toBeGreaterThanOrEqual(0.059);
+  expect(small.height).toBeLessThan(0.2);
+
+  const large = await resize(70, 60);
+  expect(large.width).toBeGreaterThan(small.width);
+  expect(large.height).toBeGreaterThan(small.height);
+});
+
 test('original Rnd editor throttles held drag, persists final resize, and recovers a 409 before the next save', async ({ page }) => {
   const state = await fixture(page);
   await widgetSwitch(page, '후원 메뉴').click();
