@@ -475,12 +475,13 @@ test('supported arrival effects persist counters, reservations, missions, modifi
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.movementLock,null);assert.equal((await http.post(path,{...clearLock,commandId:randomUUID(),expectedRevision:state.session.revision})).status,409);
   await land(board.cells[5].id);await land(board.cells[5].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,0);assert.equal(state.counters[0].reserved,0);assert.equal(state.counters[0].available,0);const settlement=state.missions.find((x:any)=>x.message==='settle snapshot');assert.equal(settlement.quantity,1);
   response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'adjust_counter',reason:'invalid correction',payload:{counterId:'drink-bank',quantity:-1,expectedCounterRevision:state.counters[0].revision}});assert.equal(response.status,422);
-  response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'adjust_counter',reason:'operator correction',payload:{counterId:'drink-bank',quantity:2,expectedCounterRevision:state.counters[0].revision}});assert.equal(response.status,201);
+  const legacySourceCommandId=randomUUID();
+  response=await http.post(path,{commandId:legacySourceCommandId,sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'adjust_counter',reason:'operator correction',payload:{counterId:'drink-bank',quantity:2,expectedCounterRevision:state.counters[0].revision}});assert.equal(response.status,201);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,2);assert.equal(state.counters[0].available,2);
   const legacyDb=new pg.Client({connectionString:databaseUrl});await legacyDb.connect();
   try{
     await legacyDb.query(`INSERT INTO missions(id,session_id,message,quantity,status,created_by_command_id,source_effect_index,settlement_counter_id,settlement_amount,settlement_on) VALUES($1,$2,'legacy reservation',1,'pending',$3,999,'drink-bank',1,'mission_completion')`,
-      [randomUUID(),state.session.id,state.latestCommand.commandId]);
+      [randomUUID(),state.session.id,legacySourceCommandId]);
     const migration=await readFile(new URL('../../../packages/database/migrations/020_settle_untracked_missions.sql',import.meta.url),'utf8');
     await legacyDb.query(migration);
     state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,1);assert.equal(state.counters[0].reserved,0);
