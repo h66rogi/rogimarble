@@ -7,8 +7,8 @@ import { type CSSProperties, type ReactNode } from 'react';
 export { BOARD_FONT_FAMILIES, BOARD_FONTS, BOARD_THEMES, type BoardFontMetadata, type BoardThemeMetadata } from './themes';
 export { BroadcastPanel, resolveBroadcastPanel } from './broadcast-panel';
 
-export function Board({ board, tokenCellId, moving = false, dice, interactive = false, selectedCellId, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, pawnStyleId = 'star-medal', themeId = 'lime-clover', fontId = 'nanum-square-neo' }: {
-  board: BoardDefinition; tokenCellId: string; moving?: boolean; dice?: readonly number[]; interactive?: boolean; selectedCellId?: string; onCellSelect?: (id: string, element: SVGGElement) => void; fit?: boolean;
+export function Board({ board, tokenCellId, moving = false, dice, interactive = false, selectedCellId, selectedCellAction, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, pawnStyleId = 'star-medal', themeId = 'lime-clover', fontId = 'nanum-square-neo' }: {
+  board: BoardDefinition; tokenCellId: string; moving?: boolean; dice?: readonly number[]; interactive?: boolean; selectedCellId?: string; selectedCellAction?: ReactNode; onCellSelect?: (id: string) => void; fit?: boolean;
   effectPhase?: 'idle' | 'anticipation' | 'reveal' | 'stepping' | 'landing'; trailCellIds?: readonly string[]; landingPulseKey?: string | number; reducedMotion?: boolean; pawnImageUrl?: string | null; pawnStyleId?: PawnStyleId;
   themeId?: BoardThemeId;
   fontId?: BoardFontId;
@@ -16,6 +16,14 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
   const displayBoard = board;
   const tokenCell = displayBoard.cells.find(c => c.id === tokenCellId) ?? displayBoard.cells[0];
   const tokenRect = getCellRect(displayBoard, tokenCell.id);
+  const selectedRect = selectedCellId && displayBoard.cells.some(c => c.id === selectedCellId) ? getCellRect(displayBoard, selectedCellId) : null;
+  const actionSide = selectedRect
+    ? Math.abs((selectedRect.y + selectedRect.height / 2) / displayBoard.canvas.height - .5) >= Math.abs((selectedRect.x + selectedRect.width / 2) / displayBoard.canvas.width - .5)
+      ? selectedRect.y + selectedRect.height / 2 < displayBoard.canvas.height / 2 ? 'below' : 'above'
+      : selectedRect.x + selectedRect.width / 2 < displayBoard.canvas.width / 2 ? 'right' : 'left'
+    : null;
+  const actionX = selectedRect && (actionSide === 'right' ? selectedRect.x + selectedRect.width : actionSide === 'left' ? selectedRect.x : selectedRect.x + selectedRect.width / 2);
+  const actionY = selectedRect && (actionSide === 'below' ? selectedRect.y + selectedRect.height : actionSide === 'above' ? selectedRect.y : selectedRect.y + selectedRect.height / 2);
   const presentationPhase = effectPhase === 'anticipation' ? 'rolling' : effectPhase === 'stepping' ? 'moving' : effectPhase;
   const rollingDiceCount = Math.max(1, dice?.length || displayBoard.dice.count);
 
@@ -35,13 +43,14 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
             (cell.position.row === 0 || cell.position.row === displayBoard.layout.rows - 1) &&
             (cell.position.column === 0 || cell.position.column === displayBoard.layout.columns - 1);
           const round = corner ? Math.min(r.width, r.height) / 2 : Math.min(r.width, r.height) * .13;
-          return <g key={cell.id} className={`board-cell ${corner ? 'is-corner' : ''} ${spatialCorner ? 'is-spatial-corner' : ''} ${selectedCellId === cell.id ? 'selected' : ''} ${trailCellIds.includes(cell.id) ? 'is-trail' : ''}`} onClick={event => interactive && onCellSelect?.(cell.id, event.currentTarget)} onKeyDown={event => { if (interactive && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onCellSelect?.(cell.id, event.currentTarget); } }} role={interactive ? 'button' : undefined} aria-label={interactive ? `${displayBoard.path.indexOf(cell.id) + 1}번 ${cell.label}` : undefined} tabIndex={interactive ? 0 : undefined}>
+          return <g key={cell.id} className={`board-cell ${corner ? 'is-corner' : ''} ${spatialCorner ? 'is-spatial-corner' : ''} ${selectedCellId === cell.id ? 'selected' : ''} ${trailCellIds.includes(cell.id) ? 'is-trail' : ''}`} onClick={() => interactive && onCellSelect?.(cell.id)} onKeyDown={event => { if (interactive && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onCellSelect?.(cell.id); } }} role={interactive ? 'button' : undefined} aria-label={interactive ? `${displayBoard.path.indexOf(cell.id) + 1}번 ${cell.label}` : undefined} tabIndex={interactive ? 0 : undefined}>
             <rect className="cell-shadow" x={r.x} y={r.y + 8} width={r.width} height={r.height - 3} rx={round} fill="#d96a97" opacity=".32" />
             <rect className="cell-face" x={r.x} y={r.y} width={r.width} height={r.height - 7} rx={round} fill={cell.appearance.fill} stroke={selectedCellId === cell.id ? '#6b2450' : cell.appearance.borderColor} strokeWidth={selectedCellId === cell.id ? 6 : 3} />
             <foreignObject x={r.x + 10} y={r.y + 8} width={r.width - 20} height={r.height - 22}><div className="cell-content" style={{ color: cell.appearance.textColor }}><span className="cell-number">{displayBoard.path.indexOf(cell.id) + 1}</span><span className="cell-icon" aria-hidden="true"><ArtworkIcon assetId={cell.appearance.artwork?.type === 'image' ? cell.appearance.artwork.assetId : null} fallback={cell.onLand[0]} isStart={cell.id === displayBoard.startCellId} /></span><span className="cell-label" data-long={cell.label.length > 8 || undefined}>{cell.label}</span></div></foreignObject>
           </g>;
         })}
       </svg>
+      {interactive && selectedRect && actionSide && selectedCellAction && <div className="board-cell-action" data-side={actionSide} style={{ left: `${((actionX ?? 0) / displayBoard.canvas.width) * 100}%`, top: `${((actionY ?? 0) / displayBoard.canvas.height) * 100}%` }}>{selectedCellAction}</div>}
       {displayBoard.layout.type === 'perimeter_grid' && effectPhase !== 'idle' && <div className="center-widget">
         <div className="dice-tray" aria-label={effectPhase === 'anticipation' ? `주사위 ${rollingDiceCount}개 굴리는 중` : dice?.length ? `주사위 ${dice.join(', ')}` : '주사위 대기 중'}>
           <DiceLottie active={effectPhase === 'anticipation'} reducedMotion={reducedMotion} count={rollingDiceCount} />

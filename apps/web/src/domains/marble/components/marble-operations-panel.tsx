@@ -17,12 +17,11 @@ import { shouldAcceptSnapshot } from "../../../../lib/snapshot-order";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
-import { Popover, PopoverAnchor, PopoverContent } from "@/shared/components/ui/popover";
+import { MoveRight } from "lucide-react";
 import {
   ConsolePanel,
   ConsoleNotice,
   ConsoleField,
-  ConsoleCheck,
   ConsoleSelect,
 } from "@/shared/components/common/console-ui";
 import { Separator } from "@/shared/components/ui/separator";
@@ -39,11 +38,7 @@ export function MarbleOperationsPanel({
   const [state, setState] = useState<OperatorSnapshot | null>(null);
   const [boards, setBoards] = useState<readonly RunnableBoardVersionDto[]>([]);
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
-  const selectedCellElement = useRef<SVGGElement | null>(null);
-  const selectedCellAnchor = useRef({
-    getBoundingClientRect: () =>
-      selectedCellElement.current?.getBoundingClientRect() ?? new DOMRect(),
-  });
+  const boardInteraction = useRef<HTMLDivElement | null>(null);
   const [reason, setReason] = useState("방송 운영 조작");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -62,12 +57,31 @@ export function MarbleOperationsPanel({
   const [missionMessage, setMissionMessage] = useState("");
   const [missionQuantity, setMissionQuantity] = useState("1");
   const [missionShield, setMissionShield] = useState("");
-  const [triggerArrivalEffects, setTriggerArrivalEffects] = useState(false);
 
   useEffect(() => {
     const next = document.getElementById("marble-controls-root");
     if (next !== controlsRoot) setControlsRoot(next);
   });
+
+  useEffect(() => {
+    if (!selectedCell) return;
+    const dismissOnPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) ||
+        !boardInteraction.current?.contains(target) ||
+        !target.closest(".board-cell, .board-cell-action"))
+        setSelectedCell(null);
+    };
+    const dismissOnKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedCell(null);
+    };
+    document.addEventListener("pointerdown", dismissOnPointerDown);
+    document.addEventListener("keydown", dismissOnKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOnPointerDown);
+      document.removeEventListener("keydown", dismissOnKeyDown);
+    };
+  }, [selectedCell]);
 
   const applySnapshot = (
     next: OperatorSnapshot,
@@ -720,11 +734,7 @@ export function MarbleOperationsPanel({
       {boardError && (
         <ConsoleNotice variant="destructive">{boardError}</ConsoleNotice>
       )}
-      <Popover
-        open={selectedCell !== null}
-        onOpenChange={(open) => { if (!open) setSelectedCell(null); }}
-      >
-        <PopoverAnchor key={selectedCell ?? "none"} virtualRef={selectedCellAnchor} />
+      <div ref={boardInteraction}>
         <Board
           board={liveBoard}
           themeId={state?.boardThemeId ?? "lime-clover"}
@@ -744,56 +754,28 @@ export function MarbleOperationsPanel({
           pawnStyleId={state?.pawnAppearance.styleId ?? "star-medal"}
           interactive
           selectedCellId={selectedCell ?? undefined}
-          onCellSelect={(cellId, element) => {
-            selectedCellElement.current = element;
-            setSelectedCell(cellId);
-          }}
-        />
-        {selectedCell && (
-          <PopoverContent
-            align="center"
-            side="top"
-            aria-label="말 위치 보정"
-            className="space-y-3"
-            onInteractOutside={(event) => {
-              if (event.target instanceof Node &&
-                selectedCellElement.current?.ownerSVGElement?.contains(event.target))
-                event.preventDefault();
-            }}
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              selectedCellElement.current?.focus();
-            }}
-          >
-            <strong className="text-sm font-medium">말 위치 보정</strong>
-            <p className="text-sm text-muted-foreground">
-              현재 {activeBoard.path.indexOf(state?.token.cellId ?? activeBoard.path[0]) + 1}번{" "}
-              {activeBoard.cells.find((cell) => cell.id === state?.token.cellId)?.label ?? ""}
-              {" → "}{activeBoard.path.indexOf(selectedCell) + 1}번{" "}
-              {activeBoard.cells.find((cell) => cell.id === selectedCell)?.label ?? selectedCell}
-            </p>
-            <ConsoleCheck checked={triggerArrivalEffects} onCheckedChange={setTriggerArrivalEffects}>
-              도착 칸 효과도 실행
-            </ConsoleCheck>
-            <p className="text-xs text-muted-foreground">이동하면 자동 진행이 일시정지됩니다.</p>
-            {error && <ConsoleNotice variant="destructive">{error}</ConsoleNotice>}
+          selectedCellAction={selectedCell && selectedCell !== state?.token.cellId && (
             <Button
-              className="w-full"
+              size="icon-xs"
               variant="destructive"
-              disabled={!state?.session || locked || !state.capabilities?.setPosition || selectedCell === state.token.cellId}
+              aria-label="이 칸으로 이동"
+              title="이 칸으로 이동"
+              disabled={!state?.session || locked || !state.capabilities?.setPosition || !state.capabilities?.arrivalEffects}
               onClick={() => void send({
                 type: "correct_position",
                 cellId: selectedCell,
                 pauseAutomaticMovement: true,
-                triggerArrivalEffects,
+                triggerArrivalEffects: true,
                 ...base,
               }).then((applied) => { if (applied) setSelectedCell(null); })}
             >
-              {selectedCell === state?.token.cellId ? "현재 칸" : "이 칸으로 이동"}
+              <MoveRight aria-hidden="true" />
             </Button>
-          </PopoverContent>
-        )}
-      </Popover>
+          )}
+          onCellSelect={(cellId) => setSelectedCell((current) =>
+            current === cellId || cellId === state?.token.cellId ? null : cellId)}
+        />
+      </div>
     </ConsolePanel>
   );
   if (view === "board") return boardView;

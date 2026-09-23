@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { credentials, loadPackageDefinition, type Client, type ClientReadableStream, type ServiceError } from '@grpc/grpc-js';
 import { loadSync } from '@grpc/proto-loader';
-import type { CollectorDonation, CollectorChat } from './donation-ingestion.service.ts';
+import type { CollectorDonation, CollectorChat, CollectorEmote } from './donation-ingestion.service.ts';
 
 export interface CollectorCursor { journalGeneration:string; channelOffset:string }
 export interface CollectorStatus {
@@ -77,7 +77,23 @@ export function donationInput(event:any,config:CollectorConnection,recoveryRevis
 export function chatInput(event:any,config:CollectorConnection):CollectorChat{
   if(event.channelId!==config.collectorChannelId||event.platform!=='PLATFORM_SOOP'||!event.cursor)throw new Error('Unsupported chat envelope');
   const observedAt=timestamp(event.observedAt);if(!observedAt)throw new Error('Missing chat observation timestamp');
-  return{consumerId:config.consumerId,collectorChannelId:event.channelId,eventId:event.eventId,userId:event.userId,userDisplayName:event.userDisplayName,message:event.message,cursor:event.cursor,observedAt,occurredAt:timestamp(event.occurredAt),payload:event};
+  return{consumerId:config.consumerId,collectorChannelId:event.channelId,eventId:event.eventId,userId:event.userId,userDisplayName:event.userDisplayName,message:event.message,emotes:parseChatEmotes(event.emotesJson),cursor:event.cursor,observedAt,occurredAt:timestamp(event.occurredAt),payload:event};
+}
+
+function parseChatEmotes(value:unknown):CollectorEmote[]{
+  if(typeof value!=='string'||!value)return [];
+  let entries:unknown;
+  try{entries=JSON.parse(value);}catch{return [];}
+  if(!Array.isArray(entries))return [];
+  return entries.slice(0,5).flatMap((entry:unknown)=>{
+    if(!entry||typeof entry!=='object')return [];
+    const emote=entry as Record<string,unknown>;
+    if(emote.source!=='soop_ogq'||typeof emote.code!=='string'||!/^[A-Za-z0-9_-]{1,80}:[1-9][0-9]{0,5}$/.test(emote.code))return [];
+    const [id,number]=emote.code.split(':');
+    const expected=`https://ogq-sticker-global-cdn-z01.sooplive.com/sticker/${id}/${number}_160.${emote.animated===true?'webp':'png'}`;
+    if(emote.imageUrl!==expected)return [];
+    return [{code:emote.code,start:-1,end:-1,imageUrl:expected,animated:emote.animated===true,source:'soop_ogq' as const}];
+  });
 }
 
 export interface ChatTestStatus {

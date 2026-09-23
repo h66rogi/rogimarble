@@ -162,21 +162,36 @@ test("a board cell opens the position action and sends the selected cell", async
     } });
   });
   await page.goto("/");
-  await expect(page.getByText("말 위치 보정", { exact: true })).toHaveCount(0);
   const boardCells = page.locator("#console-panel-home .board-cell");
+  const move = page.getByRole("button", { name: "이 칸으로 이동" });
+  await expect(move).toHaveCount(0);
   await boardCells.nth(2).click();
-  const action = page.getByRole("dialog", { name: "말 위치 보정" });
-  await expect(action).toContainText("3번");
+  await expect(move).toBeVisible();
+  const thirdCell = await boardCells.nth(2).boundingBox();
+  const thirdAction = await move.boundingBox();
+  expect(thirdCell && thirdAction && Math.abs(thirdAction.x + thirdAction.width / 2 - thirdCell.x - thirdCell.width / 2) < 15).toBe(true);
+  expect(thirdCell && thirdAction && thirdAction.width <= thirdCell.width).toBe(true);
+  expect(thirdCell && thirdAction && thirdAction.y >= thirdCell.y + thirdCell.height).toBe(true);
   await boardCells.nth(1).click();
-  await expect(action).toContainText("현재 1번");
-  await expect(action).toContainText("2번");
-  await action.getByRole("checkbox", { name: "도착 칸 효과도 실행" }).check();
-  await action.getByRole("button", { name: "이 칸으로 이동" }).click();
+  const secondCell = await boardCells.nth(1).boundingBox();
+  const secondAction = await move.boundingBox();
+  expect(secondCell && secondAction && Math.abs(secondAction.x + secondAction.width / 2 - secondCell.x - secondCell.width / 2) < 15).toBe(true);
+  await boardCells.nth(1).click({ position: { x: 5, y: 5 } });
+  await expect(move).toHaveCount(0);
+  await boardCells.nth(1).click();
+  await page.keyboard.press("Escape");
+  await expect(move).toHaveCount(0);
+  await boardCells.nth(1).click();
+  await page.getByText("게임 보드", { exact: true }).click();
+  await expect(move).toHaveCount(0);
+  await boardCells.nth(1).click();
+  await expect(page.getByRole("checkbox", { name: "도착 칸 효과도 실행" })).toHaveCount(0);
+  await move.click();
   await expect.poll(() => submitted).toMatchObject({
     type: "set_position",
     payload: { cellId: board.path[1], pauseAutomaticMovement: true, triggerArrivalEffects: true },
   });
-  await expect(action).toHaveCount(0);
+  await expect(move).toHaveCount(0);
 });
 
 async function buttonStyle(page: Page, name: string) {
@@ -222,12 +237,9 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await expect(page.getByRole("dialog", { name: "말 위치 보정" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "이 칸으로 이동" })).toHaveCount(0);
   await page.locator("#console-panel-home .board-cell").nth(1).click();
-  await expect(page.getByRole("dialog", { name: "말 위치 보정" })).toBeVisible();
-  const arrival = page.getByRole("checkbox", { name: "도착 칸 효과도 실행" });
-  await arrival.check();
-  await expect(arrival).toBeChecked();
+  await expect(page.getByRole("button", { name: "이 칸으로 이동" })).toBeVisible();
   const nav = page.getByRole("tablist", { name: "운영 콘솔 메뉴" });
   // The inherited header starts the console; no product banner may precede it.
   await expect
@@ -300,8 +312,7 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
       )
       .toBe(true);
   }
-  await page.locator("#console-panel-home .board-cell").nth(1).click();
-  await expect(arrival).toBeChecked(); // home controller was never remounted
+  await expect(page.getByRole("button", { name: "이 칸으로 이동" })).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

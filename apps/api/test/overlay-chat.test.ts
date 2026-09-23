@@ -6,7 +6,7 @@ import type { CollectorChat, CollectorDonation } from '../src/donation-ingestion
 test('OBS chat adapter exposes display fields only and keeps stable event IDs', () => {
   const chat = {
     consumerId: 'consumer', collectorChannelId: 'soop-channel', eventId: 'event-1',
-    userId: 'viewer', userDisplayName: '시청자', message: '안녕하세요',
+    userId: 'viewer', userDisplayName: '시청자', message: '안녕하세요', emotes: [],
     observedAt: '2026-09-23T00:00:00Z', occurredAt: null,
     cursor: { streamGeneration: 'generation', streamId: '1-0', gapBefore: false },
     payload: { privateCollectorField: 'not for OBS' },
@@ -14,7 +14,7 @@ test('OBS chat adapter exposes display fields only and keeps stable event IDs', 
   assert.deepEqual(overlayChatMessage(chat), {
     id: 'chat:event-1', type: 'chat', sessionId: 0, platform: 'soop',
     channelId: 'soop-channel', userId: 'viewer', nickname: '시청자',
-    message: '안녕하세요', timestamp: '2026-09-23T00:00:00Z',
+    message: '안녕하세요', emotes: [], timestamp: '2026-09-23T00:00:00Z',
   });
   const donation = {
     consumerId: 'consumer', collectorChannelId: 'soop-channel', eventId: 'event-2',

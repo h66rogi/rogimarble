@@ -26,6 +26,6 @@ export function RogimarbleChatbox({ themeId, fontId, options }: {
     platform: message.platform,
     nickname: message.nickname,
     amount: donationLabel(message),
-    content: message.message ? <ChatMessageContent message={message.message} platform={message.platform} emotes={message.emotes} /> : null,
+    content: message.message || message.emotes?.length ? <ChatMessageContent message={message.message} platform={message.platform} channelId={message.channelId} emotes={message.emotes} /> : null,
   }))} />;
 }

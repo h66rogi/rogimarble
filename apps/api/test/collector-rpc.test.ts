@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadSync } from '@grpc/proto-loader';
-import { collectorConnection, donationInput, isUint64, timestamp, type CollectorConnection } from '../src/collector-rpc.ts';
+import { collectorConnection, donationInput, chatInput, isUint64, timestamp, type CollectorConnection } from '../src/collector-rpc.ts';
 import { parseCollectorConfig } from '../src/collector-config.ts';
 
 const config:CollectorConnection={target:'127.0.0.1:7443',serverName:'collector.test',caFile:'/tmp/fixture/ca.pem',certFile:'/tmp/fixture/client.pem',keyFile:'/tmp/fixture/client.key',consumerId:'fixture-consumer',collectorChannelId:'fixture-channel',gameChannelId:'fixture-game'};
@@ -33,6 +33,16 @@ test('actual protobuf service decoder preserves uint64 and enum representations'
   assert.equal(decoded.recoveryRevision,'18446744073709551615');assert.equal(decoded.donations[0].nativeBalloonCount,'33');
   assert.equal(decoded.donations[0].identityStatus,'IDENTITY_STATUS_OBSERVATION_ONLY');
   assert.equal(donationInput(decoded.donations[0],config,'0').cursor.channelOffset,'18446744073709551615');
+});
+
+test('OGQ image metadata survives protobuf and only the SOOP CDN path reaches OBS',()=>{
+  const definition=loadSync(new URL('../proto/collector.proto',import.meta.url).pathname,{longs:String,enums:String,defaults:true,oneofs:true});
+  const method=(definition['rogi.collector.v1.CollectorService'] as any).WatchChat;
+  const imageUrl='https://ogq-sticker-global-cdn-z01.sooplive.com/sticker/17d73948ad610a6/1_160.png';
+  const packet={eventId:'synthetic-ogq',channelId:config.collectorChannelId,userId:'viewer',userDisplayName:'시청자',message:'',platform:'PLATFORM_SOOP',cursor:{streamGeneration:'synthetic',streamId:'1-0'},observedAt:{seconds:'1700000000',nanos:0},emotesJson:JSON.stringify([{code:'17d73948ad610a6:1',start:-1,end:-1,imageUrl,source:'soop_ogq'}])};
+  const event=chatInput(method.responseDeserialize(method.responseSerialize(packet)),config);
+  assert.deepEqual(event.emotes,[{code:'17d73948ad610a6:1',start:-1,end:-1,imageUrl,animated:false,source:'soop_ogq'}]);
+  assert.deepEqual(chatInput({...packet,emotesJson:JSON.stringify([{...event.emotes[0],imageUrl:'https://example.invalid/image.png'}])},config).emotes,[]);
 });
 
 test('broadcast lookup serializes a separate test target without changing production authorization',async()=>{

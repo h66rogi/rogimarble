@@ -35,6 +35,7 @@ const buttonVariants = cva(
         lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
         tile: "h-auto min-h-16 flex-col items-start gap-1 whitespace-normal px-4 py-3 text-left",
         icon: "size-9",
+        "icon-xs": "size-6 rounded-md",
       },
     },
     defaultVariants: {

@@ -6,7 +6,7 @@ export function overlayChatMessage(event: CollectorChat) {
     id: `chat:${event.eventId}`, type: 'chat' as const, sessionId: 0,
     platform: 'soop' as const, channelId: event.collectorChannelId,
     userId: event.userId, nickname: event.userDisplayName || event.userId,
-    message: event.message, timestamp: event.occurredAt ?? event.observedAt,
+    message: event.message, emotes: event.emotes, timestamp: event.occurredAt ?? event.observedAt,
   };
 }
 

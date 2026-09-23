@@ -173,8 +173,8 @@
       "sourcePath": "domains/overlay/components/shared/ChatMessageContent.tsx",
       "targetPath": "apps/web/src/integrated-overlay/domains/overlay/components/shared/ChatMessageContent.tsx",
       "sourceSha256": "1833cabe57942d9c99d49e5f8ef2e61c628dc30dfc47c40c5be40239b8cf4eb7",
-      "importedSha256": "1833cabe57942d9c99d49e5f8ef2e61c628dc30dfc47c40c5be40239b8cf4eb7",
-      "adaptation": "unchanged"
+      "importedSha256": "29140dc3264a4de45c24e3ea3db457f9209aa96bbe32a1a061e347a6cdef3464",
+      "adaptation": "SOOP OGQ image packet rendering and per-channel catalog lookup"
     },
     {
       "sourcePath": "domains/overlay/components/shared/OverlayToastLayer.tsx",
@@ -229,8 +229,8 @@
       "sourcePath": "domains/overlay/data/soop-emoticons.ts",
       "targetPath": "apps/web/src/integrated-overlay/domains/overlay/data/soop-emoticons.ts",
       "sourceSha256": "ee8dfb6d28f0be4133f28a27fddc21a2fa5b546793145e008ab84d00bf413675",
-      "importedSha256": "ee8dfb6d28f0be4133f28a27fddc21a2fa5b546793145e008ab84d00bf413675",
-      "adaptation": "unchanged"
+      "importedSha256": "23b5c93ec7cedc61c651751475e85aa6c659012853a0cdc981d77caeb2125ffe",
+      "adaptation": "SOOP global and channel signature emoticon catalog for Rogimarble"
     },
     {
       "sourcePath": "domains/overlay/hooks/use-anchor-state.ts",

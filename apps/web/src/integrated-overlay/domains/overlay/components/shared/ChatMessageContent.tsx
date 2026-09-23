@@ -26,6 +26,7 @@ const TOKEN_REGEX_BY_PLATFORM: Record<ChatPlatform, RegExp> = {
 interface ChatMessageContentProps {
   message: string;
   platform: ChatPlatform;
+  channelId?: string;
   emotes?: ChatEmoteToken[];
   /** Inline image height — themes pass a value matching their text size. */
   emoteHeight?: number;
@@ -46,14 +47,16 @@ type Segment =
 export function ChatMessageContent({
   message,
   platform,
+  channelId,
   emotes,
   emoteHeight = 22,
   className,
   style,
 }: ChatMessageContentProps): ReactElement {
-  const soopCatalog = useSoopCatalog(platform === 'soop');
+  const soopCatalog = useSoopCatalog(platform === 'soop', channelId);
 
   const segments = buildSegments(message, platform, emotes, soopCatalog);
+  const ogqEmotes = platform === 'soop' ? (emotes ?? []).filter(e => e.source === 'soop_ogq' && e.imageUrl) : [];
 
   return (
     <span className={className} style={style}>
@@ -83,24 +86,42 @@ export function ChatMessageContent({
           />
         ),
       )}
+      {ogqEmotes.map((emote, i) => (
+        // OGQ is a separate SOOP packet and appears below any accompanying text.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={`ogq-${i}`}
+          src={emote.imageUrl}
+          alt="OGQ 이모티콘"
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onError={event => {
+            const image = event.currentTarget;
+            if (image.src.endsWith('.webp')) image.src = image.src.replace(/\.webp$/, '.png');
+          }}
+          style={{ display: 'block', width: 'auto', height: emoteHeight * 6, maxWidth: '100%', objectFit: 'contain' }}
+        />
+      ))}
     </span>
   );
 }
 
 // Lazy-load the SOOP catalog only when at least one SOOP message renders.
-function useSoopCatalog(enabled: boolean): SoopEmoticonCatalog | null {
-  const [catalog, setCatalog] = useState<SoopEmoticonCatalog | null>(null);
+function useSoopCatalog(enabled: boolean, channelId?: string): SoopEmoticonCatalog | null {
+  const key = channelId ?? '';
+  const [loaded, setLoaded] = useState<{ key: string; catalog: SoopEmoticonCatalog | null } | null>(null);
   useEffect(() => {
-    if (!enabled || catalog) return;
+    if (!enabled || loaded?.key === key) return;
     let cancelled = false;
-    void getSoopCatalog().then((c) => {
-      if (!cancelled) setCatalog(c);
+    void getSoopCatalog(key).then((catalog) => {
+      if (!cancelled) setLoaded({ key, catalog });
     });
     return () => {
       cancelled = true;
     };
-  }, [enabled, catalog]);
-  return catalog;
+  }, [enabled, key, loaded]);
+  return loaded?.key === key ? loaded.catalog : null;
 }
 
 export function buildSegments(

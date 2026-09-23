@@ -9,7 +9,8 @@ import { executeCellEffects, executeRollTurn, movementPresentationDelay, type Se
 const UINT64_MAX=18446744073709551615n;
 export type CollectorCursor={journalGeneration:string;channelOffset:string;recoveryRevision:string};
 export type CollectorDonation={consumerId:string;collectorChannelId:string;eventId:string;nativeBalloonCount:number;donationKind:string;identityStatus:string;cursor:CollectorCursor;donorId:string;donorDisplayName:string;message:string;observedAt:string;occurredAt:string|null;payload:unknown};
-export type CollectorChat={consumerId:string;collectorChannelId:string;eventId:string;userId:string;userDisplayName:string;message:string;cursor:{streamGeneration:string;streamId:string;gapBefore:boolean};observedAt:string;occurredAt:string|null;payload:unknown};
+export type CollectorEmote={code:string;start:number;end:number;imageUrl:string;animated:boolean;source:'soop_ogq'};
+export type CollectorChat={consumerId:string;collectorChannelId:string;eventId:string;userId:string;userDisplayName:string;message:string;emotes:CollectorEmote[];cursor:{streamGeneration:string;streamId:string;gapBefore:boolean};observedAt:string;occurredAt:string|null;payload:unknown};
 type InboxRow={id:string;channel_id:string;payload_hash:string;rules_snapshot:DonationTriggerConfig|null;rules_version_id:string|null;bound_session_id:string|null;disposition:string;reason:string;execution_command_id:string|null;action_progress:number;payload:CollectorDonation};
 
 @Injectable()

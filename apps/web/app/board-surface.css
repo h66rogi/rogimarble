@@ -20,6 +20,11 @@
 .marble-board.is-fitted { height: 100%; container-type: size; display: grid; place-items: center; }
 .marble-board.is-fitted .board-stage { width: min(100cqw, calc(100cqh * var(--board-aspect))); }
 .marble-board .board-svg { display: block; width: 100%; height: 100%; }
+.marble-board .board-cell-action { position: absolute; z-index: 20; }
+.marble-board .board-cell-action[data-side="below"] { transform: translate(-50%, 8px); }
+.marble-board .board-cell-action[data-side="above"] { transform: translate(-50%, calc(-100% - 8px)); }
+.marble-board .board-cell-action[data-side="right"] { transform: translate(8px, -50%); }
+.marble-board .board-cell-action[data-side="left"] { transform: translate(calc(-100% - 8px), -50%); }
 .marble-board .board-cell { transition: filter .16s ease, transform .16s ease; transform-box: fill-box; transform-origin: center; }
 .marble-board .board-cell[role=button] { cursor: pointer; }
 .marble-board .board-cell[role=button]:hover { filter: brightness(1.025) saturate(1.08); }

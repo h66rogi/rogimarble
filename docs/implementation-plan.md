@@ -159,7 +159,7 @@ animation/asset-manifest 패키지를 만든다. Go는 기존 역할별 module �
 - 준비/실행/일시정지/한 건 진행/종료/새 세션, 공유 말, 세션 고정 보드/주사위 snapshot과 요청 수락 시 후원 규칙 snapshot 분리.
 - 서버 난수·눈/경로/실행 방향 저장, action+rollIndex unique, 정/역 이동·lap·none/mission/grant_item.
 - 인벤토리 증감/지정·원장, 완료/면제/실드 방어, roll/direction/position/move_steps 명령.
-- 위치 보정의 일시정지+position revision+presentationEpoch barrier를 원자 처리. 기본 도착/통과/lap 효과는 끔.
+- 위치 보정의 일시정지+position revision+presentationEpoch barrier를 원자 처리. 홈 보드에서의 직접 이동은 도착 효과를 항상 실행하며 통과/lap 효과는 끔.
 - 방향은 다음 미확정 이동부터 적용. pending/완료 결과/표시 상태를 분리하고 미완료만 재시도.
 
 통과: crash/재전송 후 저장된 눈 재추첨·중복 지급 없음, 한 건 진행은 한 이동만 실행.
