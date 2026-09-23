@@ -148,6 +148,37 @@ test.beforeEach(async ({ page }) => {
   await mockApi(page);
 });
 
+test("a board cell opens the position action and sends the selected cell", async ({ page }) => {
+  let submitted: { type: string; payload: { cellId: string; pauseAutomaticMovement: boolean; triggerArrivalEffects: boolean } } | null = null;
+  await page.route("**/v1/channels/**/sessions/**/commands", async (route) => {
+    const command = route.request().postDataJSON();
+    submitted = command;
+    await route.fulfill({ json: {
+      commandId: command.commandId, sessionId: session.id, sessionEpoch: session.sessionEpoch,
+      presentationEpoch: session.presentationEpoch + 1, type: command.type, status: "completed",
+      operatorId: "test-operator", beforeRevision: 1, afterRevision: 2,
+      result: { fromCellId: board.path[0], toCellId: command.payload.cellId, automaticMovementPaused: true },
+      rejectionCode: null, createdAt: "2026-01-01T00:00:00Z",
+    } });
+  });
+  await page.goto("/");
+  await expect(page.getByText("말 위치 보정", { exact: true })).toHaveCount(0);
+  const boardCells = page.locator("#console-panel-home .board-cell");
+  await boardCells.nth(2).click();
+  const action = page.getByRole("dialog", { name: "말 위치 보정" });
+  await expect(action).toContainText("3번");
+  await boardCells.nth(1).click();
+  await expect(action).toContainText("현재 1번");
+  await expect(action).toContainText("2번");
+  await action.getByRole("checkbox", { name: "도착 칸 효과도 실행" }).check();
+  await action.getByRole("button", { name: "이 칸으로 이동" }).click();
+  await expect.poll(() => submitted).toMatchObject({
+    type: "set_position",
+    payload: { cellId: board.path[1], pauseAutomaticMovement: true, triggerArrivalEffects: true },
+  });
+  await expect(action).toHaveCount(0);
+});
+
 async function buttonStyle(page: Page, name: string) {
   const button = page.getByRole("button", { name, exact: true });
   await expect(button).toBeVisible();
@@ -191,6 +222,9 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
+  await expect(page.getByRole("dialog", { name: "말 위치 보정" })).toHaveCount(0);
+  await page.locator("#console-panel-home .board-cell").nth(1).click();
+  await expect(page.getByRole("dialog", { name: "말 위치 보정" })).toBeVisible();
   const arrival = page.getByRole("checkbox", { name: "도착 칸 효과도 실행" });
   await arrival.check();
   await expect(arrival).toBeChecked();
@@ -266,6 +300,7 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
       )
       .toBe(true);
   }
+  await page.locator("#console-panel-home .board-cell").nth(1).click();
   await expect(arrival).toBeChecked(); // home controller was never remounted
   expect(errors).toEqual([]);
 });

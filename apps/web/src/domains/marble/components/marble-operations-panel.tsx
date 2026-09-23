@@ -17,6 +17,7 @@ import { shouldAcceptSnapshot } from "../../../../lib/snapshot-order";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
+import { Popover, PopoverAnchor, PopoverContent } from "@/shared/components/ui/popover";
 import {
   ConsolePanel,
   ConsoleNotice,
@@ -37,9 +38,12 @@ export function MarbleOperationsPanel({
 }) {
   const [state, setState] = useState<OperatorSnapshot | null>(null);
   const [boards, setBoards] = useState<readonly RunnableBoardVersionDto[]>([]);
-  const [selectedCell, setSelectedCell] = useState(
-    board.startCellId ?? board.path[0],
-  );
+  const [selectedCell, setSelectedCell] = useState<string | null>(null);
+  const selectedCellElement = useRef<SVGGElement | null>(null);
+  const selectedCellAnchor = useRef({
+    getBoundingClientRect: () =>
+      selectedCellElement.current?.getBoundingClientRect() ?? new DOMRect(),
+  });
   const [reason, setReason] = useState("방송 운영 조작");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -236,8 +240,8 @@ export function MarbleOperationsPanel({
     state?.session?.presentationEpoch,
   ]);
   useEffect(() => {
-    if (!activeBoard.path.includes(selectedCell))
-      setSelectedCell(activeBoard.startCellId ?? activeBoard.path[0]);
+    if (selectedCell && !activeBoard.path.includes(selectedCell))
+      setSelectedCell(null);
   }, [activeBoard, selectedCell]);
   const send = async (command: OperatorCommand) => {
     if (!state?.session || locked || api.pending()) return false;
@@ -456,47 +460,6 @@ export function MarbleOperationsPanel({
             세션 종료
           </Button>
         </div>
-      </ConsolePanel>
-      <ConsolePanel
-        title="말 위치 보정"
-        description="기본은 위치만 보정합니다. 도착 효과를 선택하면 해당 칸의 실제 효과도 실행됩니다."
-      >
-        <ConsoleField label="이동할 칸">
-          <ConsoleSelect
-            value={selectedCell}
-            onValueChange={setSelectedCell}
-            options={liveBoard.path.map((cellId) => ({
-              value: cellId,
-              label:
-                liveBoard.cells.find((cell) => cell.id === cellId)?.label ??
-                cellId,
-            }))}
-          />
-        </ConsoleField>
-        <ConsoleCheck
-          checked={triggerArrivalEffects}
-          onCheckedChange={setTriggerArrivalEffects}
-        >
-          도착 칸 효과도 실행
-        </ConsoleCheck>
-        <Button
-          className="w-full"
-          variant="destructive"
-          disabled={
-            !state?.session || locked || !state.capabilities?.setPosition
-          }
-          onClick={() =>
-            void send({
-              type: "correct_position",
-              cellId: selectedCell,
-              pauseAutomaticMovement: true,
-              triggerArrivalEffects,
-              ...base,
-            })
-          }
-        >
-          선택 칸으로 보정
-        </Button>
       </ConsolePanel>
       {state && (
         <GameEffectsPanel
@@ -753,30 +716,84 @@ export function MarbleOperationsPanel({
   );
   if (view === "controls") return controls;
   const boardView = (
-    <ConsolePanel title="게임 보드">
+    <ConsolePanel title="게임 보드" description="칸을 누르면 말 위치를 이동할 수 있습니다.">
       {boardError && (
         <ConsoleNotice variant="destructive">{boardError}</ConsoleNotice>
       )}
-      <Board
-        board={liveBoard}
-        themeId={state?.boardThemeId ?? "lime-clover"} fontId={state?.fontId}
-        tokenCellId={presentation.cellId}
-        moving={presentation.moving}
-        dice={presentation.dice}
-        effectPhase={presentation.effectPhase}
-        trailCellIds={presentation.trailCellIds}
-        landingPulseKey={presentation.landingPulseKey}
-        reducedMotion={presentation.reducedMotion}
-        pawnImageUrl={
-          state?.pawnAppearance.image
-            ? apiAssetUrl(state.pawnAppearance.image.url)
-            : null
-        }
-        pawnStyleId={state?.pawnAppearance.styleId ?? 'star-medal'}
-        interactive
-        selectedCellId={selectedCell}
-        onCellSelect={setSelectedCell}
-      />
+      <Popover
+        open={selectedCell !== null}
+        onOpenChange={(open) => { if (!open) setSelectedCell(null); }}
+      >
+        <PopoverAnchor key={selectedCell ?? "none"} virtualRef={selectedCellAnchor} />
+        <Board
+          board={liveBoard}
+          themeId={state?.boardThemeId ?? "lime-clover"}
+          fontId={state?.fontId}
+          tokenCellId={presentation.cellId}
+          moving={presentation.moving}
+          dice={presentation.dice}
+          effectPhase={presentation.effectPhase}
+          trailCellIds={presentation.trailCellIds}
+          landingPulseKey={presentation.landingPulseKey}
+          reducedMotion={presentation.reducedMotion}
+          pawnImageUrl={
+            state?.pawnAppearance.image
+              ? apiAssetUrl(state.pawnAppearance.image.url)
+              : null
+          }
+          pawnStyleId={state?.pawnAppearance.styleId ?? "star-medal"}
+          interactive
+          selectedCellId={selectedCell ?? undefined}
+          onCellSelect={(cellId, element) => {
+            selectedCellElement.current = element;
+            setSelectedCell(cellId);
+          }}
+        />
+        {selectedCell && (
+          <PopoverContent
+            align="center"
+            side="top"
+            aria-label="말 위치 보정"
+            className="space-y-3"
+            onInteractOutside={(event) => {
+              if (event.target instanceof Node &&
+                selectedCellElement.current?.ownerSVGElement?.contains(event.target))
+                event.preventDefault();
+            }}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              selectedCellElement.current?.focus();
+            }}
+          >
+            <strong className="text-sm font-medium">말 위치 보정</strong>
+            <p className="text-sm text-muted-foreground">
+              현재 {activeBoard.path.indexOf(state?.token.cellId ?? activeBoard.path[0]) + 1}번{" "}
+              {activeBoard.cells.find((cell) => cell.id === state?.token.cellId)?.label ?? ""}
+              {" → "}{activeBoard.path.indexOf(selectedCell) + 1}번{" "}
+              {activeBoard.cells.find((cell) => cell.id === selectedCell)?.label ?? selectedCell}
+            </p>
+            <ConsoleCheck checked={triggerArrivalEffects} onCheckedChange={setTriggerArrivalEffects}>
+              도착 칸 효과도 실행
+            </ConsoleCheck>
+            <p className="text-xs text-muted-foreground">이동하면 자동 진행이 일시정지됩니다.</p>
+            {error && <ConsoleNotice variant="destructive">{error}</ConsoleNotice>}
+            <Button
+              className="w-full"
+              variant="destructive"
+              disabled={!state?.session || locked || !state.capabilities?.setPosition || selectedCell === state.token.cellId}
+              onClick={() => void send({
+                type: "correct_position",
+                cellId: selectedCell,
+                pauseAutomaticMovement: true,
+                triggerArrivalEffects,
+                ...base,
+              }).then((applied) => { if (applied) setSelectedCell(null); })}
+            >
+              {selectedCell === state?.token.cellId ? "현재 칸" : "이 칸으로 이동"}
+            </Button>
+          </PopoverContent>
+        )}
+      </Popover>
     </ConsolePanel>
   );
   if (view === "board") return boardView;

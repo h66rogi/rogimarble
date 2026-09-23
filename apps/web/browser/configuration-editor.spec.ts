@@ -232,7 +232,9 @@ test("game rules and board settings group their own menus and move pawn design o
   await expect(pawn.getByText("2번 하트 칩 말을 적용했습니다.")).toBeVisible();
   await top.getByRole("tab", { name: "홈" }).click();
   await expect(page.locator("#console-panel-home").getByText("말 디자인", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("말 위치 보정", { exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "말 위치 보정" })).toHaveCount(0);
+  await page.locator("#console-panel-home .board-cell").nth(1).click();
+  await expect(page.getByRole("dialog", { name: "말 위치 보정" })).toBeVisible();
   await expect(page.locator("#console-panel-home .token-wrapper")).toHaveAttribute("data-pawn-style", "heart-chip");
   expect(state.writes).toEqual([]);
   expect(state.errors).toEqual([]);
