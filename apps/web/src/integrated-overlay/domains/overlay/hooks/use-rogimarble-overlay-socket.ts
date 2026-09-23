@@ -7,6 +7,9 @@ import type { OverlayChatEvent } from '../types/chat';
 
 const SOCKET_BASE_URL=process.env.NEXT_PUBLIC_GATEWAY_BASE_URL||process.env.NEXT_PUBLIC_GATEWAY_URL||(typeof window!=='undefined'?window.location.origin:'');
 const SOCKET_PATH=process.env.NEXT_PUBLIC_GATEWAY_SOCKET_PATH||'/socket.io';
+// Donations are polled from the durable journal every second, while chat is streamed.
+// Hold chat briefly so a preceding balloon can be displayed before its separate text.
+const CHAT_REORDER_DELAY_MS=1_500;
 
 function parsePayload(payload:unknown):unknown{
   if(payload==null)return null;
@@ -18,6 +21,7 @@ function parsePayload(payload:unknown):unknown{
 export function useRogimarbleOverlaySocket(token:string|null,onLayout:(snapshot:OverlayLayoutSnapshotDto)=>void,onStatus:(connected:boolean)=>void,onChatMessage:(message:OverlayChatEvent)=>void){
   useEffect(()=>{
     if(!token)return;
+    const pendingChatTimers=new Set<ReturnType<typeof setTimeout>>();
     const socket=io(SOCKET_BASE_URL,{path:SOCKET_PATH,transports:['websocket'],auth:{token},reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:1_000,reconnectionDelayMax:30_000,randomizationFactor:.5,timeout:20_000});
     socket.on('connect',()=>onStatus(true));
     socket.on('disconnect',()=>onStatus(false));
@@ -33,11 +37,15 @@ export function useRogimarbleOverlaySocket(token:string|null,onLayout:(snapshot:
         case 'chat.donation':
           if(!payload||typeof payload.id!=='string'||typeof payload.nickname!=='string'||typeof payload.message!=='string'||typeof payload.timestamp!=='string'||payload.platform!=='soop'||payload.type!==(eventName==='chat.message'?'chat':'donation'))return;
           if(eventName==='chat.donation'&&(!Number.isSafeInteger(payload.amount)||Number(payload.amount)<1))return;
-          onChatMessage(payload as unknown as OverlayChatEvent);
+          if(eventName==='chat.message'){
+            const chat=payload as unknown as OverlayChatEvent;
+            const timer=setTimeout(()=>{pendingChatTimers.delete(timer);onChatMessage(chat);},CHAT_REORDER_DELAY_MS);
+            pendingChatTimers.add(timer);
+          }else onChatMessage(payload as unknown as OverlayChatEvent);
           break;
         default:break;
       }
     });
-    return()=>{socket.disconnect();};
+    return()=>{socket.disconnect();for(const timer of pendingChatTimers)clearTimeout(timer);};
   },[token,onLayout,onStatus,onChatMessage]);
 }

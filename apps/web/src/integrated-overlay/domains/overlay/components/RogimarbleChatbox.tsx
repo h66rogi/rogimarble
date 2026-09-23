@@ -5,6 +5,7 @@ import { useChatMessages } from '../contexts/chat-messages-context';
 import { ChatMessageContent } from './shared/ChatMessageContent';
 import type { OverlayChatEvent } from '../types/chat';
 import { RogimarbleChatboxSurface } from './RogimarbleChatboxSurface';
+import { orderChatForDisplay } from './rogimarble-chat-order';
 
 function donationLabel(message: OverlayChatEvent): string | null {
   if (message.type !== 'donation') return null;
@@ -19,7 +20,7 @@ export function RogimarbleChatbox({ themeId, fontId, options }: {
   options?: OverlayWidgetStyleDto;
 }) {
   const liveMessages = useChatMessages();
-  const messages = liveMessages.slice(-30);
+  const messages = orderChatForDisplay(liveMessages).slice(-30);
   const emoteHeight = 30 * (options?.fontScale ?? 1);
   const ogqHeight = 100 * (options?.fontScale ?? 1);
   return <RogimarbleChatboxSurface themeId={themeId} fontId={fontId} options={options} messages={messages.map(message => ({
