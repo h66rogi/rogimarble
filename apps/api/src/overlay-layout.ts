@@ -25,7 +25,7 @@ export async function resetLiveOverlayLayout(client:PoolClient,channelId:string,
   // Publishing changes style/content defaults. A broadcaster may have moved widgets
   // moments earlier, so the live geometry remains authoritative once it exists.
   const priorLayout=prior.rows[0]?.layout as OverlayLayoutDto|undefined;
-  const effective=priorLayout?{...layout,widgets:priorLayout.widgets}:layout;
+  const effective=priorLayout?{...layout,widgets:priorLayout.widgets,widgetStyles:priorLayout.widgetStyles??layout.widgetStyles}:layout;
   const row=await client.query<{updated_at:Date}>(`INSERT INTO channel_live_overlay_layouts(channel_id,layout,revision,published_version_id,updated_by) VALUES($1,$2,$3,$4,$5)
     ON CONFLICT(channel_id) DO UPDATE SET layout=excluded.layout,revision=excluded.revision,published_version_id=excluded.published_version_id,updated_by=excluded.updated_by,updated_at=now() RETURNING updated_at`,[channelId,JSON.stringify(effective),revision,versionId,actorId]);
   await client.query(`INSERT INTO channel_live_overlay_layout_audit(id,channel_id,revision,action,actor_operator_id,before_layout,after_layout) VALUES($1,$2,$3,'published.reset',$4,$5,$6)`,[randomUUID(),channelId,revision,actorId,prior.rows[0]?.layout??null,JSON.stringify(effective)]);

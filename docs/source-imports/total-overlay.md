@@ -15,7 +15,9 @@
 
 원본의 통합 canvas, normalized widget layout, 크기 측정과 OBS canvas 안내 구조를 주루마블 board widget의 기반으로 사용한다. 실제 활성 진입점은 원본 total page를 직접 변형한 파일이며, 원본 normalized widget loop에서 서버가 확정한 board, dice, current mission, inventory, direction과 상태를 합성한다. Board/TokenLottie는 `@rogimarble/overlay-ui`를 사용한다. OBS token은 URL fragment에서 읽어 Authorization header로만 API에 전달한다. 1초 polling 응답은 session id, session epoch, revision, presentation epoch가 후퇴하지 않을 때만 적용한다. 서버 roll result의 path를 CSS 이동 시간보다 긴 칸별 간격으로 순서대로 재생하고 새 presentation epoch나 위치 보정에서 이전 재생을 취소한다. 게시된 canvas width/height 비율을 viewport 안에 맞추며 layout background와 normalized widget 좌표를 적용한다. 표시 callback이나 OBS 연결 여부가 게임 결과를 확정하지 않는다.
 
-Gateway realtime은 아직 구현되지 않았다. 원본 Socket.IO와 서비스 API는 코드 보존을 위해 포함하지만 runtime에서는 연결하지 않고 명시적으로 fail closed한다. 사용하지 않는 신청곡 theme와 그 font/thumbnail asset 전체를 지원한다고 주장하지 않는다. 현재 board overlay는 제품이 자체 호스팅하는 NanumSquareNeo만 사용한다.
+OBS 파츠 URL은 원본 `meloming-front`의 탭별 URL 카드와 `meloming-overlay`의 개별 위젯 경로를 참고해 `/overlay/:widget#token=...`로 분리했다. 파츠는 통합 배치에서 꺼져 있어도 단독 URL에서 표시하며, 각 파츠의 권장 브라우저 소스 크기를 콘솔에 안내한다. 토큰은 기존과 같이 URL fragment에만 둔다. 원본의 음악 위젯 스타일 설정 API는 이식하지 않고 주루마블의 읽기 전용 OBS 상태와 live layout 계약에 `widgetStyles`(테마·글꼴)를 추가했다. 파츠별 설정은 통합 화면과 단독 URL에 함께 적용되며 게시 작업에서도 현재 live 스타일을 보존한다.
+
+Gateway realtime은 아직 구현되지 않았다. 원본 Socket.IO와 서비스 API는 코드 보존을 위해 포함하지만 runtime에서는 연결하지 않고 명시적으로 fail closed한다. 사용하지 않는 신청곡 theme와 그 font/thumbnail asset 전체를 지원한다고 주장하지 않는다. 방송용 글꼴은 제품에 포함된 NanumSquare Neo·Jua·Do Hyeon·Black Han Sans만 사용한다.
 
 ## 공개 경계
 

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import type { OverlayLayoutDto } from '@rogimarble/contracts';
 
 const board = JSON.parse(readFileSync(new URL('../../../presets/streamer-board.json', import.meta.url), 'utf8'));
 const rules = JSON.parse(readFileSync(new URL('../../../presets/streamer-initial.json', import.meta.url), 'utf8'));
@@ -21,7 +22,7 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
   let layout = structuredClone(baseLayout);
   let conflictNext = false;
   let editable = role !== 'viewer';
-  const writes: Array<{ expectedVersion: number; layout: typeof baseLayout }> = [];
+  const writes: Array<{ expectedVersion: number; layout: OverlayLayoutDto }> = [];
 
   await page.route('**/v1/**', async route => {
     const request = route.request();
@@ -40,6 +41,9 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
       layout = structuredClone(body.layout);
       version += 1;
       return route.fulfill({ json: { layout, layoutVersion: version, layoutUpdatedAt: '2026-09-22T00:00:00Z' } });
+    }
+    if (path.endsWith('/obs-tokens') && request.method() === 'POST') {
+      return route.fulfill({ json: { id: 'issued', label: '방송 OBS', token: 'synthetic-overlay', tokenSuffix: 'rlay', createdAt: '2026-09-23T00:00:00Z', lastUsedAt: null, revokedAt: null, overlayUrlPath: '/overlay#token=synthetic-overlay' } });
     }
     let data: unknown;
     if (path.endsWith('/auth/session')) data = { csrfToken: 'synthetic-csrf', operator: { id: 'synthetic', username: '테스트', role } };
@@ -163,6 +167,20 @@ test('viewer sees the live layout but every edit entry point is disabled', async
   await expect(page.getByRole('button', { name: '기본 레이아웃 복원' })).toBeDisabled();
   await page.keyboard.press('ArrowRight');
   expect(state.writes).toEqual([]);
+});
+
+test('OBS tab saves an independent part style and offers its URL with source dimensions', async ({ page }) => {
+  const state = await fixture(page);
+  await page.getByRole('combobox', { name: '후원 메뉴 테마' }).click();
+  await page.getByRole('option', { name: '스카이 소다' }).click();
+  await expect.poll(() => state.writes.at(-1)?.layout.widgetStyles?.menu?.themeId).toBe('sky-soda');
+  await page.getByRole('combobox', { name: '후원 메뉴 글꼴' }).click();
+  await page.getByRole('option', { name: '주아' }).click();
+  await expect.poll(() => state.writes.at(-1)?.layout.widgetStyles?.menu?.fontId).toBe('jua');
+  await page.getByRole('button', { name: '주소 발급' }).click();
+  await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=synthetic-overlay');
+  await expect(page.getByText('OBS 권장 크기 480 × 640px')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: '주루마블 보드 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/board#token=synthetic-overlay');
 });
 
 test('visible editor polls a newer published layout and permission without requiring a failed gesture', async ({ page }) => {

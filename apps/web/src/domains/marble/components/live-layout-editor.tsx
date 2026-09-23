@@ -1,13 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { BroadcastDonationRule, OverlayLayoutDto, OverlayLayoutSnapshotDto, OverlayWidgetId } from '@rogimarble/contracts';
+import type { BoardFontId, BoardThemeId, BroadcastDonationRule, OverlayLayoutDto, OverlayLayoutSnapshotDto, OverlayWidgetId, OverlayWidgetStyleDto } from '@rogimarble/contracts';
 import type { BoardDefinition } from '@rogimarble/game-core/board';
 import type { DonationTriggerConfig } from '@rogimarble/game-core';
 import { api } from '@/lib/api';
 import { LiveLayoutError, liveLayoutApi } from '@/lib/live-layout';
 import { ConsoleNotice } from '@/shared/components/common/console-ui';
 import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent } from '@/shared/components/ui/card';
+import { Label } from '@/shared/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { BOARD_FONTS, BOARD_THEMES } from '@rogimarble/overlay-ui';
+import { OVERLAY_PARTS } from '../overlay-parts';
 import { TotalOverlayLayoutSettings, type TotalOverlayLayoutAdapter } from '@/domains/overlay/components/total-overlay-layout-settings';
 import { DEFAULT_MARBLE_TOTAL_OVERLAY_LAYOUT, type TotalOverlayLayout, type TotalOverlayWidgetId } from '@/domains/overlay/constants/total-layout';
 import { OverlayWidgetPreview } from './configuration/board-preview';
@@ -54,6 +59,7 @@ export function LiveLayoutEditor() {
   const [rules, setRules] = useState<readonly BroadcastDonationRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [savingStyle, setSavingStyle] = useState<OverlayWidgetId | null>(null);
 
   const applySnapshot = useCallback((next: OverlayLayoutSnapshotDto) => {
     const current = snapshotRef.current;
@@ -154,6 +160,29 @@ export function LiveLayoutEditor() {
     return <OverlayWidgetPreview id={id as OverlayWidgetId} value={layout} board={board ?? undefined} rules={rules} />;
   }, [board, rules]);
 
+  const updateStyle = useCallback(async (id: OverlayWidgetId, key: keyof OverlayWidgetStyleDto, value: string) => {
+    const current = snapshotRef.current;
+    if (!current || !canEdit) return;
+    const oldStyle = current.layout.widgetStyles?.[id] ?? {};
+    const nextStyle = { ...oldStyle, [key]: value === 'inherit' ? undefined : value };
+    const widgetStyles = { ...current.layout.widgetStyles, [id]: nextStyle };
+    setSavingStyle(id);
+    try {
+      const saved = await liveLayoutApi.put({ ...current.layout, widgetStyles }, current.layoutVersion);
+      applySnapshot(saved);
+      setMessage('');
+    } catch (error) {
+      if (error instanceof LiveLayoutError && error.status === 409) {
+        await refresh();
+        setMessage('다른 운영자의 최신 설정을 불러왔습니다. 스타일을 다시 선택해 주세요.');
+      } else {
+        setMessage(error instanceof Error ? error.message : '파츠 스타일을 저장하지 못했습니다.');
+      }
+    } finally {
+      setSavingStyle(null);
+    }
+  }, [applySnapshot, canEdit, refresh]);
+
   const adapter = useMemo<TotalOverlayLayoutAdapter | null>(() => snapshot ? ({
     snapshot: { layout: toEditorLayout(snapshot.layout), layoutVersion: snapshot.layoutVersion },
     isLoading: loading,
@@ -178,5 +207,36 @@ export function LiveLayoutEditor() {
       widgetPreviewEnabled={false}
       adapter={adapter ?? { snapshot: null, isLoading: true, canEdit: false, widgetIds: WIDGET_IDS, canvasAspect: 16 / 9, save, renderWidget }}
     />
+    {snapshot && <section className="space-y-3" aria-label="파츠별 방송 스타일">
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold">파츠별 방송 스타일</h3>
+        <p className="text-xs text-muted-foreground">테마와 글꼴을 선택하면 통합 화면과 개별 OBS 주소에 바로 반영됩니다. 전체 설정을 선택하면 게시된 기본값을 사용합니다.</p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {OVERLAY_PARTS.map((part) => {
+          const style = snapshot.layout.widgetStyles?.[part.id];
+          return <Card key={part.id}><CardContent className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h4 className="text-sm font-semibold">{part.label} 스타일</h4>
+              <span className="text-xs text-muted-foreground">{part.width} × {part.height}px</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Label className="block space-y-1">테마
+                <Select value={style?.themeId ?? 'inherit'} disabled={!canEdit || savingStyle !== null} onValueChange={(value) => void updateStyle(part.id, 'themeId', value as BoardThemeId | 'inherit')}>
+                  <SelectTrigger aria-label={`${part.label} 테마`}><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="inherit">전체 설정</SelectItem>{BOARD_THEMES.map((theme) => <SelectItem key={theme.id} value={theme.id}>{theme.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </Label>
+              <Label className="block space-y-1">글꼴
+                <Select value={style?.fontId ?? 'inherit'} disabled={!canEdit || savingStyle !== null} onValueChange={(value) => void updateStyle(part.id, 'fontId', value as BoardFontId | 'inherit')}>
+                  <SelectTrigger aria-label={`${part.label} 글꼴`}><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="inherit">전체 설정</SelectItem>{BOARD_FONTS.map((font) => <SelectItem key={font.id} value={font.id}>{font.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </Label>
+            </div>
+          </CardContent></Card>;
+        })}
+      </div>
+    </section>}
   </div>;
 }

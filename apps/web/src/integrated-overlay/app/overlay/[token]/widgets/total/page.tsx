@@ -3,15 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Board, BroadcastPanel, BOARD_FONT_FAMILIES } from '@rogimarble/overlay-ui';
 import type { BoardDefinition } from '@rogimarble/game-core/board';
-import { upgradeLegacyOverlayLayout, validateOverlayLayout, resolveBoardFontId, type BoardFontId, type BoardThemeId, type OverlayLayoutDto, type OverlayStateDto } from '@rogimarble/contracts';
+import { upgradeLegacyOverlayLayout, validateOverlayLayout, resolveBoardFontId, type BoardFontId, type BoardThemeId, type OverlayLayoutDto, type OverlayStateDto, type OverlayWidgetId } from '@rogimarble/contracts';
 import { CanvasSizeNotice } from '@/integrated-overlay/domains/overlay/components/shared/CanvasSizeNotice';
 import { rollPlayback } from '@/integrated-overlay/roll-playback';
 import { useRollPresentation } from '@/lib/use-roll-presentation';
 import { apiAssetUrl } from '@/lib/api';
+import { OVERLAY_PARTS } from '@/domains/marble/overlay-parts';
 
 type WidgetId = 'board' | 'dice' | 'current_mission' | 'inventory' | 'direction' | 'menu' | 'dice_price';
 type LayoutWidget = { id: WidgetId; enabled: boolean; x: number; y: number; w: number; h: number; z: number };
-type TotalLayout = Pick<OverlayLayoutDto, 'fontId' | 'menu' | 'dicePrice'> & { boardThemeId: BoardThemeId; version: number; aspect: string; width: number; height: number; background: string; widgets: readonly LayoutWidget[] };
+type TotalLayout = Pick<OverlayLayoutDto, 'fontId' | 'widgetStyles' | 'menu' | 'dicePrice'> & { boardThemeId: BoardThemeId; version: number; aspect: string; width: number; height: number; background: string; widgets: readonly LayoutWidget[] };
 
 const DEFAULT_TOTAL_OVERLAY_LAYOUT: TotalLayout = {
   boardThemeId: 'lime-clover',
@@ -46,7 +47,7 @@ function mergeLayout(layout?: Record<string, unknown> | null): TotalLayout {
   return {
     ...DEFAULT_TOTAL_OVERLAY_LAYOUT,
     boardThemeId: parsed.boardThemeId ?? 'lime-clover',
-    fontId: parsed.fontId, menu: parsed.menu, dicePrice: parsed.dicePrice,
+    fontId: parsed.fontId, widgetStyles: parsed.widgetStyles, menu: parsed.menu, dicePrice: parsed.dicePrice,
     version: parsed.schemaVersion,
     aspect: parsed.aspectRatio,
     width: parsed.width,
@@ -75,10 +76,11 @@ export type AcceptedOverlayState = { state: OverlayStateDto; receivedAt: number 
  * normalized canvas, measured pixel geometry, z-order and widget loop remain
  * authoritative; song-request widgets are replaced by board/status widgets.
  */
-export default function TotalOverlayWidgetPage({ accepted, previewBoard, status }: {
+export default function TotalOverlayWidgetPage({ accepted, previewBoard, status, widgetId }: {
   accepted: AcceptedOverlayState | null;
   previewBoard: BoardDefinition;
   status: 'preview' | 'connecting' | 'live' | 'stale' | 'unauthorized' | 'error';
+  widgetId?: OverlayWidgetId;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -126,30 +128,39 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status 
   const tokenCellId = missingLiveBoard ? previewBoard.path[0] : presentation.cellId;
   const correctionKey = commandType === 'set_position' ? presentationKey : 'continuous-board';
   const shouldRenderWidgets = status === 'preview' || (!!state && !missingLiveBoard);
+  const part = widgetId ? OVERLAY_PARTS.find((item) => item.id === widgetId) : null;
+  const canvasWidth = part?.width ?? totalLayout.width;
+  const canvasHeight = part?.height ?? totalLayout.height;
+  const fittedWidth = Math.min(canvasSize.width, canvasSize.height * canvasWidth / canvasHeight);
+  const fittedHeight = Math.min(canvasSize.height, canvasSize.width * canvasHeight / canvasWidth);
+  const widgets = widgetId
+    ? [{ id: widgetId, enabled: true, x: 0, y: 0, w: 1, h: 1, z: 1 }]
+    : totalLayout.widgets.filter((widget) => widget.enabled);
 
   return (
     <div ref={containerRef} className="fixed inset-0 flex h-screen w-screen items-center justify-center overflow-hidden bg-transparent" data-total-overlay-source="meloming-overlay">
-      <div className="relative overflow-hidden" style={{ width: Math.min(canvasSize.width, canvasSize.height * (totalLayout.width / totalLayout.height)), height: Math.min(canvasSize.height, canvasSize.width / (totalLayout.width / totalLayout.height)), background: totalLayout.background, containerType: 'inline-size' }}>
-      {shouldRenderWidgets && totalLayout.widgets.filter((widget) => widget.enabled).map((widget) => {
-        const fittedWidth = Math.min(canvasSize.width, canvasSize.height * (totalLayout.width / totalLayout.height));
-        const fittedHeight = Math.min(canvasSize.height, canvasSize.width / (totalLayout.width / totalLayout.height));
+      <div className="relative overflow-hidden" style={{ width: fittedWidth, height: fittedHeight, background: widgetId ? 'transparent' : totalLayout.background, containerType: 'inline-size' }}>
+      {shouldRenderWidgets && widgets.map((widget) => {
         const width = fittedWidth * clamp01(widget.w);
         const height = fittedHeight * clamp01(widget.h);
         const left = fittedWidth * clamp01(widget.x);
         const top = fittedHeight * clamp01(widget.y);
+        const style = totalLayout.widgetStyles?.[widget.id];
+        const themeId = style?.themeId ?? totalLayout.boardThemeId;
+        const fontId = style?.fontId ?? totalLayout.fontId;
         return <div key={widget.id} data-overlay-widget={widget.id} data-overlay-version="1" className="absolute" style={{ left, top, width, height, zIndex: widget.z ?? 1 }}>
-          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} themeId={totalLayout.boardThemeId} fontId={totalLayout.fontId} tokenCellId={tokenCellId} moving={presentation.moving} dice={presentation.dice.length?presentation.dice:playback?.dice} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} pawnImageUrl={state?.pawnAppearance?.image ? apiAssetUrl(state.pawnAppearance.image.url) : null} pawnStyleId={state?.pawnAppearance?.styleId ?? 'star-medal'} /></div>}
-          {(widget.id === 'menu' || widget.id === 'dice_price') && <BroadcastPanel kind={widget.id} layout={totalLayout} rules={state?.donationMenu ?? []} />}
-          {widget.id === 'dice' && <OverlayCard fontId={totalLayout.fontId} themeId={totalLayout.boardThemeId} eyebrow="이번 주사위" value={presentation.effectPhase==='anticipation'?'굴리는 중…':(presentation.dice.length?presentation.dice:playback?.dice)?.join(' + ')||'대기 중'} />}
-          {widget.id === 'current_mission' && <OverlayCard fontId={totalLayout.fontId} themeId={totalLayout.boardThemeId} eyebrow="현재 미션" value={currentMission ? `${currentMission.message} × ${currentMission.quantity}` : '진행 중인 미션 없음'} />}
-          {widget.id === 'inventory' && <OverlayCard fontId={totalLayout.fontId} themeId={totalLayout.boardThemeId} eyebrow="보유 아이템" value={state?.inventory.length ? state.inventory.map((item) => `${item.name} ${item.quantity}`).join(' · ') : '없음'} align="left" />}
-          {widget.id === 'direction' && <OverlayCard fontId={totalLayout.fontId} themeId={totalLayout.boardThemeId} eyebrow="이동 방향" value={session?.direction === 'reverse' ? '역방향' : '정방향'} />}
+          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} themeId={themeId} fontId={fontId} tokenCellId={tokenCellId} moving={presentation.moving} dice={presentation.dice.length?presentation.dice:playback?.dice} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} pawnImageUrl={state?.pawnAppearance?.image ? apiAssetUrl(state.pawnAppearance.image.url) : null} pawnStyleId={state?.pawnAppearance?.styleId ?? 'star-medal'} /></div>}
+          {(widget.id === 'menu' || widget.id === 'dice_price') && <BroadcastPanel kind={widget.id} layout={{ ...totalLayout, boardThemeId: themeId, fontId }} rules={state?.donationMenu ?? []} />}
+          {widget.id === 'dice' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="이번 주사위" value={presentation.effectPhase==='anticipation'?'굴리는 중…':(presentation.dice.length?presentation.dice:playback?.dice)?.join(' + ')||'대기 중'} />}
+          {widget.id === 'current_mission' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="현재 미션" value={currentMission ? `${currentMission.message} × ${currentMission.quantity}` : '진행 중인 미션 없음'} />}
+          {widget.id === 'inventory' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="보유 아이템" value={state?.inventory.length ? state.inventory.map((item) => `${item.name} ${item.quantity}`).join(' · ') : '없음'} align="left" />}
+          {widget.id === 'direction' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="이동 방향" value={session?.direction === 'reverse' ? '역방향' : '정방향'} />}
         </div>;
       })}
       {shouldRenderWidgets && displayStatus !== 'live' && <div className="pointer-events-none absolute left-1/2 top-3 z-[101] -translate-x-1/2 rounded-full bg-black/70 px-4 py-2 text-center text-xs font-semibold text-white backdrop-blur">{label}</div>}
       {!shouldRenderWidgets && <div className="absolute inset-0 grid place-items-center"><div className="rounded-full bg-black/70 px-4 py-2 text-xs font-semibold text-white">{label}</div></div>}
       </div>
-      <CanvasSizeNotice width={canvasSize.width} height={canvasSize.height} />
+      {!widgetId && <CanvasSizeNotice width={canvasSize.width} height={canvasSize.height} />}
     </div>
   );
 }

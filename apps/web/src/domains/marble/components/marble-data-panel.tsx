@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { ConfigurationWorkspace } from "./configuration/configuration-workspace";
 import { LiveLayoutEditor } from "./live-layout-editor";
+import { OVERLAY_PARTS, overlayPartUrl } from '../overlay-parts';
 
 const operationNames: Record<string, string> = {
   roll_dice: "주사위 굴리기",
@@ -197,8 +198,7 @@ export function MarbleDataPanel({
         {issued && (
           <ConsoleNotice variant="warning" title="OBS 브라우저 소스 주소">
             <p>
-              이 주소는 지금만 표시됩니다. OBS에 붙여 넣고 외부에 공유하지
-              마세요.
+              주소는 지금만 표시됩니다. 통합 화면이나 필요한 파츠를 OBS 브라우저 소스로 추가하세요. 외부에 공유하지 마세요.
             </p>
             <Input
               readOnly
@@ -223,6 +223,24 @@ export function MarbleDataPanel({
                   방송 화면 열기
                 </a>
               </Button>
+            </div>
+            <div className="space-y-2">
+              {OVERLAY_PARTS.map((part) => {
+                const url = overlayPartUrl(issued.url, part.id);
+                return <Card key={part.id}>
+                  <CardContent className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm font-semibold">{part.label}</span>
+                      <span className="text-xs text-muted-foreground">OBS 권장 크기 {part.width} × {part.height}px</span>
+                    </div>
+                    <Input readOnly aria-label={`${part.label} OBS 주소`} value={url} onFocus={(event) => event.target.select()} />
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(url).then(() => setMessage(`${part.label} 주소를 복사했습니다.`)).catch(() => setMessage('주소를 선택해서 복사해 주세요.'))}>주소 복사</Button>
+                      <Button size="sm" variant="outline" asChild><a href={url} target="_blank" rel="noopener noreferrer">파츠 열기</a></Button>
+                    </div>
+                  </CardContent>
+                </Card>;
+              })}
             </div>
           </ConsoleNotice>
         )}

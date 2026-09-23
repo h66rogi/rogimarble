@@ -24,3 +24,8 @@ test('custom display values remain independent of actual donation rules',()=>{
   assert.equal(result.dice.amount,456);assert.equal(result.menu.rows[0].amount,123);
   assert.throws(()=>validateOverlayLayout({...custom,menu:{...custom.menu,rows:[...custom.menu!.rows,...custom.menu!.rows]}}));
 });
+test('individual widget styles accept known themes and fonts and reject unknown keys',()=>{
+  assert.doesNotThrow(()=>validateOverlayLayout({...layout,widgetStyles:{board:{themeId:'pink-bunny'},menu:{fontId:'jua'},dice:{themeId:'sky-soda',fontId:'do-hyeon'}}}));
+  for(const widgetStyles of [{board:{themeId:'missing'}},{menu:{fontId:'missing'}},{unknown:{themeId:'pink-bunny'}},{board:{themeId:'pink-bunny',css:'position:fixed'}}])
+    assert.throws(()=>validateOverlayLayout({...layout,widgetStyles}));
+});

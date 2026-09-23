@@ -1,7 +1,7 @@
 'use client';
 
 import type { BoardDefinition } from '@rogimarble/game-core/board';
-import type { OverlayStateDto } from '@rogimarble/contracts';
+import type { OverlayStateDto, OverlayWidgetId } from '@rogimarble/contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api } from '../../lib/api';
 import TotalOverlayWidgetPage, { type AcceptedOverlayState } from '@/integrated-overlay/app/overlay/[token]/widgets/total/page';
@@ -11,7 +11,7 @@ import { useRogimarbleOverlaySocket } from '@/integrated-overlay/domains/overlay
 const POLL_MS = 1_000;
 const STALE_MS = 5_000;
 
-export function Overlay({ board }: { board: BoardDefinition }) {
+export function Overlay({ board, widgetId }: { board: BoardDefinition; widgetId?: OverlayWidgetId }) {
   const [accepted, setAccepted] = useState<AcceptedOverlayState | null>(null);
   const [status, setStatus] = useState<'preview' | 'connecting' | 'live' | 'stale' | 'unauthorized' | 'error'>('preview');
   const latestRef = useRef<OverlayStateDto | null>(null);
@@ -40,5 +40,5 @@ export function Overlay({ board }: { board: BoardDefinition }) {
     return () => { stopped = true; setToken(null); if (timer) window.clearTimeout(timer); window.clearInterval(staleTimer); };
   }, []);
 
-  return <TotalOverlayWidgetPage accepted={accepted} previewBoard={board} status={status} />;
+  return <TotalOverlayWidgetPage accepted={accepted} previewBoard={board} status={status} widgetId={widgetId} />;
 }

@@ -359,13 +359,15 @@ export function OverlayWidgetPreview({ id, value, board, rules = [] }: {
   board?: BoardDefinition;
   rules?: readonly BroadcastDonationRule[];
 }) {
+  const themeId = value.widgetStyles?.[id]?.themeId ?? value.boardThemeId ?? 'lime-clover';
+  const fontId = value.widgetStyles?.[id]?.fontId ?? value.fontId;
   if (id === "board" && board) {
     return <div className="h-full w-full">
-      <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "lime-clover"} fontId={value.fontId} fit reducedMotion />
+      <Board board={board} tokenCellId={board.startCellId} themeId={themeId} fontId={fontId} fit reducedMotion />
     </div>;
   }
   if (id === "menu" || id === "dice_price") {
-    return <BroadcastPanel kind={id} layout={value} rules={rules} />;
+    return <BroadcastPanel kind={id} layout={{ ...value, boardThemeId: themeId, fontId }} rules={rules} />;
   }
   return <div className="flex h-full w-full items-center justify-center rounded border border-primary/30 bg-primary/10 text-sm text-foreground">
     {overlayWidgetLabels[id]}
