@@ -161,10 +161,33 @@ test("board editing keeps identities, actions and unsaved values across both lev
 }) => {
   const state = await fixture(page);
   await expect(config(page).getByRole("note")).toContainText("새 게임을 시작할 때 선택");
+  const saveBar = config(page).getByTestId("configuration-save-bar");
+  await expect(saveBar).toHaveAttribute("data-state", "saved");
+  await expect(saveBar).toHaveAttribute("data-variant", "floating");
+  const savedAppearance = await saveBar.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { position: style.position, bottom: style.bottom, background: style.backgroundColor, blur: style.backdropFilter, shadow: style.boxShadow };
+  });
+  expect(savedAppearance.position).toBe("sticky");
+  expect(savedAppearance.bottom).toBe("16px");
+  expect(savedAppearance.blur).toContain("blur(");
+  expect(savedAppearance.shadow).not.toBe("none");
+  const saveBarBox = await saveBar.boundingBox();
+  const panelBox = await page.locator("#console-panel-configuration").boundingBox();
+  expect(saveBarBox).not.toBeNull();
+  expect(panelBox).not.toBeNull();
+  expect(saveBarBox!.x).toBeGreaterThan(panelBox!.x + 24);
+  expect(saveBarBox!.width).toBeLessThan(panelBox!.width - 48);
   await selectCell(page, 2);
   await config(page)
     .getByLabel("칸 이름", { exact: true })
     .fill("방향전환이라는 이름의 미션");
+  await expect(saveBar).toHaveAttribute("data-state", "dirty");
+  await expect(saveBar).toHaveAttribute("data-variant", "floating-warning");
+  await expect(saveBar.getByRole("status")).toHaveText("변경사항을 저장해 주세요");
+  expect(await saveBar.getByRole("status").evaluate((element) => element.getBoundingClientRect().height)).toBeLessThan(32);
+  await expect(saveBar).toContainText("적용 시점 · 새 게임을 시작할 때 선택");
+  expect(await saveBar.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(savedAppearance.background);
   await page.getByRole("tablist", { name: "운영 콘솔 메뉴" }).getByRole("tab", { name: "게임 규칙" }).click();
   await expect(page.getByRole("region", { name: "후원 규칙 설정" })).toBeVisible();
   await expect(page.getByRole("region", { name: "후원 규칙 설정" }).getByRole("note")).toContainText("새로 수락하는 후원부터 적용");

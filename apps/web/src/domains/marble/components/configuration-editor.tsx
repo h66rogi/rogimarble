@@ -1,10 +1,11 @@
 "use client";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/components/ui/alert";
 import { Badge } from "@/shared/components/ui/badge";
+import { Card } from "@/shared/components/ui/card";
 import { Disclosure } from "./configuration/editor-fields";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, CheckCircle2, Clock3, Download, Loader2, Save } from "lucide-react";
+import { Check, CheckCircle2, CircleAlert, Clock3, Download, Loader2, Save } from "lucide-react";
 import { upgradeLegacyOverlayLayout } from "@rogimarble/contracts";
 import type {
   ChannelConfigKind,
@@ -348,47 +349,73 @@ export function ConfigurationEditor({
               </AlertDescription>
             </Alert>
           )}
-          <footer className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-4 border-t bg-background/95 px-4 py-3 backdrop-blur">
-            <div>
-              <Badge variant="secondary">
-                {dirty
-                  ? "저장하지 않은 변경"
-                  : version?.status === "validated"
-                    ? "검사 완료 · 게시 가능"
-                    : version
-                      ? "초안 저장됨"
-                      : published
-                        ? "게시된 설정"
-                        : "새 초안"}
-              </Badge>
-              <p className="text-sm font-medium text-foreground" role="status">
-                {message || `적용 시점 · ${applicationTiming[kind].short}`}
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                disabled={busy || !shape || (!dirty && !!version)}
-                onClick={() => void save(false)}
-              >
-                <Save />
-                초안 저장
-              </Button>
-              <Button
-                disabled={busy || !shape || !hasChanges}
-                onClick={() => void save(true)}
-              >
-                {busy ? (
-                  <Loader2 className="animate-spin" />
-                ) : !hasChanges ? (
-                  <Check />
-                ) : (
-                  <CheckCircle2 />
+          <Card
+            variant={dirty ? "floating-warning" : "floating"}
+            className="sticky bottom-4 z-30 mx-2 sm:mx-4"
+            data-testid="configuration-save-bar"
+            data-state={dirty ? "dirty" : "saved"}
+          >
+            <footer
+              className="flex flex-wrap items-center justify-between gap-4"
+              aria-label={`${configLabels[kind]} 저장 동작`}
+            >
+              <div className="min-w-0 space-y-1">
+                <Badge variant={dirty ? "default" : "secondary"}>
+                  {dirty
+                    ? "저장하지 않은 변경"
+                    : version?.status === "validated"
+                      ? "검사 완료 · 게시 가능"
+                      : version
+                        ? "초안 저장됨"
+                        : published
+                          ? "게시된 설정"
+                          : "새 초안"}
+                </Badge>
+                <p
+                  className={dirty ? "flex items-center gap-2 text-lg font-bold text-warning" : "text-sm font-medium text-foreground"}
+                  role="status"
+                  aria-live="polite"
+                >
+                  {dirty && (
+                    <CircleAlert className="size-5 shrink-0" aria-hidden="true" />
+                  )}
+                  <span>
+                    {dirty
+                      ? "변경사항을 저장해 주세요"
+                      : message || `적용 시점 · ${applicationTiming[kind].short}`}
+                  </span>
+                </p>
+                {dirty && (
+                  <p className="text-xs font-medium text-warning">
+                    적용 시점 · {applicationTiming[kind].short}
+                  </p>
                 )}
-                {busy ? "처리 중…" : !hasChanges ? "게시됨" : "검사하고 게시"}
-              </Button>
-            </div>
-          </footer>
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  disabled={busy || !shape || (!dirty && !!version)}
+                  onClick={() => void save(false)}
+                >
+                  <Save />
+                  초안 저장
+                </Button>
+                <Button
+                  disabled={busy || !shape || !hasChanges}
+                  onClick={() => void save(true)}
+                >
+                  {busy ? (
+                    <Loader2 className="animate-spin" />
+                  ) : !hasChanges ? (
+                    <Check />
+                  ) : (
+                    <CheckCircle2 />
+                  )}
+                  {busy ? "처리 중…" : !hasChanges ? "게시됨" : "검사하고 게시"}
+                </Button>
+              </div>
+            </footer>
+          </Card>
         </>
       )}
       <Dialog
