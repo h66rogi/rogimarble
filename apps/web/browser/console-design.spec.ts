@@ -167,16 +167,28 @@ test("a board cell opens the position action and sends the selected cell", async
   await expect(move).toHaveCount(0);
   await boardCells.nth(2).click();
   await expect(move).toBeVisible();
-  await expect(move).toHaveText("이동");
+  await expect(move).toHaveText("이 칸으로 이동");
   const thirdCell = await boardCells.nth(2).boundingBox();
   const thirdAction = await move.boundingBox();
-  expect(thirdCell && thirdAction && Math.abs(thirdAction.x + thirdAction.width / 2 - thirdCell.x - thirdCell.width / 2) < 15).toBe(true);
-  expect(thirdCell && thirdAction && thirdAction.width <= thirdCell.width).toBe(true);
+  expect(thirdCell && thirdAction && thirdAction.x < thirdCell.x + thirdCell.width && thirdAction.x + thirdAction.width > thirdCell.x).toBe(true);
+  expect(thirdAction && thirdAction.width >= 100 && thirdAction.height >= 32).toBe(true);
   expect(thirdCell && thirdAction && thirdAction.y >= thirdCell.y + thirdCell.height).toBe(true);
+  for (const index of board.cells.map((_: unknown, index: number) => index).slice(1)) {
+    await boardCells.nth(index).click();
+    await expect(move).toBeVisible();
+    expect(await move.evaluate((button) => {
+      const action = button.getBoundingClientRect();
+      return [...document.querySelectorAll("#console-panel-home .board-cell")].every((cell) => {
+        const rect = cell.getBoundingClientRect();
+        return action.right <= rect.left || action.left >= rect.right ||
+          action.bottom <= rect.top || action.top >= rect.bottom;
+      });
+    })).toBe(true);
+  }
   await boardCells.nth(1).click();
   const secondCell = await boardCells.nth(1).boundingBox();
   const secondAction = await move.boundingBox();
-  expect(secondCell && secondAction && Math.abs(secondAction.x + secondAction.width / 2 - secondCell.x - secondCell.width / 2) < 15).toBe(true);
+  expect(secondCell && secondAction && secondAction.x < secondCell.x + secondCell.width && secondAction.x + secondAction.width > secondCell.x).toBe(true);
   await boardCells.nth(1).click({ position: { x: 5, y: 5 } });
   await expect(move).toHaveCount(0);
   await boardCells.nth(1).click();

@@ -16,7 +16,8 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
   const displayBoard = board;
   const tokenCell = displayBoard.cells.find(c => c.id === tokenCellId) ?? displayBoard.cells[0];
   const tokenRect = getCellRect(displayBoard, tokenCell.id);
-  const selectedRect = selectedCellId && displayBoard.cells.some(c => c.id === selectedCellId) ? getCellRect(displayBoard, selectedCellId) : null;
+  const selectedCell = displayBoard.cells.find(c => c.id === selectedCellId);
+  const selectedRect = selectedCell ? getCellRect(displayBoard, selectedCell.id) : null;
   const actionSide = selectedRect
     ? Math.abs((selectedRect.y + selectedRect.height / 2) / displayBoard.canvas.height - .5) >= Math.abs((selectedRect.x + selectedRect.width / 2) / displayBoard.canvas.width - .5)
       ? selectedRect.y + selectedRect.height / 2 < displayBoard.canvas.height / 2 ? 'below' : 'above'
@@ -24,6 +25,13 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
     : null;
   const actionX = selectedRect && (actionSide === 'right' ? selectedRect.x + selectedRect.width : actionSide === 'left' ? selectedRect.x : selectedRect.x + selectedRect.width / 2);
   const actionY = selectedRect && (actionSide === 'below' ? selectedRect.y + selectedRect.height : actionSide === 'above' ? selectedRect.y : selectedRect.y + selectedRect.height / 2);
+  const actionSafeArea = interactive && selectedRect && selectedCellAction ? getActionSafeArea(displayBoard) : null;
+  const actionLeft = actionSafeArea && (actionSide === 'below' || actionSide === 'above')
+    ? `clamp(calc(${actionSafeArea.left / displayBoard.canvas.width * 100}% + var(--board-action-half-width) + var(--board-action-gap)), ${((actionX ?? 0) / displayBoard.canvas.width) * 100}%, calc(${actionSafeArea.right / displayBoard.canvas.width * 100}% - var(--board-action-half-width) - var(--board-action-gap)))`
+    : `${((actionX ?? 0) / displayBoard.canvas.width) * 100}%`;
+  const actionTop = actionSafeArea && (actionSide === 'right' || actionSide === 'left')
+    ? `clamp(calc(${actionSafeArea.top / displayBoard.canvas.height * 100}% + var(--board-action-half-height) + var(--board-action-gap)), ${((actionY ?? 0) / displayBoard.canvas.height) * 100}%, calc(${actionSafeArea.bottom / displayBoard.canvas.height * 100}% - var(--board-action-half-height) - var(--board-action-gap)))`
+    : `${((actionY ?? 0) / displayBoard.canvas.height) * 100}%`;
   const presentationPhase = effectPhase === 'anticipation' ? 'rolling' : effectPhase === 'stepping' ? 'moving' : effectPhase;
   const rollingDiceCount = Math.max(1, dice?.length || displayBoard.dice.count);
 
@@ -50,7 +58,7 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
           </g>;
         })}
       </svg>
-      {interactive && selectedRect && actionSide && selectedCellAction && <div className="board-cell-action" data-side={actionSide} style={{ left: `${((actionX ?? 0) / displayBoard.canvas.width) * 100}%`, top: `${((actionY ?? 0) / displayBoard.canvas.height) * 100}%` }}>{selectedCellAction}</div>}
+      {interactive && selectedRect && actionSide && selectedCellAction && <div className="board-cell-action" data-side={actionSide} style={{ left: actionLeft, top: actionTop }}>{selectedCellAction}</div>}
       {displayBoard.layout.type === 'perimeter_grid' && effectPhase !== 'idle' && <div className="center-widget">
         <div className="dice-tray" aria-label={effectPhase === 'anticipation' ? `주사위 ${rollingDiceCount}개 굴리는 중` : dice?.length ? `주사위 ${dice.join(', ')}` : '주사위 대기 중'}>
           <DiceLottie active={effectPhase === 'anticipation'} reducedMotion={reducedMotion} count={rollingDiceCount} />
@@ -65,6 +73,20 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
       </div>
     </div>
   </div>;
+}
+
+function getActionSafeArea(board: BoardDefinition) {
+  const { width, height } = board.canvas;
+  if (board.layout.type !== 'perimeter_grid') return { left: 0, right: width, top: 0, bottom: height };
+  const { columns, rows } = board.layout;
+  const cells = board.cells.filter(cell => cell.position.type === 'grid');
+  const rectsAt = (predicate: (row: number, column: number) => boolean) =>
+    cells.filter(cell => cell.position.type === 'grid' && predicate(cell.position.row, cell.position.column)).map(cell => getCellRect(board, cell.id));
+  const left = Math.max(0, ...rectsAt((_, column) => column === 0).map(rect => rect.x + rect.width));
+  const right = Math.min(width, ...rectsAt((_, column) => column === columns - 1).map(rect => rect.x));
+  const top = Math.max(0, ...rectsAt((row) => row === 0).map(rect => rect.y + rect.height));
+  const bottom = Math.min(height, ...rectsAt((row) => row === rows - 1).map(rect => rect.y));
+  return { left, right, top, bottom };
 }
 
 function ThemeCorners({ board, themeId }: { board: BoardDefinition; themeId: BoardThemeId }) {
