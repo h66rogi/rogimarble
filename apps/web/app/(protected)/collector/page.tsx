@@ -38,7 +38,7 @@ import {
   ApiError,
   type BroadcastStatus,
   type CollectorStatus,
-} from "../../lib/api";
+} from "../../../lib/api";
 
 const labels: Record<string, string> = {
   waiting: "방송 시작 대기",

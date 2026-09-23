@@ -14,7 +14,7 @@ import { Label } from "@/shared/components/ui/label";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { ConsoleNotice } from "@/shared/components/common/console-ui";
-import { api, ApiError, type ChatTestStatus } from "../../lib/api";
+import { api, ApiError, type ChatTestStatus } from "../../../lib/api";
 
 const states: Record<string, string> = {
   idle: "테스트 대기",

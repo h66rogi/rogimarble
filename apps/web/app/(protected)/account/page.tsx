@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { api } from "../../lib/api";
+import { api } from "../../../lib/api";
 export default function AccountPage() {
   const [account, setAccount] = useState<string | null>(null),
     [tokens, setTokens] = useState<readonly AccessTokenDto[]>([]),
