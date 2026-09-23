@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { MissionDto } from "@rogimarble/contracts";
 import { createPortal } from "react-dom";
 import { Board } from "@rogimarble/overlay-ui";
 import { validateBoardDefinition } from "@rogimarble/game-core/board";
@@ -432,21 +431,6 @@ export function MarbleOperationsPanel({
             미션 만들기
           </Button>
         </form>
-        {state?.missions.length ? <div className="space-y-3 border-t pt-3">
-          <h3 className="text-sm font-semibold">미션 현황</h3>
-          {state.missions.map((mission) => <div key={mission.id}
-            className="flex flex-wrap items-start justify-between gap-2 border-b pb-3 last:border-b-0 last:pb-0">
-            <div className="min-w-0">
-              <strong className="text-sm">{mission.message} · {mission.quantity}개</strong>
-              {mission.status === "pending" && <MissionRemaining mission={mission} />}
-            </div>
-            <Badge variant="secondary">
-              {mission.status === "pending" ? "진행 중" :
-                mission.status === "completed" ? "완료" :
-                mission.status === "waived" ? "면제" : "실드 사용"}
-            </Badge>
-          </div>)}
-        </div> : <p className="text-sm text-muted-foreground">만든 미션이 없습니다.</p>}
       </HomeControlSection>
     </div>
   );
@@ -514,32 +498,5 @@ export function MarbleOperationsPanel({
         <aside className="mt-4 lg:hidden">{controls}</aside>
       )}
     </>
-  );
-}
-
-function MissionRemaining({ mission }: { mission: MissionDto }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!mission.durationSeconds) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [mission.durationSeconds]);
-  if (!mission.durationSeconds) return null;
-  const remaining = Math.max(
-    0,
-    Math.ceil(
-      (Date.parse(mission.createdAt) + mission.durationSeconds * 1000 - now) /
-        1000,
-    ),
-  );
-  return (
-    <p
-      className={`mt-1 text-xs ${remaining === 0 ? "text-destructive" : "text-muted-foreground"}`}
-    >
-      {remaining === 0
-        ? "시간 만료 · 운영자 확인 필요"
-        : `남은 시간 ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`}{" "}
-      · 자동 완료되지 않음
-    </p>
   );
 }

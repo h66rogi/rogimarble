@@ -60,8 +60,8 @@ docker compose --env-file deploy/.env -f deploy/compose.yaml run --rm --no-deps 
   node --experimental-strip-types packages/database/src/import-items.ts presets/streamer-initial.json
 ```
 
-관리 화면에서 보상 수량 추가·차감·지정, 수량과 실드 허용 정책을 가진 수동 미션 생성·완료·면제·실드 사용,
-세션 일시정지·한 건 진행·재개·종료를 지원한다. 미완료 미션이 있으면 종료가 거부된다.
+관리 화면에서 보상 수량 추가·차감·지정, 수동 미션 생성,
+세션 일시정지·한 건 진행·재개·종료를 지원한다. 미션별 완료·면제 확인 없이 종료할 수 있다.
 새 세션은 이전 세션의 재고를 승계하지 않는다.
 
 이번 로컬 확인 환경에는 일회성 계정 `operator-preview`와 채널 `preview`를 준비했다. 로그인 정보는 Git에서

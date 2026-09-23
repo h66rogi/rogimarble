@@ -279,13 +279,12 @@ test('inventory and shield policy are data-driven, atomic and concurrency safe',
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.inventory[0].quantity,0);assert.equal(state.inventory[0].revision,2);assert.equal(state.missions[0].status,'shielded');
 });
 
-test('missions complete or waive exactly once and session lifecycle permits a clean new session',async()=>{
+test('legacy mission commands remain consistent and unresolved notices do not block ending a session',async()=>{
   const http=client(await login());let state=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
   const oldSessionId=state.session.id;
   let path=`/v1/channels/test-channel/sessions/${state.session.id}/commands`;
   const send=(expectedRevision:number,type:string,payload:unknown)=>http.post(path,{commandId:randomUUID(),sessionEpoch:1,expectedRevision,type,reason:'integration test',payload});
   let response=await send(8,'create_mission',{message:'complete me',quantity:1,shield:null});assert.equal(response.status,201);const completeId=(await response.json() as any).result.mission.id;
-  assert.equal((await send(9,'end_session',{})).status,409);
   assert.equal((await send(9,'complete_mission',{missionId:completeId,expectedMissionRevision:0})).status,201);
   response=await send(10,'create_mission',{message:'waive me',shield:null});assert.equal(response.status,201);const waiveId=(await response.json() as any).result.mission.id;
   assert.equal((await send(11,'waive_mission',{missionId:waiveId,expectedMissionRevision:0})).status,201);
@@ -297,6 +296,13 @@ test('missions complete or waive exactly once and session lifecycle permits a cl
   const boards=await (await http.get('/v1/channels/test-channel/board-versions/runnable')).json() as any[];
   response=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId:boards.find((board:any)=>board.previewOnly)!.id,initialCellId:boards.find((board:any)=>board.previewOnly)!.initialCellId,direction:'forward'});assert.equal(response.status,201);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session.status,'running');assert.equal(state.session.previewOnly,true);assert.equal(state.inventory[0].quantity,0);assert.deepEqual(state.missions,[]);
+  const nextSessionId=state.session.id;
+  response=await http.post(`/v1/channels/test-channel/sessions/${nextSessionId}/commands`,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'create_mission',reason:'untracked mission notice',payload:{message:'notice only',quantity:1,shield:null}});assert.equal(response.status,201);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.missions.at(-1).status,'pending');
+  response=await http.post(`/v1/channels/test-channel/sessions/${nextSessionId}/commands`,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'end_session',reason:'finish without mission check',payload:{}});assert.equal(response.status,201);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session,null);
+  response=await http.get(`/v1/channels/test-channel/sessions/${nextSessionId}/missions`);assert.equal(response.status,200);assert.equal((await response.json() as any[]).at(-1).status,'pending');
+  response=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId:boards.find((board:any)=>board.previewOnly)!.id,initialCellId:boards.find((board:any)=>board.previewOnly)!.initialCellId,direction:'forward'});assert.equal(response.status,201);
 });
 
 test('versioned configuration, honest donation feed and revocable OBS snapshot are persisted',async()=>{
@@ -467,12 +473,21 @@ test('supported arrival effects persist counters, reservations, missions, modifi
   const clearLock={commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'clear_movement_lock',reason:'operator correction',payload:{}};
   response=await http.post(path,clearLock);assert.equal(response.status,201);const lockAck=await response.json();response=await http.post(path,clearLock);assert.equal(response.status,201);assert.deepEqual(await response.json(),lockAck);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.movementLock,null);assert.equal((await http.post(path,{...clearLock,commandId:randomUUID(),expectedRevision:state.session.revision})).status,409);
-  await land(board.cells[5].id);await land(board.cells[5].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].reserved,1);assert.equal(state.counters[0].available,0);const settlement=state.missions.find((x:any)=>x.message==='settle snapshot');assert.equal(settlement.quantity,1);
-  response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'adjust_counter',reason:'invalid correction',payload:{counterId:'drink-bank',quantity:0,expectedCounterRevision:state.counters[0].revision}});assert.equal(response.status,422);
+  await land(board.cells[5].id);await land(board.cells[5].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,0);assert.equal(state.counters[0].reserved,0);assert.equal(state.counters[0].available,0);const settlement=state.missions.find((x:any)=>x.message==='settle snapshot');assert.equal(settlement.quantity,1);
+  response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'adjust_counter',reason:'invalid correction',payload:{counterId:'drink-bank',quantity:-1,expectedCounterRevision:state.counters[0].revision}});assert.equal(response.status,422);
   response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'adjust_counter',reason:'operator correction',payload:{counterId:'drink-bank',quantity:2,expectedCounterRevision:state.counters[0].revision}});assert.equal(response.status,201);
-  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,2);assert.equal(state.counters[0].available,1);
-  response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'complete_mission',reason:'settlement complete',payload:{missionId:settlement.id,expectedMissionRevision:0}});assert.equal(response.status,201);
-  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,1);assert.equal(state.counters[0].reserved,0);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,2);assert.equal(state.counters[0].available,2);
+  const legacyDb=new pg.Client({connectionString:databaseUrl});await legacyDb.connect();
+  try{
+    await legacyDb.query(`INSERT INTO missions(id,session_id,message,quantity,status,created_by_command_id,source_effect_index,settlement_counter_id,settlement_amount,settlement_on) VALUES($1,$2,'legacy reservation',1,'pending',$3,999,'drink-bank',1,'mission_completion')`,
+      [randomUUID(),state.session.id,state.latestCommand.commandId]);
+    const migration=await readFile(new URL('../../../packages/database/migrations/020_settle_untracked_missions.sql',import.meta.url),'utf8');
+    await legacyDb.query(migration);
+    state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,1);assert.equal(state.counters[0].reserved,0);
+    const revision=state.counters[0].revision;
+    await legacyDb.query(migration);
+    state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,1);assert.equal(state.counters[0].revision,revision);
+  }finally{await legacyDb.end();}
   const moved=await land(board.cells[6].id);assert.equal((await moved).result.toCellId,board.path[(board.path.indexOf(board.cells[6].id)+2)%board.path.length]);
   await land(board.cells[7].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();
   response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'resume',reason:'island dice integration',payload:{}});assert.equal(response.status,201);

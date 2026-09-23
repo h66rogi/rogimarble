@@ -39,7 +39,6 @@ export function CurrentActionsSection({
     const payload = task.payload && typeof task.payload === "object" ? task.payload as Record<string, unknown> : {};
     return Boolean(payload.reservedTurnCommandId) && !payload.selectedCellId;
   });
-  const pendingMissions = state?.missions.filter((mission) => mission.status === "pending") ?? [];
   const lock = state?.movementLock;
   const hasQuickAction = !session
     ? boards.length > 0
@@ -135,27 +134,7 @@ export function CurrentActionsSection({
             이동 제한 바로 해제
           </Button>}
         </div>}
-        {pendingMissions.map((mission) => {
-          const shieldItem = mission.shield ? state.inventory.find((item) => item.itemId === mission.shield?.itemId) : null;
-          return <div key={mission.id} className="space-y-2 border-t pt-3">
-            <div className="flex items-center justify-between gap-2">
-              <strong className="text-sm">{mission.message}</strong>
-              <Badge variant="secondary">{mission.quantity}개</Badge>
-            </div>
-            {state.capabilities?.missions && <div className="flex flex-wrap gap-2">
-              <Button size="sm" disabled={locked} onClick={() => void send({ type: "complete_mission", missionId: mission.id,
-                expectedMissionRevision: mission.revision, expectedRevision: state.revision, reason })}>완료</Button>
-              <Button size="sm" variant="outline" disabled={locked} onClick={() => void send({ type: "waive_mission", missionId: mission.id,
-                expectedMissionRevision: mission.revision, expectedRevision: state.revision, reason })}>면제</Button>
-              {mission.shield && shieldItem && <Button size="sm" variant="outline"
-                disabled={locked || shieldItem.quantity < mission.shield.quantity}
-                onClick={() => void send({ type: "use_shield", missionId: mission.id,
-                  expectedMissionRevision: mission.revision, expectedInventoryRevision: shieldItem.revision,
-                  expectedRevision: state.revision, reason })}>실드 사용</Button>}
-            </div>}
-          </div>;
-        })}
-        {!hasQuickAction && !tasks.length && !lock && !pendingMissions.length &&
+        {!hasQuickAction && !tasks.length && !lock &&
           <p className="text-sm text-muted-foreground">현재 계정에서 실행할 수 있는 액션이 없습니다.</p>}
       </>}
     </HomeControlSection>

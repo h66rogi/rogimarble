@@ -685,7 +685,7 @@
           "counterId": "drink-bank",
           "message": "적립한 술 전부 한 번에 마시기",
           "shield": null,
-          "settleOn": "mission_completion"
+          "settleOn": "creation"
         }
       ],
       "onPass": []

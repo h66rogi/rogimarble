@@ -428,7 +428,9 @@ export function EffectFields({ value, board, items, change }: Props) {
                 ? "판 설정의 적립 항목에서 먼저 만들어주세요."
                 : undefined
             }
-            change={(counterId) => change({ ...value, counterId })}
+            change={(counterId) => change(value.type === "counter_settle"
+              ? { ...value, counterId, settleOn: "creation" }
+              : { ...value, counterId })}
           />
           {value.type === "counter_add" ? (
             <NumberField
@@ -442,27 +444,21 @@ export function EffectFields({ value, board, items, change }: Props) {
                 <Input
                   value={value.message}
                   onChange={(e) =>
-                    change({ ...value, message: e.target.value })
+                    change({ ...value, message: e.target.value, settleOn: "creation" })
                   }
                 />
               </Field>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                적립 전량을 한 번의 미션으로 만들어요. 대기 중 새로 적립한
-                수량은 남아요.
+                적립 전량으로 한 번의 미션을 보여줘요. 이후 새로 적립한
+                수량은 다음 청산까지 남아요.
               </p>
-              <Options
-                label="적립 수량을 차감하는 시점"
-                value={value.settleOn}
-                options={[
-                  ["mission_completion", "미션을 완료·방어·면제했을 때"],
-                  ["creation", "미션을 만들 때"],
-                ]}
-                change={(settleOn) => change({ ...value, settleOn })}
-              />
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                청산 수량은 이 칸의 효과가 발생할 때 바로 차감돼요. 이전에 저장된 차감 시점도 실행 시 이 규칙으로 처리합니다.
+              </p>
               <ShieldFields
                 value={value.shield}
                 items={items}
-                change={(shield) => change({ ...value, shield })}
+                change={(shield) => change({ ...value, shield, settleOn: "creation" })}
               />
             </>
           )}

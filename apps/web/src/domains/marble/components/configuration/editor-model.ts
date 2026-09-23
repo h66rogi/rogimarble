@@ -115,7 +115,7 @@ export function newEffect(
         counterId: board.counters[0]?.id ?? "",
         message: "적립한 수량을 모두 수행하세요",
         shield: null,
-        settleOn: "mission_completion",
+        settleOn: "creation",
       };
     case "grant_item":
       return { type, itemId: items[0]?.id ?? "", quantity: 1 };
@@ -175,7 +175,7 @@ export function describeEffect(
     case "counter_add":
       return `${counter?.label ?? "적립 수량"} +${effect.quantity}${counter?.unit ?? ""}`;
     case "counter_settle":
-      return `${counter?.label ?? "적립 수량"} 전부를 한 번의 미션으로 수행해요`;
+      return `${counter?.label ?? "적립 수량"} 전부를 즉시 차감하고 미션을 보여줘요`;
     case "grant_item":
       return `${items.find((i) => i.id === effect.itemId)?.label ?? "아이템"} ${effect.quantity}개를 받아요`;
     case "unconfigured":

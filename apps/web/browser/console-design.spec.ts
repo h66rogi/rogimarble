@@ -57,13 +57,14 @@ async function mockApi(page: Page) {
             updatedAt: "2026-01-01T00:00:00Z",
           },
         ],
-        counters: [{ counterId: "cups", label: "커피", unit: "잔", value: 5, reserved: 1, available: 4, revision: 1 }],
+        counters: [{ counterId: "cups", label: "커피", unit: "잔", value: 5, reserved: 0, available: 5, revision: 1 }],
         effectTasks: [{
           id: "travel-task", type: "choose_destination", status: "pending", revision: 1,
           payload: { allowedCellIds: [board.path[1], board.path[2]], selection: "operator" },
         }],
         movementLock: { releaseType: "skip_rolls", rollsRemaining: 2, release: { type: "skip_rolls", count: 3 }, createdAt: "2026-01-01T00:00:00Z" },
-        missions: [],
+        missions: [{ id: "mission-1", message: "일회성 미션", quantity: 1, status: "pending",
+          revision: 0, shield: null, createdAt: "2026-01-01T00:00:00Z", durationSeconds: null }],
         pawnAppearance: { revision: 0, image: null },
         capabilities: {
           manualRoll: true,
@@ -399,6 +400,9 @@ test("home controls use full-width sections, contextual actions, rewards, and se
   const actions = page.getByRole("region", { name: "현재 할 수 있는 액션" });
   await expect(actions.getByRole("heading", { name: "현재 할 수 있는 액션" })).toBeVisible();
   await expect(actions.getByText("세계여행 목적지")).toBeVisible();
+  await expect(actions.getByText("일회성 미션")).toHaveCount(0);
+  await expect(actions.getByRole("button", { name: "완료", exact: true })).toHaveCount(0);
+  await expect(actions.getByRole("button", { name: "면제", exact: true })).toHaveCount(0);
   await actions.getByRole("group", { name: "이동할 칸 선택" }).getByRole("button").first().click();
   await actions.getByRole("button", { name: "목적지 저장" }).click();
   await expect.poll(() => submitted.at(-1)).toMatchObject({
@@ -411,10 +415,11 @@ test("home controls use full-width sections, contextual actions, rewards, and se
   const details = page.getByRole("region", { name: "게임 현황" });
   await expect(details.getByRole("tab", { name: "적립/보상" })).toHaveAttribute("aria-selected", "true");
   await expect(details.getByText("사용 가능 2개")).toBeVisible();
-  await expect(details.getByText("청산 대기 1 · 사용 가능 4")).toBeVisible();
+  await expect(details.getByText("총 5 잔")).toBeVisible();
   await details.getByRole("tab", { name: "게임 기록" }).click();
   await expect(details.getByText("게임 시작")).toBeVisible();
   await expect(details.getByText("주사위 2 + 3")).toBeVisible();
+  await expect(page.getByRole("region", { name: "수동 미션" }).getByText("일회성 미션")).toHaveCount(0);
   for (const name of ["현재 할 수 있는 액션", "방송 조작", "판 효과", "수동 미션"]) {
     const section = page.getByRole("region", { name });
     const widths = await section.evaluate((element) => {

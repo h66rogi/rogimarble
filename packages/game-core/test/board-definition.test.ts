@@ -45,7 +45,7 @@ test('confirmed streamer rules are configured; arbitrary unresolved drafts still
   assert.deepEqual(board.cells[12].onLand, [{ type: 'counter_add', counterId: 'drink-bank', quantity: 1 }]);
   assert.deepEqual(board.cells[17].onLand, [{ type: 'modify_roll', uses: 1, modifier: { type: 'movement_multiplier', factor: 2 } }]);
   assert.deepEqual(board.cells[22].onLand, [{ type: 'counter_settle', counterId: 'drink-bank',
-    message: '적립한 술 전부 한 번에 마시기', shield: null, settleOn: 'mission_completion' }]);
+    message: '적립한 술 전부 한 번에 마시기', shield: null, settleOn: 'creation' }]);
   board.cells[0].onLand = [{ type: 'unconfigured', question: '새 규칙은 아직 미정' }];
   validateBoardDefinition(board);
   assert.throws(() => assertBoardPublishable(board, resources), /Unconfigured cell/);

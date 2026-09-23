@@ -29,7 +29,6 @@ export function AccumulationRewardsPanel({
           <strong className="text-sm">{counter.label}</strong>
           <div className="text-right text-sm">
             <strong>총 {counter.value} {counter.unit}</strong>
-            <p className="text-xs text-muted-foreground">청산 대기 {counter.reserved} · 사용 가능 {counter.available}</p>
           </div>
         </div>
         {state.capabilities?.manualRoll && <>
