@@ -21,12 +21,13 @@ export function RogimarbleChatbox({ themeId, fontId, options }: {
   const liveMessages = useChatMessages();
   const messages = liveMessages.slice(-30);
   const emoteHeight = 30 * (options?.fontScale ?? 1);
+  const ogqHeight = 100 * (options?.fontScale ?? 1);
   return <RogimarbleChatboxSurface themeId={themeId} fontId={fontId} options={options} messages={messages.map(message => ({
     id: message.id,
     type: message.type,
     platform: message.platform,
     nickname: message.nickname,
     amount: donationLabel(message),
-    content: message.message || message.emotes?.length ? <ChatMessageContent message={message.message} platform={message.platform} channelId={message.channelId} emotes={message.emotes} emoteHeight={emoteHeight} /> : null,
+    content: message.message || message.emotes?.length ? <ChatMessageContent message={message.message} platform={message.platform} channelId={message.channelId} emotes={message.emotes} emoteHeight={emoteHeight} ogqHeight={ogqHeight} /> : null,
   }))} />;
 }

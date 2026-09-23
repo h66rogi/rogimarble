@@ -30,6 +30,8 @@ interface ChatMessageContentProps {
   emotes?: ChatEmoteToken[];
   /** Inline image height — themes pass a value matching their text size. */
   emoteHeight?: number;
+  /** Large SOOP OGQ image height. */
+  ogqHeight?: number;
   className?: string;
   style?: CSSProperties;
 }
@@ -50,6 +52,7 @@ export function ChatMessageContent({
   channelId,
   emotes,
   emoteHeight = 22,
+  ogqHeight = emoteHeight * 6,
   className,
   style,
 }: ChatMessageContentProps): ReactElement {
@@ -100,7 +103,7 @@ export function ChatMessageContent({
             const image = event.currentTarget;
             if (image.src.endsWith('.webp')) image.src = image.src.replace(/\.webp$/, '.png');
           }}
-          style={{ display: 'block', width: 'auto', height: emoteHeight * 6, maxWidth: '100%', objectFit: 'contain' }}
+          style={{ display: 'block', width: 'auto', height: ogqHeight, maxWidth: '100%', objectFit: 'contain' }}
         />
       ))}
     </span>
