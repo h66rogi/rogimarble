@@ -48,7 +48,7 @@ export const artworkNames: Record<string, string> = {
   "party-shield-v1": "실드",
   "party-snack-v1": "안주",
   "party-kiss-v1": "뽀뽀",
-  "party-punch-v1": "죽빵",
+  "party-punch-v1": "즉방",
   "party-talk-v1": "대화",
   "party-turn-v1": "방향 전환",
   "party-bank-v1": "적립",
