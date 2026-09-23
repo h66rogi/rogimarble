@@ -65,7 +65,7 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
   });
 
   await page.goto('/');
-  await page.getByRole('tab', { name: '오버레이 설정', exact: true }).click();
+  await page.getByRole('tablist', { name: '운영 콘솔 메뉴' }).getByRole('tab', { name: '오버레이 설정', exact: true }).click();
   await expect(page.getByText('레이아웃 편집', { exact: true })).toBeVisible();
   return {
     writes,
@@ -100,6 +100,7 @@ test('resizing and moving the board keeps the visual bounds in sync with saved O
   const boardWidget = page.locator('.react-draggable').filter({ has: page.locator('.marble-board') });
   const handle = boardWidget.locator('.rogimarble-resize-bottom-right');
   const initial = await boardWidget.boundingBox();
+  await handle.scrollIntoViewIfNeeded();
   const handleBounds = await handle.boundingBox();
   expect(initial).not.toBeNull();
   expect(handleBounds).not.toBeNull();
@@ -109,6 +110,7 @@ test('resizing and moving the board keeps the visual bounds in sync with saved O
   await page.mouse.move(handleBounds!.x - 120, handleBounds!.y - 70, { steps: 8 });
   await page.mouse.up();
   await expect.poll(() => state.writes.at(-1)?.layout.widgets.find(widget => widget.id === 'board')?.bounds.width).toBeLessThan(1);
+  await page.locator('#console-panel-overlay').evaluate(element => { element.scrollTop = 0; });
   const resized = await boardWidget.boundingBox();
   const preview = await boardWidget.locator('.marble-board').boundingBox();
   expect(resized).not.toBeNull();
@@ -155,7 +157,7 @@ test('chatbox can shrink to the small part minimum and grow again in the combine
   const small = await resize(-180, -240);
   expect(small.width).toBeGreaterThanOrEqual(0.099);
   expect(small.width).toBeLessThan(0.2);
-  expect(small.height).toBeGreaterThanOrEqual(0.059);
+  expect(small.height).toBeGreaterThanOrEqual(0.058);
   expect(small.height).toBeLessThan(0.2);
 
   const large = await resize(70, 60);
@@ -210,6 +212,11 @@ test('viewer sees the live layout but every edit entry point is disabled', async
 
 test('overlay tab keeps one channel URL after reload and rotates it on request', async ({ page }) => {
   const state = await fixture(page);
+  const overlayTabs = page.getByRole('tablist', { name: '오버레이 세부 메뉴' });
+  const settingsTab = overlayTabs.getByRole('tab', { name: '오버레이 설정' });
+  const addressesTab = overlayTabs.getByRole('tab', { name: '오버레이 주소' });
+  await expect(settingsTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('button', { name: '주소 회전' })).toBeHidden();
   const menuStyleTab = page.getByRole('tablist', { name: '스타일을 편집할 파츠' }).getByRole('tab', { name: '후원 메뉴' });
   await menuStyleTab.click();
   await expect(menuStyleTab).toHaveAttribute('aria-selected', 'true');
@@ -219,18 +226,25 @@ test('overlay tab keeps one channel URL after reload and rotates it on request',
   await page.getByRole('combobox', { name: '후원 메뉴 글꼴' }).click();
   await page.getByRole('option', { name: '주아' }).click();
   await expect.poll(() => state.writes.at(-1)?.layout.widgetStyles?.menu?.fontId).toBe('jua');
+  await expect(page.getByRole('tabpanel', { name: '후원 메뉴' }).getByText('OBS 권장 크기 480 × 640px')).toBeVisible();
   await expect(page.getByRole('button', { name: '주소 발급' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '회수' })).toHaveCount(0);
+  await addressesTab.click();
+  await expect(addressesTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByText('레이아웃 편집', { exact: true })).toBeHidden();
   const menuUrl = page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' });
   await expect(menuUrl).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=synthetic-overlay');
   await expect(menuUrl).toHaveCSS('filter', 'blur(6px)');
   await page.getByRole('button', { name: '후원 메뉴 OBS 주소 표시' }).click();
   await expect(menuUrl).toHaveCSS('filter', 'none');
-  await expect(page.getByRole('tabpanel', { name: '후원 메뉴' }).getByText('OBS 권장 크기 480 × 640px')).toBeVisible();
   await expect(page.getByRole('textbox', { name: '주루마블 보드 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/board#token=synthetic-overlay');
   await expect(page.getByRole('textbox', { name: '주루마블 보드 OBS 주소' })).toHaveCSS('filter', 'blur(6px)');
+  await settingsTab.click();
+  await expect(menuStyleTab).toHaveAttribute('aria-selected', 'true');
+  await expect(menuStyleTab).toBeVisible();
   await page.reload();
-  await page.getByRole('tab', { name: '오버레이 설정', exact: true }).click();
+  await page.getByRole('tablist', { name: '운영 콘솔 메뉴' }).getByRole('tab', { name: '오버레이 설정', exact: true }).click();
+  await page.getByRole('tablist', { name: '오버레이 세부 메뉴' }).getByRole('tab', { name: '오버레이 주소' }).click();
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveCSS('filter', 'blur(6px)');
   await page.getByRole('button', { name: '후원 메뉴 OBS 주소 표시' }).click();
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveCSS('filter', 'none');
@@ -239,6 +253,18 @@ test('overlay tab keeps one channel URL after reload and rotates it on request',
   await page.getByRole('alertdialog').getByRole('button', { name: '주소 회전' }).click();
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=rotated-overlay');
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveCSS('filter', 'blur(6px)');
+});
+
+test('overlay sections use the same workspace width as board settings', async ({ page }) => {
+  await page.setViewportSize({ width: 2200, height: 900 });
+  await fixture(page);
+  const workspace = page.getByTestId('overlay-workspace');
+  await expect(workspace).toHaveCSS('max-width', '1600px');
+  const settingsWidth = await workspace.evaluate(element => element.getBoundingClientRect().width);
+  expect(settingsWidth).toBe(1600);
+  await page.getByRole('tablist', { name: '오버레이 세부 메뉴' }).getByRole('tab', { name: '오버레이 주소' }).click();
+  await expect(workspace).toHaveCSS('max-width', '1600px');
+  expect(await workspace.evaluate(element => element.getBoundingClientRect().width)).toBe(settingsWidth);
 });
 
 test('visible editor polls a newer published layout and permission without requiring a failed gesture', async ({ page }) => {

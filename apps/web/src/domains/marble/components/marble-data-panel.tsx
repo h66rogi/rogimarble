@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ChannelOverlayTokenDto, DonationEventDto } from "@rogimarble/contracts";
 import { api } from "../../../../lib/api";
 import { Button } from "@/shared/components/ui/button";
@@ -14,6 +14,7 @@ import {
 } from "@/shared/components/common/console-ui";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
+import { PillTabs } from "@/shared/components/ui/pill-tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,7 @@ import { ConfigurationWorkspace } from "./configuration/configuration-workspace"
 import type { ConfigurationSection } from "./configuration/configuration-workspace";
 import { LiveLayoutEditor } from "./live-layout-editor";
 import { OVERLAY_PARTS, overlayPartUrl } from '../overlay-parts';
+import { Link2, Monitor } from "lucide-react";
 
 const operationNames: Record<string, string> = {
   roll_dice: "주사위 굴리기",
@@ -84,6 +86,8 @@ export function MarbleDataPanel({
 }) {
   const [items, setItems] = useState<readonly unknown[]>([]);
   const [overlayToken, setOverlayToken] = useState<ChannelOverlayTokenDto | null>(null);
+  const overlayTabId = useId();
+  const [overlayTab, setOverlayTab] = useState<"settings" | "addresses">("settings");
   const [origin, setOrigin] = useState("");
   const [message, setMessage] = useState("");
   const [connected, setConnected] = useState(false);
@@ -176,60 +180,94 @@ export function MarbleDataPanel({
 
   if (view === "obs")
     return (
-      <Panel
-        title="오버레이 설정"
-        description="방송 화면 주소와 파츠별 권장 크기·스타일을 설정합니다."
-      >
-        <LiveLayoutEditor />
-        {overlayToken && (
-          <Card>
-            <CardContent className="space-y-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="flex-1">
-                  채널 오버레이 주소 · …{overlayToken.tokenSuffix}
-                </span>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" disabled={busy}>주소 회전</Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>오버레이 주소를 회전할까요?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        기존 주소는 즉시 중단됩니다. OBS 브라우저 소스에 새 주소를 다시 입력해야 합니다.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>취소</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => {
-                        setBusy(true);
-                        setMessage("");
-                        void api.rotateOverlayToken(overlayToken.id)
-                          .then(setOverlayToken)
-                          .catch(async (error) => { await load(); setMessage(error.message); })
-                          .finally(() => setBusy(false));
-                      }}>주소 회전</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-              {overlayToken.overlayUrlPath && origin && (
-                <OverlayTokenUrls
-                  key={overlayToken.id}
-                  baseUrl={new URL(overlayToken.overlayUrlPath, origin).href}
-                  onMessage={setMessage}
-                />
-              )}
-              {!overlayToken.overlayUrlPath && (
-                <ConsoleNotice variant="warning">
-                  기존 주소는 원문이 저장되지 않아 다시 표시할 수 없습니다. 주소를 회전한 뒤 OBS에서 교체해 주세요.
-                </ConsoleNotice>
-              )}
-            </CardContent>
-          </Card>
-        )}
-        {feedback}
-      </Panel>
+      <div className="mx-auto w-full max-w-[1600px] space-y-6" data-testid="overlay-workspace">
+        <header className="space-y-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight">오버레이 설정</h1>
+            <Badge variant="secondary">방송 화면</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            방송 화면 배치와 파츠별 스타일을 설정하고 OBS 주소를 확인하세요.
+          </p>
+        </header>
+        <div>
+          <PillTabs
+            ariaLabel="오버레이 세부 메뉴"
+            idPrefix={overlayTabId}
+            activeTab={overlayTab}
+            onTabChange={setOverlayTab}
+            tabs={[
+              { id: "settings", label: "오버레이 설정", icon: Monitor },
+              { id: "addresses", label: "오버레이 주소", icon: Link2 },
+            ]}
+          />
+          <div
+            id={`${overlayTabId}-panel-settings`}
+            role="tabpanel"
+            aria-labelledby={`${overlayTabId}-tab-settings`}
+            hidden={overlayTab !== "settings"}
+            className="mt-6"
+          >
+            <LiveLayoutEditor />
+          </div>
+          <div
+            id={`${overlayTabId}-panel-addresses`}
+            role="tabpanel"
+            aria-labelledby={`${overlayTabId}-tab-addresses`}
+            hidden={overlayTab !== "addresses"}
+            className="mt-6"
+          >
+            {overlayToken && (
+              <Card>
+                <CardContent className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="flex-1">
+                      채널 오버레이 주소 · …{overlayToken.tokenSuffix}
+                    </span>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" disabled={busy}>주소 회전</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>오버레이 주소를 회전할까요?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            기존 주소는 즉시 중단됩니다. OBS 브라우저 소스에 새 주소를 다시 입력해야 합니다.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>취소</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => {
+                            setBusy(true);
+                            setMessage("");
+                            void api.rotateOverlayToken(overlayToken.id)
+                              .then(setOverlayToken)
+                              .catch(async (error) => { await load(); setMessage(error.message); })
+                              .finally(() => setBusy(false));
+                          }}>주소 회전</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                  {overlayToken.overlayUrlPath && origin && (
+                    <OverlayTokenUrls
+                      key={overlayToken.id}
+                      baseUrl={new URL(overlayToken.overlayUrlPath, origin).href}
+                      onMessage={setMessage}
+                    />
+                  )}
+                  {!overlayToken.overlayUrlPath && (
+                    <ConsoleNotice variant="warning">
+                      기존 주소는 원문이 저장되지 않아 다시 표시할 수 없습니다. 주소를 회전한 뒤 OBS에서 교체해 주세요.
+                    </ConsoleNotice>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+          {feedback && <div className="mt-6">{feedback}</div>}
+        </div>
+      </div>
     );
 
   if (view === "donations")
