@@ -216,7 +216,7 @@ test('overlay tab keeps one channel URL after reload and rotates it on request',
   const settingsTab = overlayTabs.getByRole('tab', { name: '오버레이 설정' });
   const addressesTab = overlayTabs.getByRole('tab', { name: '오버레이 주소' });
   await expect(settingsTab).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('button', { name: '주소 회전' })).toBeHidden();
+  await expect(page.getByRole('button', { name: '주소 교체' })).toBeHidden();
   const menuStyleTab = page.getByRole('tablist', { name: '스타일을 편집할 파츠' }).getByRole('tab', { name: '후원 메뉴' });
   await menuStyleTab.click();
   await expect(menuStyleTab).toHaveAttribute('aria-selected', 'true');
@@ -232,6 +232,17 @@ test('overlay tab keeps one channel URL after reload and rotates it on request',
   await addressesTab.click();
   await expect(addressesTab).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByText('레이아웃 편집', { exact: true })).toBeHidden();
+  const addressPanel = page.getByRole('tabpanel', { name: '오버레이 주소' });
+  const combinedUrlCard = addressPanel.getByText('통합 오버레이', { exact: true }).locator('xpath=ancestor::*[@data-slot="card"][1]');
+  await expect(combinedUrlCard).toHaveAttribute('data-variant', 'featured');
+  await expect(combinedUrlCard).toHaveCSS('border-top-width', '2px');
+  await expect(combinedUrlCard.getByText('추천 · 하나로 전체 표시')).toBeVisible();
+  await expect(combinedUrlCard.getByText('이 주소 하나만 OBS에 추가하면 모든 파츠가 함께 표시됩니다.')).toBeVisible();
+  const boardUrlCard = addressPanel.getByText('주루마블 보드', { exact: true }).locator('xpath=ancestor::*[@data-slot="card"][1]');
+  await expect(boardUrlCard).toHaveCSS('border-top-width', '1px');
+  const combinedBorder = await combinedUrlCard.evaluate(element => getComputedStyle(element).borderTopColor);
+  const boardBorder = await boardUrlCard.evaluate(element => getComputedStyle(element).borderTopColor);
+  expect(combinedBorder).not.toBe(boardBorder);
   const menuUrl = page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' });
   await expect(menuUrl).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=synthetic-overlay');
   await expect(menuUrl).toHaveCSS('filter', 'blur(6px)');
@@ -248,9 +259,9 @@ test('overlay tab keeps one channel URL after reload and rotates it on request',
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveCSS('filter', 'blur(6px)');
   await page.getByRole('button', { name: '후원 메뉴 OBS 주소 표시' }).click();
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveCSS('filter', 'none');
-  await page.getByRole('button', { name: '주소 회전' }).click();
+  await page.getByRole('button', { name: '주소 교체' }).click();
   await expect(page.getByText('기존 주소는 즉시 중단됩니다. OBS 브라우저 소스에 새 주소를 다시 입력해야 합니다.')).toBeVisible();
-  await page.getByRole('alertdialog').getByRole('button', { name: '주소 회전' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: '주소 교체' }).click();
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=rotated-overlay');
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveCSS('filter', 'blur(6px)');
 });

@@ -9,6 +9,7 @@ const cardVariants = cva(
     variants: {
       variant: {
         default: "",
+        featured: "border-2 border-primary bg-primary/5 shadow-none",
         floating:
           "relative isolate gap-0 rounded-2xl border-border/80 bg-card/60 px-4 py-4 shadow-none backdrop-blur-2xl sm:px-5",
         "floating-warning":

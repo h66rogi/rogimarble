@@ -226,11 +226,11 @@ export function MarbleDataPanel({
                     </span>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm" disabled={busy}>주소 회전</Button>
+                        <Button variant="destructive" size="sm" disabled={busy}>주소 교체</Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>오버레이 주소를 회전할까요?</AlertDialogTitle>
+                          <AlertDialogTitle>오버레이 주소를 교체할까요?</AlertDialogTitle>
                           <AlertDialogDescription>
                             기존 주소는 즉시 중단됩니다. OBS 브라우저 소스에 새 주소를 다시 입력해야 합니다.
                           </AlertDialogDescription>
@@ -244,7 +244,7 @@ export function MarbleDataPanel({
                               .then(setOverlayToken)
                               .catch(async (error) => { await load(); setMessage(error.message); })
                               .finally(() => setBusy(false));
-                          }}>주소 회전</AlertDialogAction>
+                          }}>주소 교체</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
@@ -258,7 +258,7 @@ export function MarbleDataPanel({
                   )}
                   {!overlayToken.overlayUrlPath && (
                     <ConsoleNotice variant="warning">
-                      기존 주소는 원문이 저장되지 않아 다시 표시할 수 없습니다. 주소를 회전한 뒤 OBS에서 교체해 주세요.
+                      기존 주소는 원문이 저장되지 않아 다시 표시할 수 없습니다. 주소를 교체한 뒤 OBS에서 새 주소를 사용해 주세요.
                     </ConsoleNotice>
                   )}
                 </CardContent>
@@ -447,7 +447,7 @@ function OverlayTokenUrls({
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">주소를 복사해 OBS 브라우저 소스에 붙여 넣으세요. 외부에 공유하지 마세요.</p>
-      <OverlayUrlRow label="통합 오버레이" url={baseUrl} width={1920} height={1080} onCopy={copy} />
+      <OverlayUrlRow label="통합 오버레이" url={baseUrl} width={1920} height={1080} onCopy={copy} featured />
       {OVERLAY_PARTS.map((part) => (
         <OverlayUrlRow
           key={part.id}
@@ -468,20 +468,26 @@ function OverlayUrlRow({
   width,
   height,
   onCopy,
+  featured = false,
 }: {
   label: string;
   url: string;
   width: number;
   height: number;
   onCopy: (url: string, label: string) => void;
+  featured?: boolean;
 }) {
   return (
-    <Card>
+    <Card variant={featured ? "featured" : "default"}>
       <CardContent className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm font-semibold">{label}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold">{label}</span>
+            {featured && <Badge>추천 · 하나로 전체 표시</Badge>}
+          </div>
           <span className="text-xs text-muted-foreground">OBS 권장 크기 {width} × {height}px</span>
         </div>
+        {featured && <p className="text-sm text-muted-foreground">이 주소 하나만 OBS에 추가하면 모든 파츠가 함께 표시됩니다.</p>}
         <MaskedUrlInput label={`${label} OBS 주소`} value={url} />
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={() => onCopy(url, label)}>주소 복사</Button>
