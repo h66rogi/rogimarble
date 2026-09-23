@@ -1,6 +1,6 @@
 'use client';
 
-import { DiceLottie, LandingLottie, TokenLottie } from '@rogimarble/animation';
+import { DefaultPawn, DiceLottie, LandingLottie } from '@rogimarble/animation';
 import type { BoardFontId, BoardThemeId } from '@rogimarble/contracts';
 import { getCellRect, type BoardDefinition, type BoardEffect } from '@rogimarble/game-core/board';
 import { type CSSProperties, type ReactNode } from 'react';
@@ -50,9 +50,8 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
         {effectPhase !== 'anticipation' && dice?.length ? <span className="dice-total">합계 {dice.reduce((sum, value) => sum + value, 0)}</span> : <span className="board-status">{effectPhase === 'anticipation' ? '결과를 기다리고 있어요' : '오늘도 즐겁게 출발!'}</span>}
         {effectPhase === 'landing' && <span className="landing-status">{tokenCell.label} 도착</span>}
       </div>}
-      <div key={landingPulseKey} className={`token-wrapper ${moving ? 'is-moving' : ''} ${effectPhase === 'landing' ? 'is-landing' : ''}`} data-cell-id={tokenCell.id} style={{ left: `${((tokenRect.x + tokenRect.width * .82) / displayBoard.canvas.width) * 100}%`, top: `${((tokenRect.y + tokenRect.height * .55) / displayBoard.canvas.height) * 100}%` }}>
-        <span className="token-base" />
-        {pawnImageUrl ? <span className="photo-pawn"><img src={pawnImageUrl} alt="" /></span> : <TokenLottie active={moving} />}
+      <div key={landingPulseKey} className={`token-wrapper ${pawnImageUrl ? 'has-photo-pawn' : ''} ${moving ? 'is-moving' : ''} ${effectPhase === 'landing' ? 'is-landing' : ''}`} data-cell-id={tokenCell.id} style={{ left: `${((tokenRect.x + tokenRect.width * (pawnImageUrl ? .82 : .93)) / displayBoard.canvas.width) * 100}%`, top: `${((tokenRect.y + tokenRect.height * .55) / displayBoard.canvas.height) * 100}%` }}>
+        {pawnImageUrl ? <><span className="token-base" /><span className="photo-pawn"><img src={pawnImageUrl} alt="" /></span></> : <DefaultPawn active={moving} />}
         <LandingLottie active={effectPhase === 'landing'} reducedMotion={reducedMotion} />
       </div>
     </div>

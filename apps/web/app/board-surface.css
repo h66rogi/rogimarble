@@ -66,17 +66,17 @@
 .marble-board .dice-total { margin-top: 20px; color: #642945; font-size: 20px; font-weight: 900; }
 .marble-board .board-status { color: #9a7587; font-size: 17px; font-weight: 650; }
 .marble-board .landing-status { margin-top: 8px; padding: 7px 16px; border: 2px solid #edafc9; border-radius: 999px; background: #fff3f7; color: #75264b; font-size: 18px; font-weight: 850; }
-.marble-board .token-wrapper { position: absolute; z-index: 8; width: 4.4%; aspect-ratio: .78; transform: translate(-50%,-58%); filter: drop-shadow(0 9px 7px rgba(93,34,64,.3)); pointer-events: none; }
+.marble-board .token-wrapper { position: absolute; z-index: 8; width: 5%; aspect-ratio: 88 / 112; transform: translate(-50%,-58%); filter: drop-shadow(0 5px 5px rgba(28,39,80,.28)); pointer-events: none; }
+.marble-board .token-wrapper.has-photo-pawn { width: 4.4%; aspect-ratio: .78; filter: drop-shadow(0 9px 7px rgba(93,34,64,.3)); }
 .marble-board .token-base { position: absolute; left: 50%; bottom: 0; width: 76%; height: 17%; transform: translateX(-50%); border: 4px solid rgba(99,34,65,.72); border-radius: 50%; background: linear-gradient(#ffd7e6,#d979a2); box-shadow: inset 0 3px 3px rgba(255,255,255,.7); }
 .marble-board .photo-pawn { position: absolute; left: 50%; top: 2%; width: 76%; aspect-ratio: 1; transform: translateX(-50%); overflow: hidden; border: 6px solid rgba(255,255,255,.95); border-radius: 50%; background: #f9c8da; box-shadow: 0 0 0 4px #76284e, 0 7px 0 #d57ca1; }
 .marble-board .photo-pawn::after { content: ""; position: absolute; inset: 4% 12% 58%; border-radius: 999px; background: rgba(255,255,255,.4); transform: rotate(-12deg); }
 .marble-board .photo-pawn img { width: 100%; height: 100%; object-fit: cover; }
 .marble-board .token-wrapper.is-moving { transition: left .48s cubic-bezier(.22,.8,.25,1), top .48s cubic-bezier(.22,.8,.25,1); }
-.marble-board .token-animation,.marble-board .token-lottie { position: absolute; inset: 0; width: 100%; height: 100%; }
-.marble-board .token-static { position: absolute; left: 50%; top: 65%; width: 32%; height: 36%; transform: translate(-50%,-50%); border: 3px solid #6b2448; border-radius: 48% 48% 42% 42%; background: #fb4d91; box-shadow: inset 0 3px 3px rgba(255,255,255,.58),0 2px 0 #541b38; }
-.marble-board .token-static::before { content: ""; position: absolute; left: 50%; top: -56%; width: 118%; height: 86%; transform: translateX(-50%); border: 3px solid #6b2448; border-radius: 50%; background: #fb4d91; box-shadow: inset 0 3px 3px rgba(255,255,255,.58); }
-.marble-board .token-static::after { content: ""; position: absolute; left: 50%; top: -92%; width: 86%; height: 64%; transform: translateX(-50%); border-left: 8px solid #fb4d91; border-right: 8px solid #fb4d91; border-radius: 48%; filter: drop-shadow(-2px 0 #6b2448) drop-shadow(2px 0 #6b2448); }
-.marble-board .token-animation.is-moving .token-static { opacity: 0; }
+.marble-board .default-pawn { position: absolute; inset: 0; display: block; }
+.marble-board .default-pawn svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.marble-board .default-pawn.is-moving .default-pawn-figure { animation: marble-pawn-hop .24s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center bottom; }
+@keyframes marble-pawn-hop { from { transform: translateY(0) scale(1,1); } to { transform: translateY(-8px) scale(.96,1.04); } }
 .marble-board .landing-lottie { position: absolute; inset: -32%; width: 164%; height: 164%; pointer-events: none; }
 .marble-board .token-wrapper.is-landing::after { content: ""; position: absolute; inset: 12%; border: 4px solid rgba(240,62,132,.7); border-radius: 50%; animation: marble-landing-pulse .7s ease-out both; }
 @keyframes marble-landing-pulse { from { transform: scale(.45); opacity: 1; } to { transform: scale(1.75); opacity: 0; } }
@@ -93,6 +93,7 @@
 }
 @media (prefers-reduced-motion:reduce) {
   .marble-board .board-cell,.marble-board .token-wrapper.is-moving { transition: none; }
+  .marble-board .default-pawn.is-moving .default-pawn-figure { animation: none; }
   .marble-board .token-wrapper.is-landing::after { animation: none; opacity: 0; }
 }
 html:has([data-total-overlay-source]),body:has([data-total-overlay-source]) { background: transparent!important; }

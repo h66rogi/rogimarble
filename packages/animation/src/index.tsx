@@ -1,38 +1,37 @@
 'use client';
 
 import Lottie from 'lottie-react';
-import { useEffect, useState } from 'react';
 
-const tokenBounce = {
-  v: '5.12.2', fr: 30, ip: 0, op: 30, w: 120, h: 120, nm: 'token-bounce', ddd: 0,
-  assets: [],
-  layers: [{ ddd: 0, ind: 1, ty: 4, nm: 'token', sr: 1,
-    ks: {
-      o: { a: 0, k: 100 }, r: { a: 0, k: 0 }, a: { a: 0, k: [0, 0, 0] }, s: { a: 0, k: [100, 100, 100] },
-      p: { a: 1, k: [
-        { t: 0, s: [60, 68, 0], e: [60, 45, 0], i: { x: .42, y: 1 }, o: { x: .32, y: 0 } },
-        { t: 14, s: [60, 45, 0], e: [60, 68, 0], i: { x: .68, y: 1 }, o: { x: .58, y: 0 } },
-        { t: 29, s: [60, 68, 0] }
-      ] }
-    },
-    shapes: [{ ty: 'gr', nm: 'token-body', it: [
-      { ty: 'el', d: 1, p: { a: 0, k: [-11, -24] }, s: { a: 0, k: [12, 22] }, nm: 'left-ear' },
-      { ty: 'el', d: 1, p: { a: 0, k: [11, -24] }, s: { a: 0, k: [12, 22] }, nm: 'right-ear' },
-      { ty: 'el', d: 1, p: { a: 0, k: [0, -8] }, s: { a: 0, k: [40, 34] }, nm: 'head' },
-      { ty: 'el', d: 1, p: { a: 0, k: [0, 15] }, s: { a: 0, k: [34, 38] }, nm: 'body' },
-      { ty: 'fl', c: { a: 0, k: [.98, .28, .55, 1] }, o: { a: 0, k: 100 }, r: 1, nm: 'fill' },
-      { ty: 'st', c: { a: 0, k: [.36, .12, .27, 1] }, o: { a: 0, k: 100 }, w: { a: 0, k: 4 }, lc: 2, lj: 2, nm: 'stroke' },
-      { ty: 'tr', p: { a: 0, k: [0, 0] }, a: { a: 0, k: [0, 0] }, s: { a: 0, k: [100, 100] }, r: { a: 0, k: 0 }, o: { a: 0, k: 100 }, sk: { a: 0, k: 0 }, sa: { a: 0, k: 0 }, nm: 'transform' }
-    ] }], ip: 0, op: 30, st: 0, bm: 0 }]
-};
-
-export function TokenLottie({ active = false }: { active?: boolean }) {
-  const [reduceMotion, setReduceMotion] = useState(false);
-  useEffect(() => { const query = matchMedia('(prefers-reduced-motion: reduce)'); const sync = () => setReduceMotion(query.matches); sync(); query.addEventListener('change', sync); return () => query.removeEventListener('change', sync); }, []);
-  return <div className={`token-animation ${active && !reduceMotion ? 'is-moving' : ''}`} aria-label="공유 말">
-    <span className="token-static" aria-hidden="true" />
-    <Lottie key={active && !reduceMotion ? 'moving' : 'idle'} className="token-lottie" animationData={tokenBounce} autoplay={active && !reduceMotion} loop={active && !reduceMotion} />
-  </div>;
+/** A single silhouette for both resting and moving states, sized to remain legible in OBS. */
+export function DefaultPawn({ active = false }: { active?: boolean }) {
+  return <span className={`default-pawn ${active ? 'is-moving' : ''}`} role="img" aria-label="공유 말">
+    <svg viewBox="0 0 88 112" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="default-pawn-body" x1=".1" y1="0" x2=".9" y2="1">
+          <stop stopColor="#7188FF" />
+          <stop offset=".48" stopColor="#4260E8" />
+          <stop offset="1" stopColor="#2844BC" />
+        </linearGradient>
+        <linearGradient id="default-pawn-head" x1=".15" y1="0" x2=".85" y2="1">
+          <stop stopColor="#9AA9FF" />
+          <stop offset=".55" stopColor="#5671F4" />
+          <stop offset="1" stopColor="#3550C7" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="44" cy="105" rx="32" ry="5" fill="#18254D" opacity=".22" />
+      <g className="default-pawn-figure">
+        <path d="M34 50h20c-2 14 3 23 12 34H22c9-11 14-20 12-34Z" fill="url(#default-pawn-body)" stroke="#fff" strokeWidth="7" strokeLinejoin="round" />
+        <path d="M34 50h20c-2 14 3 23 12 34H22c9-11 14-20 12-34Z" fill="none" stroke="#202C59" strokeWidth="3.5" strokeLinejoin="round" />
+        <path d="M29 66c-2 8-5 12-7 16h44c-2-4-5-8-7-16" fill="none" stroke="#A8B5FF" strokeWidth="3" strokeLinecap="round" opacity=".65" />
+        <circle cx="44" cy="31" r="19" fill="url(#default-pawn-head)" stroke="#fff" strokeWidth="7" />
+        <circle cx="44" cy="31" r="19" fill="none" stroke="#202C59" strokeWidth="3.5" />
+        <path d="M31 30c1-8 6-13 14-14" fill="none" stroke="#DDE4FF" strokeWidth="5" strokeLinecap="round" opacity=".88" />
+        <path d="M20 84h48c5 0 9 4 9 9s-4 9-9 9H20c-5 0-9-4-9-9s4-9 9-9Z" fill="#fff" />
+        <path d="M20 87h48c4 0 6 2 6 6s-2 6-6 6H20c-4 0-6-2-6-6s2-6 6-6Z" fill="#253B9E" stroke="#202C59" strokeWidth="3" />
+        <path d="M20 90h48" stroke="#A5B5FF" strokeWidth="3" strokeLinecap="round" opacity=".8" />
+      </g>
+    </svg>
+  </span>;
 }
 
 const diceBurst = {
