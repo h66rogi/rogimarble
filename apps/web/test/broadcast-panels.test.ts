@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BOARD_THEME_IDS, BOARD_FONT_IDS, validateOverlayLayout, type OverlayLayoutDto } from '../../../packages/contracts/src/index.ts';
+import { BOARD_THEME_IDS, BOARD_FONT_IDS, DEFAULT_CHATBOX_STYLE, validateOverlayLayout, type OverlayLayoutDto } from '../../../packages/contracts/src/index.ts';
 import { resolveBroadcastPanel } from '../../../packages/overlay-ui/src/broadcast-panel-model.ts';
 const layout:OverlayLayoutDto={schemaVersion:1,width:1920,height:1080,aspectRatio:'16:9',background:'transparent',widgets:[{id:'menu',bounds:{x:.13,y:.32,width:.22,height:.35},z:4},{id:'dice_price',bounds:{x:.13,y:.24,width:.22,height:.065},z:4}]};
 test('six themes, four fonts, and menu/price panels accept a complete layout',()=>{
@@ -27,5 +27,11 @@ test('custom display values remain independent of actual donation rules',()=>{
 test('individual widget styles accept known themes and fonts and reject unknown keys',()=>{
   assert.doesNotThrow(()=>validateOverlayLayout({...layout,widgetStyles:{board:{themeId:'pink-bunny'},menu:{fontId:'jua'},dice:{themeId:'sky-soda',fontId:'do-hyeon'}}}));
   for(const widgetStyles of [{board:{themeId:'missing'}},{menu:{fontId:'missing'}},{unknown:{themeId:'pink-bunny'}},{board:{themeId:'pink-bunny',css:'position:fixed'}}])
+    assert.throws(()=>validateOverlayLayout({...layout,widgetStyles}));
+});
+test('chatbox display options have hidden badge and visible nickname defaults and validate only on chatbox',()=>{
+  assert.deepEqual(DEFAULT_CHATBOX_STYLE,{showPlatformBadge:false,showNickname:true,fontScale:1});
+  assert.doesNotThrow(()=>validateOverlayLayout({...layout,widgetStyles:{chatbox:{themeId:'pink-bunny',showPlatformBadge:true,showNickname:false,fontScale:1.2}}}));
+  for(const widgetStyles of [{chatbox:{showPlatformBadge:'yes'}},{chatbox:{showNickname:0}},{chatbox:{fontScale:0.7}},{chatbox:{fontScale:Infinity}},{board:{showNickname:false}}])
     assert.throws(()=>validateOverlayLayout({...layout,widgetStyles}));
 });

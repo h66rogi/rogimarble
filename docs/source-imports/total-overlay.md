@@ -17,9 +17,9 @@
 
 OBS 파츠 URL은 원본 `meloming-front`의 탭별 URL 카드와 `meloming-overlay`의 개별 위젯 경로를 참고해 `/overlay/:widget#token=...`로 분리했다. 파츠는 통합 배치에서 꺼져 있어도 단독 URL에서 표시하며, 각 파츠의 권장 브라우저 소스 크기를 콘솔에 안내한다. 토큰은 기존과 같이 URL fragment에만 둔다. 원본의 음악 위젯 스타일 설정 API는 이식하지 않고 주루마블의 읽기 전용 OBS 상태와 live layout 계약에 `widgetStyles`(테마·글꼴)를 추가했다. 파츠별 설정은 통합 화면과 단독 URL에 함께 적용되며 게시 작업에서도 현재 live 스타일을 보존한다.
 
-채팅창 파츠는 반입된 `apple/Chatbox.tsx`를 그대로 렌더링 경계로 쓰며, SOOP 별풍선의 수량 표기만 추가했다. 주루마블 수집기가 DB에 수락한 채팅·별풍선 후원을 표시 필드로 축소한 후 기존 OBS 토큰 Socket.IO room의 `chat.message`/`chat.donation` 이벤트로 보낸다. 위젯은 원본의 bounded message context를 사용하며 `/overlay/chatbox` 단독 URL과 통합 배치에서 같은 이벤트를 받는다. 수집기 원본 payload와 인증 정보는 브라우저에 보내지 않는다.
+채팅창 파츠는 반입된 `apple/Chatbox.tsx`의 전체 배경과 제목을 쓰지 않고 주루마블 테마별 개별 메시지 카드로 렌더링한다. OBS 캔버스는 투명하게 유지한다. `widgetStyles.chatbox`의 테마·글꼴과 함께 플랫폼 배지(기본 숨김), 닉네임(기본 표시), 글자 크기를 실시간 배치 설정에서 조정한다. 주루마블 수집기가 DB에 수락한 채팅·별풍선 후원을 표시 필드로 축소한 후 기존 OBS 토큰 Socket.IO room의 `chat.message`/`chat.donation` 이벤트로 보낸다. 위젯은 원본의 bounded message context를 사용하며 `/overlay/chatbox` 단독 URL과 통합 배치에서 같은 이벤트를 받는다. 수집기 원본 payload와 인증 정보는 브라우저에 보내지 않는다.
 
-Gateway realtime은 아직 구현되지 않았다. 원본 Socket.IO와 서비스 API는 코드 보존을 위해 포함하지만 runtime에서는 연결하지 않고 명시적으로 fail closed한다. 사용하지 않는 신청곡 theme와 그 font/thumbnail asset 전체를 지원한다고 주장하지 않는다. 방송용 글꼴은 제품에 포함된 NanumSquare Neo·Jua·Do Hyeon·Black Han Sans만 사용한다.
+원본 서비스의 Socket.IO/API는 runtime에서 연결하지 않는다. 주루마블 Socket.IO 어댑터가 OBS 토큰으로 주루마블 채팅·후원 이벤트와 배치 갱신만 구독한다. 사용하지 않는 신청곡 theme와 그 font/thumbnail asset 전체를 지원한다고 주장하지 않는다. 방송용 글꼴은 제품에 포함된 NanumSquare Neo·Jua·Do Hyeon·Black Han Sans만 사용한다.
 
 ## 공개 경계
 

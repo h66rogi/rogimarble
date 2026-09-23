@@ -18,7 +18,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { BoardCell, BoardDefinition } from "@rogimarble/game-core/board";
-import type { BroadcastDonationRule, OverlayLayoutDto } from "@rogimarble/contracts";
+import { resolveBoardFontId, type BroadcastDonationRule, type OverlayLayoutDto } from "@rogimarble/contracts";
+import { RogimarbleChatboxSurface, type ChatboxDisplayMessage } from '@/integrated-overlay/domains/overlay/components/RogimarbleChatboxSurface';
 import { assetManifestById } from "@rogimarble/asset-manifest";
 import { BoardCellButton } from "@/shared/components/ui/board-cell-button";
 import { Button } from "@/shared/components/ui/button";
@@ -354,6 +355,11 @@ const overlayWidgetLabels = {
   chatbox: "채팅창",
 };
 
+const previewChatMessages: ChatboxDisplayMessage[] = [
+  { id: 'preview-chat-1', type: 'chat', platform: 'soop', nickname: '시청자', content: '오늘도 주루마블 시작!' },
+  { id: 'preview-donation-1', type: 'donation', platform: 'soop', nickname: '후원자', content: '주사위 굴려요', amount: '별풍선 33개' },
+];
+
 export function OverlayWidgetPreview({ id, value, board, rules = [] }: {
   id: OverlayLayoutDto["widgets"][number]["id"];
   value: OverlayLayoutDto;
@@ -369,6 +375,9 @@ export function OverlayWidgetPreview({ id, value, board, rules = [] }: {
   }
   if (id === "menu" || id === "dice_price") {
     return <BroadcastPanel kind={id} layout={{ ...value, boardThemeId: themeId, fontId }} rules={rules} />;
+  }
+  if (id === 'chatbox') {
+    return <RogimarbleChatboxSurface themeId={themeId} fontId={resolveBoardFontId(fontId)} options={value.widgetStyles?.chatbox} messages={previewChatMessages} />;
   }
   return <div className="flex h-full w-full items-center justify-center rounded border border-primary/30 bg-primary/10 text-sm text-foreground">
     {overlayWidgetLabels[id]}

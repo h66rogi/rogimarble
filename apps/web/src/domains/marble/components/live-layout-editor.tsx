@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { BoardFontId, BoardThemeId, BroadcastDonationRule, OverlayLayoutDto, OverlayLayoutSnapshotDto, OverlayWidgetId, OverlayWidgetStyleDto } from '@rogimarble/contracts';
+import { DEFAULT_CHATBOX_STYLE, type BoardFontId, type BoardThemeId, type BroadcastDonationRule, type OverlayLayoutDto, type OverlayLayoutSnapshotDto, type OverlayWidgetId, type OverlayWidgetStyleDto } from '@rogimarble/contracts';
 import type { BoardDefinition } from '@rogimarble/game-core/board';
 import type { DonationTriggerConfig } from '@rogimarble/game-core';
 import { api } from '@/lib/api';
@@ -11,6 +11,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { Switch } from '@/shared/components/ui/switch';
 import { BOARD_FONTS, BOARD_THEMES } from '@rogimarble/overlay-ui';
 import { OVERLAY_PARTS } from '../overlay-parts';
 import { TotalOverlayLayoutSettings, type TotalOverlayLayoutAdapter } from '@/domains/overlay/components/total-overlay-layout-settings';
@@ -160,7 +161,7 @@ export function LiveLayoutEditor() {
     return <OverlayWidgetPreview id={id as OverlayWidgetId} value={layout} board={board ?? undefined} rules={rules} />;
   }, [board, rules]);
 
-  const updateStyle = useCallback(async (id: OverlayWidgetId, key: keyof OverlayWidgetStyleDto, value: string) => {
+  const updateStyle = useCallback(async (id: OverlayWidgetId, key: keyof OverlayWidgetStyleDto, value: string | boolean | number) => {
     const current = snapshotRef.current;
     if (!current || !canEdit) return;
     const oldStyle = current.layout.widgetStyles?.[id] ?? {};
@@ -234,6 +235,22 @@ export function LiveLayoutEditor() {
                 </Select>
               </Label>
             </div>
+            {part.id === 'chatbox' && <div className="space-y-3 border-t border-border pt-3">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="chatbox-platform-badge">플랫폼 배지 표시</Label>
+                <Switch id="chatbox-platform-badge" checked={style?.showPlatformBadge ?? DEFAULT_CHATBOX_STYLE.showPlatformBadge} disabled={!canEdit || savingStyle !== null} onCheckedChange={(checked) => void updateStyle('chatbox', 'showPlatformBadge', checked)} />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="chatbox-nickname">닉네임 표시</Label>
+                <Switch id="chatbox-nickname" checked={style?.showNickname ?? DEFAULT_CHATBOX_STYLE.showNickname} disabled={!canEdit || savingStyle !== null} onCheckedChange={(checked) => void updateStyle('chatbox', 'showNickname', checked)} />
+              </div>
+              <Label className="block space-y-1">채팅 글자 크기
+                <Select value={String(style?.fontScale ?? DEFAULT_CHATBOX_STYLE.fontScale)} disabled={!canEdit || savingStyle !== null} onValueChange={(value) => void updateStyle('chatbox', 'fontScale', Number(value))}>
+                  <SelectTrigger aria-label="채팅 글자 크기"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="0.9">작게 · 90%</SelectItem><SelectItem value="1">기본 · 100%</SelectItem><SelectItem value="1.1">크게 · 110%</SelectItem><SelectItem value="1.2">더 크게 · 120%</SelectItem></SelectContent>
+                </Select>
+              </Label>
+            </div>}
           </CardContent></Card>;
         })}
       </div>

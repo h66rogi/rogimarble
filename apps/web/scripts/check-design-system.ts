@@ -442,10 +442,12 @@ export function inspectProject(): { files: string[]; violations: Violation[] } {
       break;
     }
   }
-  // Broadcast panels share no selectors or tokens with console chrome.
+  // Broadcast panels and the transparent OBS chat surface share no selectors or tokens with console chrome.
   const panelCss = readFileSync(resolve(root, "app/broadcast-panels.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
   for (const match of panelCss.matchAll(/([^{}]+)\{/g)) {
-    if (!match[1].trim().split(",").every(part => /^\.broadcast-panel(?:\b|__|--)/.test(part.trim())))
+    const selector = match[1].trim();
+    if (/^(?:@media |@keyframes rogimarble-chat-in$|from$|to$)/.test(selector)) continue;
+    if (!selector.split(",").every(part => /^(?:\.broadcast-panel(?:\b|__|--)|\.rogimarble-chatbox(?:\b|__|\[))/.test(part.trim())))
       violations.push({file:"app/broadcast-panels.css",line:1,message:`Panel CSS escapes its renderer: ${match[1].trim()}`});
   }
   if (/--(?:primary|accent|ring|background|foreground)\s*:/.test(panelCss))
