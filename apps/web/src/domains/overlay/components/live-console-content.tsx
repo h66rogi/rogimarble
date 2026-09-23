@@ -4154,7 +4154,7 @@ export function LiveConsoleContent({
             >
               <span className="flex items-center gap-1.5">
                 <MonitorCog className="size-3.5" />
-                OBS 설정
+                오버레이 설정
               </span>
               {activeTab === 'overlay' && (
                 <motion.div

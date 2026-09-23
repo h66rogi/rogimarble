@@ -16,7 +16,7 @@ Shadcn 도입은 기존 상단 탭·헤더·푸터·분할 레이아웃을 다�
 | 기존 헤더·푸터 | sticky 위치, 배경, 밀도, 작은 계정 버튼, 연결 점/세션 상태 표시 유지 |
 | 기존 본문·우측 패널 | 원본 ResizablePanel, 비율 저장 키, 홈 유지, 모바일 조작부 배치, 콘텐츠 전환 연출 유지 |
 | 기존 전역 스타일·공유 UI | 이미 반입된 CSS 및 Button/Badge/Alert variant 보존. 신규 상태 토큰/variant만 공통 계층에 추가 |
-| 새 게임 운영·설정 UI | `src/domains/marble/`의 조작·후원·규칙·보드·OBS 설정·기록은 Shadcn 공유 UI와 조합 사용 |
+| 새 게임 운영·설정 UI | `src/domains/marble/`의 조작·후원·규칙·보드·오버레이 설정·기록은 Shadcn 공유 UI와 조합 사용 |
 | 새 계정·로그인·수집 관리 | 같은 Button/Input/Card/Alert/Label과 의미 기반 테마 사용 |
 | 보드 그림·OBS 방송 아트 | 데이터 렌더링 영역. 일반 폼 디자인과 분리 |
 

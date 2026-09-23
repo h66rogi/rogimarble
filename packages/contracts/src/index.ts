@@ -228,7 +228,7 @@ export interface DonationPageDto { readonly items:readonly DonationEventDto[]; r
 export interface ChatEventDto { readonly id:string; readonly userId:string; readonly userDisplayName:string; readonly message:string; readonly occurredAt:string; readonly receivedAt:string; readonly gapBefore:boolean; readonly matchedTaskId:string|null }
 export interface ChatPageDto { readonly items:readonly ChatEventDto[]; readonly nextCursor:string|null; readonly collectionConnected:boolean }
 export interface OperationPageDto { readonly items:readonly unknown[]; readonly nextCursor:string|null }
-export interface ObsTokenDto { readonly id:string; readonly label:string; readonly tokenSuffix:string; readonly createdAt:string; readonly lastUsedAt:string|null; readonly revokedAt:string|null }
+export interface ObsTokenDto { readonly id:string; readonly label:string; readonly tokenSuffix:string; readonly createdAt:string; readonly lastUsedAt:string|null; readonly revokedAt:string|null; readonly overlayUrlPath:string|null }
 export interface IssuedObsTokenDto extends ObsTokenDto { readonly token:string; readonly overlayUrlPath:string }
 export interface OverlayPresentationCommandDto { readonly commandId:string; readonly sessionId:string; readonly sessionEpoch:number; readonly presentationEpoch:number; readonly type:OperatorCommandType; readonly afterRevision:number; readonly result:SessionCommandDto['result']; readonly createdAt:string }
 export type OverlayWidgetId='board'|'dice'|'current_mission'|'inventory'|'direction'|'menu'|'dice_price'|'chatbox';

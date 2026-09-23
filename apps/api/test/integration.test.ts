@@ -308,8 +308,12 @@ test('versioned configuration, honest donation feed and revocable OBS snapshot a
   response=await http.post(`/v1/channels/test-channel/config/rules/${version.id}/publish`,{expectedRevision:version.revision});assert.equal(response.status,201);assert.equal((await response.json() as any).status,'published');
   const feed=await (await http.get('/v1/channels/test-channel/donations?limit=10')).json() as any;assert.equal(feed.collectionConnected,false);assert.deepEqual(feed.items,[]);
   response=await http.post('/v1/channels/test-channel/obs-tokens',{label:'integration OBS'});assert.equal(response.status,201);const issued=await response.json() as any;assert.match(issued.token,/^[A-Za-z0-9_-]{43}$/);
+  const listed=await (await http.get('/v1/channels/test-channel/obs-tokens')).json() as any[];
+  assert.equal(listed.find(x=>x.id===issued.id)?.overlayUrlPath,issued.overlayUrlPath);
   response=await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}});assert.equal(response.status,200);const overlay=await response.json() as any;assert.equal(overlay.channelId,'test-channel');assert.equal(overlay.capabilities.donations,false);assert.ok(overlay.session);assert.ok(overlay.boardDefinition);
   assert.equal((await http.del(`/v1/channels/test-channel/obs-tokens/${issued.id}`)).status,204);
+  const revoked=await (await http.get('/v1/channels/test-channel/obs-tokens')).json() as any[];
+  assert.equal(revoked.find(x=>x.id===issued.id)?.overlayUrlPath,null);
   assert.equal((await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})).status,401);
 });
 

@@ -22,6 +22,7 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
   let layout = structuredClone(baseLayout);
   let conflictNext = false;
   let editable = role !== 'viewer';
+  const issuedTokens: Array<{ id: string; label: string; tokenSuffix: string; createdAt: string; lastUsedAt: null; revokedAt: null; overlayUrlPath: string; token?: string }> = [];
   const writes: Array<{ expectedVersion: number; layout: OverlayLayoutDto }> = [];
 
   await page.route('**/v1/**', async route => {
@@ -44,7 +45,9 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
       return route.fulfill({ json: { layout, layoutVersion: version, layoutUpdatedAt: '2026-09-22T00:00:00Z' } });
     }
     if (path.endsWith('/obs-tokens') && request.method() === 'POST') {
-      return route.fulfill({ json: { id: 'issued', label: '방송 OBS', token: 'synthetic-overlay', tokenSuffix: 'rlay', createdAt: '2026-09-23T00:00:00Z', lastUsedAt: null, revokedAt: null, overlayUrlPath: '/overlay#token=synthetic-overlay' } });
+      const issued = { id: 'issued', label: '방송 오버레이', token: 'synthetic-overlay', tokenSuffix: 'rlay', createdAt: '2026-09-23T00:00:00Z', lastUsedAt: null, revokedAt: null, overlayUrlPath: '/overlay#token=synthetic-overlay' };
+      issuedTokens.unshift(issued);
+      return route.fulfill({ json: issued });
     }
     let data: unknown;
     if (path.endsWith('/auth/session')) data = { csrfToken: 'synthetic-csrf', operator: { id: 'synthetic', username: '테스트', role } };
@@ -52,7 +55,8 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
     else if (path.endsWith('/operator-state')) data = { session: null, boardDefinition: board, inventory: [], missions: [], pawnAppearance: { revision: 0, image: null }, capabilities: {} };
     else if (path.endsWith('/config/rules')) data = { draft: null, published: { id: 'rules', revision: 1, status: 'published', document: rules }, effectiveDocument: rules };
     else if (path.endsWith('/collector')) data = { enabled: false, transport: 'disconnected', counts: {} };
-    else if (path.endsWith('/obs-tokens') || path.endsWith('/auth/tokens') || path.includes('/board-versions/runnable')) data = [];
+    else if (path.endsWith('/obs-tokens')) data = issuedTokens;
+    else if (path.endsWith('/auth/tokens') || path.includes('/board-versions/runnable')) data = [];
     else if (path.endsWith('/donations')) data = { items: [], nextCursor: null, collectionConnected: false };
     else if (path.endsWith('/chats')) data = { items: [], nextCursor: null, collectionConnected: false };
     else if (path.endsWith('/operations')) data = { items: [], nextCursor: null };
@@ -61,7 +65,7 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
   });
 
   await page.goto('/');
-  await page.getByRole('tab', { name: 'OBS 설정', exact: true }).click();
+  await page.getByRole('tab', { name: '오버레이 설정', exact: true }).click();
   await expect(page.getByText('레이아웃 편집', { exact: true })).toBeVisible();
   return {
     writes,
@@ -171,7 +175,7 @@ test('viewer sees the live layout but every edit entry point is disabled', async
   expect(state.writes).toEqual([]);
 });
 
-test('OBS tab saves an independent part style and offers its URL with source dimensions', async ({ page }) => {
+test('overlay tab saves a part style and restores its URLs after reload', async ({ page }) => {
   const state = await fixture(page);
   await page.getByRole('combobox', { name: '후원 메뉴 테마' }).click();
   await page.getByRole('option', { name: '스카이 소다' }).click();
@@ -180,9 +184,15 @@ test('OBS tab saves an independent part style and offers its URL with source dim
   await page.getByRole('option', { name: '주아' }).click();
   await expect.poll(() => state.writes.at(-1)?.layout.widgetStyles?.menu?.fontId).toBe('jua');
   await page.getByRole('button', { name: '주소 발급' }).click();
+  await page.getByRole('button', { name: '주소 표시' }).click();
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=synthetic-overlay');
   await expect(page.getByText('OBS 권장 크기 480 × 640px')).toBeVisible();
   await expect(page.getByRole('textbox', { name: '주루마블 보드 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/board#token=synthetic-overlay');
+  await page.reload();
+  await page.getByRole('tab', { name: '오버레이 설정', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('주소 표시를 눌러 확인');
+  await page.getByRole('button', { name: '주소 표시' }).click();
+  await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=synthetic-overlay');
 });
 
 test('visible editor polls a newer published layout and permission without requiring a failed gesture', async ({ page }) => {

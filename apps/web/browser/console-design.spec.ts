@@ -239,7 +239,7 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   await filter.click();
   await page.getByRole("option", { name: "전체 결과", exact: true }).click();
   await expect(filter).toContainText("전체 결과");
-  for (const name of ["OBS 설정", "홈"]) {
+  for (const name of ["오버레이 설정", "홈"]) {
     await nav.getByRole("tab", { name, exact: true }).click();
     await expect(collectorLink).toBeInViewport();
     await expect

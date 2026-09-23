@@ -72,10 +72,8 @@ export function MarbleDataPanel({
 }) {
   const [items, setItems] = useState<readonly unknown[]>([]);
   const [tokens, setTokens] = useState<readonly ObsTokenDto[]>([]);
-  const [label, setLabel] = useState("방송 OBS");
-  const [issued, setIssued] = useState<{ id: string; url: string } | null>(
-    null,
-  );
+  const [label, setLabel] = useState("방송 오버레이");
+  const [origin, setOrigin] = useState("");
   const [message, setMessage] = useState("");
   const [connected, setConnected] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -87,6 +85,8 @@ export function MarbleDataPanel({
   const busyRef = useRef(false);
   const backgroundBusyRef = useRef(false);
   const hasAdditionalPages = useRef(false);
+
+  useEffect(() => setOrigin(window.location.origin), []);
 
   const load = async (append = false, background = false) => {
     if (background && (busyRef.current || backgroundBusyRef.current)) return;
@@ -147,7 +147,6 @@ export function MarbleDataPanel({
   useEffect(() => {
     setItems([]);
     setCursor(null);
-    setIssued(null);
     hasAdditionalPages.current = false;
     void load();
     const timer =
@@ -166,8 +165,8 @@ export function MarbleDataPanel({
   if (view === "obs")
     return (
       <Panel
-        title="OBS 설정"
-        description="읽기 전용 방송 화면 주소를 발급하고 회수합니다."
+        title="오버레이 설정"
+        description="방송 화면 주소와 파츠별 권장 크기·스타일을 설정합니다."
       >
         <LiveLayoutEditor />
         <form
@@ -178,78 +177,22 @@ export function MarbleDataPanel({
             setMessage("");
             void api
               .issueObsToken(label)
-              .then(async (token) => {
-                setIssued({
-                  id: token.id,
-                  url: new URL(token.overlayUrlPath, window.location.origin)
-                    .href,
-                });
-                await load();
-              })
+              .then(async () => { await load(); })
               .catch((error) => setMessage(error.message))
               .finally(() => setBusy(false));
           }}
         >
           <Input
-            aria-label="OBS 이름"
+            aria-label="오버레이 이름"
             value={label}
             maxLength={80}
             onChange={(event) => setLabel(event.target.value)}
           />
           <Button disabled={busy || !label.trim()}>주소 발급</Button>
         </form>
-        {issued && (
-          <ConsoleNotice variant="warning" title="OBS 브라우저 소스 주소">
-            <p>
-              주소는 지금만 표시됩니다. 통합 화면이나 필요한 파츠를 OBS 브라우저 소스로 추가하세요. 외부에 공유하지 마세요.
-            </p>
-            <Input
-              readOnly
-              aria-label="OBS 브라우저 소스 주소"
-              value={issued.url}
-              onFocus={(event) => event.target.select()}
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                onClick={() =>
-                  void navigator.clipboard
-                    .writeText(issued.url)
-                    .then(() => setMessage("OBS 주소를 복사했습니다."))
-                    .catch(() => setMessage("주소를 선택해서 복사해 주세요."))
-                }
-              >
-                주소 복사
-              </Button>
-              <Button size="sm" variant="outline" asChild>
-                <a href={issued.url} target="_blank" rel="noopener noreferrer">
-                  방송 화면 열기
-                </a>
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {OVERLAY_PARTS.map((part) => {
-                const url = overlayPartUrl(issued.url, part.id);
-                return <Card key={part.id}>
-                  <CardContent className="space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-sm font-semibold">{part.label}</span>
-                      <span className="text-xs text-muted-foreground">OBS 권장 크기 {part.width} × {part.height}px</span>
-                    </div>
-                    <Input readOnly aria-label={`${part.label} OBS 주소`} value={url} onFocus={(event) => event.target.select()} />
-                    <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(url).then(() => setMessage(`${part.label} 주소를 복사했습니다.`)).catch(() => setMessage('주소를 선택해서 복사해 주세요.'))}>주소 복사</Button>
-                      <Button size="sm" variant="outline" asChild><a href={url} target="_blank" rel="noopener noreferrer">파츠 열기</a></Button>
-                    </div>
-                  </CardContent>
-                </Card>;
-              })}
-            </div>
-          </ConsoleNotice>
-        )}
         {tokens.map((token) => (
           <Card key={token.id}>
-            <CardContent>
+            <CardContent className="space-y-3">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="flex-1">
                   {token.label} · …{token.tokenSuffix}
@@ -267,7 +210,6 @@ export function MarbleDataPanel({
                       void api
                         .revokeObsToken(token.id)
                         .then(async () => {
-                          if (issued?.id === token.id) setIssued(null);
                           await load();
                         })
                         .catch((error) => setMessage(error.message))
@@ -278,6 +220,17 @@ export function MarbleDataPanel({
                   </Button>
                 )}
               </div>
+              {token.overlayUrlPath && origin && !token.revokedAt && (
+                <OverlayTokenUrls
+                  baseUrl={new URL(token.overlayUrlPath, origin).href}
+                  onMessage={setMessage}
+                />
+              )}
+              {!token.overlayUrlPath && !token.revokedAt && (
+                <ConsoleNotice variant="warning">
+                  기존 주소는 원문이 저장되지 않아 다시 표시할 수 없습니다. 새 주소를 발급한 뒤 OBS에서 교체해 주세요.
+                </ConsoleNotice>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -449,6 +402,75 @@ export function MarbleDataPanel({
         이전 조작은 운영 기록에서 확인할 수 있습니다.
       </p>
     </Panel>
+  );
+}
+
+function OverlayTokenUrls({
+  baseUrl,
+  onMessage,
+}: {
+  baseUrl: string;
+  onMessage: (message: string) => void;
+}) {
+  const [revealed, setRevealed] = useState(false);
+  const copy = (url: string, label: string) =>
+    void navigator.clipboard.writeText(url)
+      .then(() => onMessage(`${label} 주소를 복사했습니다.`))
+      .catch(() => onMessage("주소를 선택해서 복사해 주세요."));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">주소를 복사해 OBS 브라우저 소스에 붙여 넣으세요. 외부에 공유하지 마세요.</p>
+        <Button size="sm" variant="outline" onClick={() => setRevealed(!revealed)}>
+          {revealed ? "주소 숨기기" : "주소 표시"}
+        </Button>
+      </div>
+      <OverlayUrlRow label="통합 오버레이" url={baseUrl} width={1920} height={1080} revealed={revealed} onCopy={copy} />
+      {OVERLAY_PARTS.map((part) => (
+        <OverlayUrlRow
+          key={part.id}
+          label={part.label}
+          url={overlayPartUrl(baseUrl, part.id)}
+          width={part.width}
+          height={part.height}
+          revealed={revealed}
+          onCopy={copy}
+        />
+      ))}
+    </div>
+  );
+}
+
+function OverlayUrlRow({
+  label,
+  url,
+  width,
+  height,
+  revealed,
+  onCopy,
+}: {
+  label: string;
+  url: string;
+  width: number;
+  height: number;
+  revealed: boolean;
+  onCopy: (url: string, label: string) => void;
+}) {
+  return (
+    <Card>
+      <CardContent className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-sm font-semibold">{label}</span>
+          <span className="text-xs text-muted-foreground">OBS 권장 크기 {width} × {height}px</span>
+        </div>
+        <Input readOnly aria-label={`${label} OBS 주소`} value={revealed ? url : "주소 표시를 눌러 확인"} onFocus={(event) => event.target.select()} />
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={() => onCopy(url, label)}>주소 복사</Button>
+          <Button size="sm" variant="outline" asChild><a href={url} target="_blank" rel="noopener noreferrer">화면 열기</a></Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

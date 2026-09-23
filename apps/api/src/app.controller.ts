@@ -14,9 +14,9 @@ export class AppController {
   constructor(private readonly api: ApiService,private readonly configuration:ConfigurationService,private readonly overlayLayout:OverlayLayoutService,private readonly feedRealtime:OperatorFeedRealtimeService) {}
   @Get('/health') health() { return { status: 'ok' }; }
   @Get('/ready') async ready() {
-    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['013_chat_feed_index.sql']);
+    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['014_retrievable_obs_tokens.sql']);
       if(!result.rowCount)throw new Error('required migration missing');
-      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0');await pool().query('SELECT 1 FROM pawn_assets LIMIT 0');await pool().query('SELECT style_id FROM channel_pawn_appearances LIMIT 0');await pool().query('SELECT 1 FROM channel_live_overlay_layouts LIMIT 0'); return { status:'ready',schemaVersion:'013_chat_feed_index.sql' }; }
+      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0');await pool().query('SELECT 1 FROM pawn_assets LIMIT 0');await pool().query('SELECT style_id FROM channel_pawn_appearances LIMIT 0');await pool().query('SELECT 1 FROM channel_live_overlay_layouts LIMIT 0');await pool().query('SELECT token_value FROM obs_access_tokens LIMIT 0'); return { status:'ready',schemaVersion:'014_retrievable_obs_tokens.sql' }; }
     catch { throw new ServiceUnavailableException('Database or migrations are not ready'); }
   }
   @Post('/v1/auth/login') @HttpCode(200) @Header('Cache-Control','no-store')
