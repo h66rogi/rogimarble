@@ -424,6 +424,12 @@ test("board themes preview without game writes and publish only the selected vis
   await page.getByRole("tab", { name: "방송 테마·배치", exact: true }).click();
   await expect(page.getByRole("button", { name: /클래식 파티/ })).toHaveCount(0);
   const region = page.getByRole("region", { name: "방송 테마·배치 설정", exact: true });
+  await expect(region.getByRole("group", { name: "기본 테마 선택" }).getByRole("button")).toHaveCount(6);
+  await expect(region.getByText("방송 화면 미리보기")).toBeVisible();
+  const panelTabs = region.getByRole("tablist", { name: "방송 패널 내용" });
+  await panelTabs.getByRole("tab", { name: "후원 메뉴" }).click();
+  await expect(region.getByRole("tabpanel", { name: "후원 메뉴" }).getByRole("textbox", { name: "메뉴판 제목" })).toBeVisible();
+  await panelTabs.getByRole("tab", { name: "주사위 가격" }).click();
   await expect(region.getByRole("button", { name: "라임 클로버 선택됨", exact: true })).toHaveAttribute("aria-pressed", "true");
   await region.getByRole("button", { name: "핑크 버니 선택", exact: true }).click();
   await expect(region.getByRole("button", { name: "핑크 버니 선택됨", exact: true })).toHaveAttribute("aria-pressed", "true");

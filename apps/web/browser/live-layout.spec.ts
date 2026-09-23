@@ -211,7 +211,8 @@ test('viewer sees the live layout but every edit entry point is disabled', async
 test('overlay tab keeps one channel URL after reload and rotates it on request', async ({ page }) => {
   const state = await fixture(page);
   const menuStyleTab = page.getByRole('tablist', { name: '스타일을 편집할 파츠' }).getByRole('tab', { name: '후원 메뉴' });
-  if (await menuStyleTab.count()) await menuStyleTab.click();
+  await menuStyleTab.click();
+  await expect(menuStyleTab).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('combobox', { name: '후원 메뉴 테마' }).click();
   await page.getByRole('option', { name: '스카이 소다' }).click();
   await expect.poll(() => state.writes.at(-1)?.layout.widgetStyles?.menu?.themeId).toBe('sky-soda');
@@ -222,7 +223,7 @@ test('overlay tab keeps one channel URL after reload and rotates it on request',
   await expect(page.getByRole('button', { name: '회수' })).toHaveCount(0);
   await page.getByRole('button', { name: '주소 표시' }).click();
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=synthetic-overlay');
-  await expect(page.getByText('OBS 권장 크기 480 × 640px').first()).toBeVisible();
+  await expect(page.getByRole('tabpanel', { name: '후원 메뉴' }).getByText('OBS 권장 크기 480 × 640px')).toBeVisible();
   await expect(page.getByRole('textbox', { name: '주루마블 보드 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/board#token=synthetic-overlay');
   await page.reload();
   await page.getByRole('tab', { name: '오버레이 설정', exact: true }).click();

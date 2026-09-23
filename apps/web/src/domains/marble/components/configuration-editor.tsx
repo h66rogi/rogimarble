@@ -229,7 +229,7 @@ export function ConfigurationEditor({
                 ? "후원 개수와 동작을 한눈에 확인하고 편집하세요."
                 : kind === "items"
                   ? "방송에서 사용할 보상과 실드를 관리하세요."
-                  : "방송 화면에 표시할 영역을 배치하세요."}
+                  : "방송 화면의 기본 스타일과 패널 내용을 편집하세요."}
           </p>
         </div>
         {(kind === "rules" || kind === "board" || kind === "items") && (

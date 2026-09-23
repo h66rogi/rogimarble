@@ -1,5 +1,5 @@
 "use client";
-import { Card, CardContent } from "@/shared/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Disclosure } from "./editor-fields";
 
 import { useEffect, useState } from "react";
@@ -118,61 +118,79 @@ export function LayoutEditor({
     return () => { active = false; };
   }, []);
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
-      <BoardThemePicker board={board} selected={value.boardThemeId ?? "lime-clover"} fontSelected={value.fontId ?? "nanum-square-neo"} changeFont={fontId => change({ ...value, fontId })} change={boardThemeId => change({ ...value, boardThemeId })} />
-      <p className="text-xs text-muted-foreground">{boardSource} · 저장 전 미리보기</p>
-      <OverlayLayoutPreview value={value} board={board} rules={rules} />
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        OBS 탭에서 게임판과 패널을 끌어 위치와 크기를 바로 바꿀 수 있어요. 이곳에서는 방송 스타일과 패널 내용을 편집하고 게시해요.
-      </p>
-      <div className="grid grid-cols-3 gap-3">
-        <NumberField
-          label="방송 화면 너비 (px)"
-          value={value.width}
-          change={(width) => change({ ...value, width, aspectRatio: "custom" })}
-        />
-        <NumberField
-          label="방송 화면 높이 (px)"
-          value={value.height}
-          change={(height) =>
-            change({ ...value, height, aspectRatio: "custom" })
-          }
-        />
-        <Options
-          label="화면 비율"
-          value={value.aspectRatio}
-          options={[
-            ["16:9", "가로 방송 · 16:9"],
-            ["9:16", "세로 방송 · 9:16"],
-            ["4:3", "4:3"],
-            ["custom", "직접 지정"],
-          ]}
-          change={(aspectRatio) => {
-            const ratio =
-              aspectRatio === "16:9"
-                ? 16 / 9
-                : aspectRatio === "9:16"
-                  ? 9 / 16
-                  : aspectRatio === "4:3"
-                    ? 4 / 3
-                    : null;
-            change({
-              ...value,
-              aspectRatio,
-              height: ratio ? Math.round(value.width / ratio) : value.height,
-            });
-          }}
-        />
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div className="grid items-start gap-5 xl:grid-cols-2">
+        <Card>
+          <CardContent>
+            <BoardThemePicker selected={value.boardThemeId ?? "lime-clover"} fontSelected={value.fontId ?? "nanum-square-neo"} changeFont={fontId => change({ ...value, fontId })} change={boardThemeId => change({ ...value, boardThemeId })} />
+          </CardContent>
+        </Card>
+        <Card className="xl:sticky xl:top-4">
+          <CardHeader className="space-y-1">
+            <CardTitle>방송 화면 미리보기</CardTitle>
+            <p className="text-sm text-muted-foreground">{boardSource} · 저장 전 모습입니다. 현재 방송의 위치·크기는 오버레이 설정에서 조정하세요.</p>
+          </CardHeader>
+          <CardContent>
+            <OverlayLayoutPreview value={value} board={board} rules={rules} />
+          </CardContent>
+        </Card>
       </div>
-      <Field
-        label="방송 화면 배경"
-        help="투명 배경은 transparent로 입력하세요."
-      >
-        <Input
-          value={value.background}
-          onChange={(e) => change({ ...value, background: e.target.value })}
-        />
-      </Field>
+      <Card>
+        <CardHeader className="space-y-1">
+          <CardTitle>방송 화면 기본값</CardTitle>
+          <p className="text-sm text-muted-foreground">방송 화면의 크기와 배경을 설정합니다. 변경한 내용은 게시한 뒤 적용돼요.</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <NumberField
+              label="방송 화면 너비 (px)"
+              value={value.width}
+              change={(width) => change({ ...value, width, aspectRatio: "custom" })}
+            />
+            <NumberField
+              label="방송 화면 높이 (px)"
+              value={value.height}
+              change={(height) =>
+                change({ ...value, height, aspectRatio: "custom" })
+              }
+            />
+            <Options
+              label="화면 비율"
+              value={value.aspectRatio}
+              options={[
+                ["16:9", "가로 방송 · 16:9"],
+                ["9:16", "세로 방송 · 9:16"],
+                ["4:3", "4:3"],
+                ["custom", "직접 지정"],
+              ]}
+              change={(aspectRatio) => {
+                const ratio =
+                  aspectRatio === "16:9"
+                    ? 16 / 9
+                    : aspectRatio === "9:16"
+                      ? 9 / 16
+                      : aspectRatio === "4:3"
+                        ? 4 / 3
+                        : null;
+                change({
+                  ...value,
+                  aspectRatio,
+                  height: ratio ? Math.round(value.width / ratio) : value.height,
+                });
+              }}
+            />
+          </div>
+          <Field
+            label="방송 화면 배경"
+            help="투명 배경은 transparent로 입력하세요."
+          >
+            <Input
+              value={value.background}
+              onChange={(e) => change({ ...value, background: e.target.value })}
+            />
+          </Field>
+        </CardContent>
+      </Card>
       <BroadcastPanelEditor value={value} rules={rules} change={change} />
     </div>
   );

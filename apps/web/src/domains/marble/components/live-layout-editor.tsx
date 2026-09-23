@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { DEFAULT_CHATBOX_STYLE, type BoardFontId, type BoardThemeId, type BroadcastDonationRule, type OverlayLayoutDto, type OverlayLayoutSnapshotDto, type OverlayWidgetId, type OverlayWidgetStyleDto } from '@rogimarble/contracts';
 import type { BoardDefinition } from '@rogimarble/game-core/board';
 import type { DonationTriggerConfig } from '@rogimarble/game-core';
@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/shared/components/ui/card';
 import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Switch } from '@/shared/components/ui/switch';
+import { PillTabs } from '@/shared/components/ui/pill-tabs';
 import { BOARD_FONTS, BOARD_THEMES } from '@rogimarble/overlay-ui';
 import { OVERLAY_PARTS } from '../overlay-parts';
 import { TotalOverlayLayoutSettings, type TotalOverlayLayoutAdapter } from '@/domains/overlay/components/total-overlay-layout-settings';
@@ -52,6 +53,7 @@ function toApiLayout(editor: TotalOverlayLayout, source: OverlayLayoutDto): Over
 }
 
 export function LiveLayoutEditor() {
+  const styleTabId = useId();
   const [snapshot, setSnapshot] = useState<OverlayLayoutSnapshotDto | null>(null);
   const snapshotRef = useRef<OverlayLayoutSnapshotDto | null>(null);
   const operatorRoleRef = useRef<'admin' | 'operator' | 'viewer'>('viewer');
@@ -61,6 +63,7 @@ export function LiveLayoutEditor() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [savingStyle, setSavingStyle] = useState<OverlayWidgetId | null>(null);
+  const [selectedStyle, setSelectedStyle] = useState<OverlayWidgetId>('board');
 
   const applySnapshot = useCallback((next: OverlayLayoutSnapshotDto) => {
     const current = snapshotRef.current;
@@ -208,18 +211,20 @@ export function LiveLayoutEditor() {
       widgetPreviewEnabled={false}
       adapter={adapter ?? { snapshot: null, isLoading: true, canEdit: false, widgetIds: WIDGET_IDS, canvasAspect: 16 / 9, save, renderWidget }}
     />
-    {snapshot && <section className="space-y-3" aria-label="파츠별 방송 스타일">
+    {snapshot && <section className="space-y-4" aria-label="파츠별 방송 스타일">
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold">파츠별 방송 스타일</h3>
-        <p className="text-xs text-muted-foreground">테마와 글꼴을 선택하면 통합 화면과 개별 OBS 주소에 바로 반영됩니다. 전체 설정을 선택하면 게시된 기본값을 사용합니다.</p>
+        <h3 className="text-base font-semibold">파츠별 방송 스타일</h3>
+        <p className="text-sm text-muted-foreground">파츠를 선택해 테마와 글꼴을 바꾸세요. 통합 화면과 개별 OBS 주소에 바로 반영됩니다. 전체 설정은 보드 설정에 게시한 기본값을 사용합니다.</p>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        {OVERLAY_PARTS.map((part) => {
-          const style = snapshot.layout.widgetStyles?.[part.id];
-          return <Card key={part.id}><CardContent className="space-y-3">
+      <PillTabs ariaLabel="스타일을 편집할 파츠" idPrefix={styleTabId} activeTab={selectedStyle} onTabChange={setSelectedStyle} tabs={OVERLAY_PARTS.map((part) => ({ id: part.id, label: part.label }))} />
+      {OVERLAY_PARTS.filter((part) => part.id === selectedStyle).map((part) => {
+        const style = snapshot.layout.widgetStyles?.[part.id];
+        return <Card key={part.id} id={`${styleTabId}-panel-${part.id}`} role="tabpanel" aria-labelledby={`${styleTabId}-tab-${part.id}`}><CardContent className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h4 className="text-sm font-semibold">{part.label} 스타일</h4>
-              <span className="text-xs text-muted-foreground">{part.width} × {part.height}px</span>
+              <div className="space-y-1">
+                <h4 className="text-base font-semibold">{part.label}</h4>
+                <p className="text-sm text-muted-foreground">OBS 권장 크기 {part.width} × {part.height}px</p>
+              </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Label className="block space-y-1">테마
@@ -252,8 +257,7 @@ export function LiveLayoutEditor() {
               </Label>
             </div>}
           </CardContent></Card>;
-        })}
-      </div>
+      })}
     </section>}
   </div>;
 }
