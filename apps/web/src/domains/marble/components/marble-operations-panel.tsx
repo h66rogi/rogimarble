@@ -788,6 +788,7 @@ export function MarbleOperationsPanel({
             ? apiAssetUrl(state.pawnAppearance.image.url)
             : null
         }
+        pawnStyleId={state?.pawnAppearance.styleId ?? 'star-medal'}
         interactive
         selectedCellId={selectedCell}
         onCellSelect={setSelectedCell}

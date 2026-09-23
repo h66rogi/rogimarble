@@ -1,15 +1,15 @@
 'use client';
 
 import { DefaultPawn, DiceLottie, LandingLottie } from '@rogimarble/animation';
-import type { BoardFontId, BoardThemeId } from '@rogimarble/contracts';
+import type { BoardFontId, BoardThemeId, PawnStyleId } from '@rogimarble/contracts';
 import { getCellRect, type BoardDefinition, type BoardEffect } from '@rogimarble/game-core/board';
 import { type CSSProperties, type ReactNode } from 'react';
 export { BOARD_FONT_FAMILIES, BOARD_FONTS, BOARD_THEMES, type BoardFontMetadata, type BoardThemeMetadata } from './themes';
 export { BroadcastPanel, resolveBroadcastPanel } from './broadcast-panel';
 
-export function Board({ board, tokenCellId, moving = false, dice, interactive = false, selectedCellId, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, themeId = 'lime-clover', fontId = 'nanum-square-neo' }: {
+export function Board({ board, tokenCellId, moving = false, dice, interactive = false, selectedCellId, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, pawnStyleId = 'star-medal', themeId = 'lime-clover', fontId = 'nanum-square-neo' }: {
   board: BoardDefinition; tokenCellId: string; moving?: boolean; dice?: readonly number[]; interactive?: boolean; selectedCellId?: string; onCellSelect?: (id: string) => void; fit?: boolean;
-  effectPhase?: 'idle' | 'anticipation' | 'reveal' | 'stepping' | 'landing'; trailCellIds?: readonly string[]; landingPulseKey?: string | number; reducedMotion?: boolean; pawnImageUrl?: string | null;
+  effectPhase?: 'idle' | 'anticipation' | 'reveal' | 'stepping' | 'landing'; trailCellIds?: readonly string[]; landingPulseKey?: string | number; reducedMotion?: boolean; pawnImageUrl?: string | null; pawnStyleId?: PawnStyleId;
   themeId?: BoardThemeId;
   fontId?: BoardFontId;
 }) {
@@ -50,8 +50,8 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
         {effectPhase !== 'anticipation' && dice?.length ? <span className="dice-total">합계 {dice.reduce((sum, value) => sum + value, 0)}</span> : <span className="board-status">{effectPhase === 'anticipation' ? '결과를 기다리고 있어요' : '오늘도 즐겁게 출발!'}</span>}
         {effectPhase === 'landing' && <span className="landing-status">{tokenCell.label} 도착</span>}
       </div>}
-      <div key={landingPulseKey} className={`token-wrapper ${pawnImageUrl ? 'has-photo-pawn' : ''} ${moving ? 'is-moving' : ''} ${effectPhase === 'landing' ? 'is-landing' : ''}`} data-cell-id={tokenCell.id} style={{ left: `${((tokenRect.x + tokenRect.width * (pawnImageUrl ? .82 : .93)) / displayBoard.canvas.width) * 100}%`, top: `${((tokenRect.y + tokenRect.height * .55) / displayBoard.canvas.height) * 100}%` }}>
-        {pawnImageUrl ? <><span className="token-base" /><span className="photo-pawn"><img src={pawnImageUrl} alt="" /></span></> : <DefaultPawn active={moving} />}
+      <div key={landingPulseKey} className={`token-wrapper ${pawnImageUrl ? 'has-photo-pawn' : ''} ${moving ? 'is-moving' : ''} ${effectPhase === 'landing' ? 'is-landing' : ''}`} data-cell-id={tokenCell.id} data-pawn-style={pawnImageUrl ? 'photo' : pawnStyleId} style={{ left: `${((tokenRect.x + tokenRect.width * (pawnImageUrl ? .82 : .93)) / displayBoard.canvas.width) * 100}%`, top: `${((tokenRect.y + tokenRect.height * .55) / displayBoard.canvas.height) * 100}%` }}>
+        {pawnImageUrl ? <><span className="token-base" /><span className="photo-pawn"><img src={pawnImageUrl} alt="" /></span></> : <DefaultPawn active={moving} styleId={pawnStyleId} />}
         <LandingLottie active={effectPhase === 'landing'} reducedMotion={reducedMotion} />
       </div>
     </div>

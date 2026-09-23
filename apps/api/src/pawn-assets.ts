@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { Request } from 'express';
 import sharp from 'sharp';
 import type pg from 'pg';
-import type { PawnAppearanceDto } from '../../../packages/contracts/src/index.ts';
+import type { PawnAppearanceDto, PawnStyleId } from '../../../packages/contracts/src/index.ts';
 import { pool, transaction } from '../../../packages/database/src/index.ts';
 
 const MAX_INPUT_BYTES=5*1024*1024;
@@ -45,10 +45,10 @@ export async function normalizePawnImage(input:Buffer,declaredMime:string):Promi
 }
 
 export async function pawnAppearance(client:pg.Pool|pg.PoolClient,channelId:string):Promise<PawnAppearanceDto>{
-  const result=await client.query(`SELECT p.revision,p.updated_at,a.id,a.mime_type,a.width,a.height,a.created_at
+  const result=await client.query(`SELECT p.revision,p.style_id,a.id,a.mime_type,a.width,a.height,a.created_at
     FROM channel_pawn_appearances p LEFT JOIN pawn_assets a ON a.id=p.asset_id WHERE p.channel_id=$1`,[channelId]);
-  if(!result.rowCount)return{revision:0,image:null};
-  const row=result.rows[0];return{revision:Number(row.revision),image:row.id?{assetId:row.id,url:`/v1/pawn-assets/${row.id}`,mimeType:row.mime_type,width:row.width,height:row.height,source:'upload',updatedAt:new Date(row.created_at).toISOString()}:null};
+  if(!result.rowCount)return{revision:0,styleId:'star-medal',image:null};
+  const row=result.rows[0];return{revision:Number(row.revision),styleId:row.style_id as PawnStyleId,image:row.id?{assetId:row.id,url:`/v1/pawn-assets/${row.id}`,mimeType:row.mime_type,width:row.width,height:row.height,source:'upload',updatedAt:new Date(row.created_at).toISOString()}:null};
 }
 
 @Injectable()
@@ -61,6 +61,18 @@ export class PawnAssetService {
   }
   async assertWrite(operator:Operator,channelId:string):Promise<void>{await this.access(operator,channelId,true);}
   async current(operator:Operator,channelId:string){await this.access(operator,channelId);return pawnAppearance(pool(),channelId);}
+  async selectStyle(operator:Operator,channelId:string,expectedRevision:number,styleId:PawnStyleId):Promise<PawnAppearanceDto>{
+    await this.access(operator,channelId,true);return transaction(async client=>{
+      await assertManage(client,operator,channelId);await client.query('INSERT INTO channel_pawn_appearances(channel_id) VALUES($1) ON CONFLICT DO NOTHING',[channelId]);
+      const current=await client.query('SELECT asset_id,style_id,revision FROM channel_pawn_appearances WHERE channel_id=$1 FOR UPDATE',[channelId]);
+      if(Number(current.rows[0].revision)!==expectedRevision)throw new ConflictException('Pawn appearance revision changed');
+      if(current.rows[0].style_id===styleId&&!current.rows[0].asset_id)return pawnAppearance(client,channelId);
+      const next=await client.query('UPDATE channel_pawn_appearances SET asset_id=NULL,style_id=$2,revision=revision+1,updated_at=now() WHERE channel_id=$1 RETURNING revision',[channelId,styleId]);
+      await client.query(`INSERT INTO pawn_asset_audit(id,channel_id,actor_operator_id,action,asset_id,revision,style_id) VALUES($1,$2,$3,'style_selected',$4,$5,$6)`,[randomUUID(),channelId,operator.id,current.rows[0].asset_id,next.rows[0].revision,styleId]);
+      if(current.rows[0].asset_id)await client.query('DELETE FROM pawn_assets WHERE id=$1 AND channel_id=$2',[current.rows[0].asset_id,channelId]);
+      return pawnAppearance(client,channelId);
+    });
+  }
   async upload(operator:Operator,channelId:string,expectedRevision:number,image:Awaited<ReturnType<typeof normalizePawnImage>>):Promise<PawnAppearanceDto>{
     await this.access(operator,channelId,true);return transaction(async client=>{
       await assertManage(client,operator,channelId);await client.query('INSERT INTO channel_pawn_appearances(channel_id) VALUES($1) ON CONFLICT DO NOTHING',[channelId]);

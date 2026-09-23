@@ -116,18 +116,37 @@ test('live overlay layout persists, uses CAS, scopes channels, and revoked OBS t
 
 test('pawn image upload is revisioned, sanitized, replaced, and deleted',async()=>{
   const auth=await login();
+  const pawnPath=`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-style`;
+  const selectStyle=(styleId:string,expectedRevision:number,csrf:string|null=auth.csrf)=>fetch(pawnPath,{method:'PUT',headers:{origin:'https://console.example',cookie:auth.cookie,'content-type':'application/json',...(csrf?{'x-csrf-token':csrf}:{})},body:JSON.stringify({styleId,expectedRevision})});
+  let response=await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image`,{headers:{origin:'https://console.example',cookie:auth.cookie}});
+  assert.deepEqual(await response.json(),{revision:0,styleId:'star-medal',image:null});
+  assert.equal((await selectStyle('heart-chip',0,null)).status,403);
+  assert.equal((await selectStyle('unknown',0)).status,400);
+  response=await selectStyle('heart-chip',0);assert.equal(response.status,200);assert.deepEqual(await response.json(),{revision:1,styleId:'heart-chip',image:null});
+  assert.equal((await selectStyle('bunny-face',0)).status,409);
+  response=await selectStyle('bunny-face',1);assert.equal(response.status,200);assert.deepEqual(await response.json(),{revision:2,styleId:'bunny-face',image:null});
+  response=await selectStyle('star-medal',2);assert.equal(response.status,200);assert.deepEqual(await response.json(),{revision:3,styleId:'star-medal',image:null});
+  response=await selectStyle('star-medal',3);assert.equal(response.status,200);assert.equal((await response.json()).revision,3);
   const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64');
   const upload=(revision:number,csrf:string|null=auth.csrf,mime='image/png')=>fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image?expectedRevision=${revision}`,{method:'PUT',headers:{origin:'https://console.example',cookie:auth.cookie,'content-type':mime,...(csrf?{'x-csrf-token':csrf}:{})},body:png});
-  assert.equal((await upload(0,null)).status,403);
-  assert.equal((await upload(0,auth.csrf,'image/jpeg')).status,415);
-  let response=await upload(0);assert.equal(response.status,200);const first=await response.json() as any;assert.equal(first.revision,1);assert.equal(first.image.mimeType,'image/png');
+  assert.equal((await upload(3,null)).status,403);
+  assert.equal((await upload(3,auth.csrf,'image/jpeg')).status,415);
+  response=await upload(3);assert.equal(response.status,200);const first=await response.json() as any;assert.equal(first.revision,4);assert.equal(first.styleId,'star-medal');assert.equal(first.image.mimeType,'image/png');
   response=await fetch(`http://127.0.0.1:${apiPort}${first.image.url}`);assert.equal(response.status,200);assert.equal(response.headers.get('content-type'),'image/png');
-  assert.equal((await upload(0)).status,409);
-  const replacements=await Promise.all([upload(1),upload(1)]);assert.deepEqual(replacements.map(item=>item.status).sort(),[200,409]);response=replacements.find(item=>item.status===200)!;const second=await response.json() as any;assert.equal(second.revision,2);assert.notEqual(second.image.assetId,first.image.assetId);
+  assert.equal((await upload(3)).status,409);
+  const replacements=await Promise.all([upload(4),upload(4)]);assert.deepEqual(replacements.map(item=>item.status).sort(),[200,409]);response=replacements.find(item=>item.status===200)!;const second=await response.json() as any;assert.equal(second.revision,5);assert.notEqual(second.image.assetId,first.image.assetId);
   assert.equal((await fetch(`http://127.0.0.1:${apiPort}${first.image.url}`)).status,404);
-  response=await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image?expectedRevision=2`,{method:'DELETE',headers:{origin:'https://console.example',cookie:auth.cookie,'x-csrf-token':auth.csrf}});assert.equal(response.status,200);assert.deepEqual(await response.json(),{revision:3,image:null});
+  response=await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/pawn-image?expectedRevision=5`,{method:'DELETE',headers:{origin:'https://console.example',cookie:auth.cookie,'x-csrf-token':auth.csrf}});assert.equal(response.status,200);assert.deepEqual(await response.json(),{revision:6,styleId:'star-medal',image:null});
   assert.equal((await fetch(`http://127.0.0.1:${apiPort}${second.image.url}`)).status,404);
-  const state=await (await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/operator-state`,{headers:{origin:'https://console.example',cookie:auth.cookie}})).json() as any;assert.deepEqual(state.pawnAppearance,{revision:3,image:null});
+  response=await selectStyle('heart-chip',6);assert.equal(response.status,200);assert.deepEqual(await response.json(),{revision:7,styleId:'heart-chip',image:null});
+  response=await upload(7);assert.equal(response.status,200);const photo=await response.json() as any;assert.equal(photo.styleId,'heart-chip');
+  response=await selectStyle('bunny-face',8);assert.equal(response.status,200);assert.deepEqual(await response.json(),{revision:9,styleId:'bunny-face',image:null});
+  assert.equal((await fetch(`http://127.0.0.1:${apiPort}${photo.image.url}`)).status,404);
+  const state=await (await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/operator-state`,{headers:{origin:'https://console.example',cookie:auth.cookie}})).json() as any;assert.deepEqual(state.pawnAppearance,{revision:9,styleId:'bunny-face',image:null});
+  const issued=await (await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/obs-tokens`,{method:'POST',headers:{origin:'https://console.example',cookie:auth.cookie,'x-csrf-token':auth.csrf,'content-type':'application/json'},body:JSON.stringify({label:'pawn style reader'})})).json() as any;
+  const overlay=await (await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})).json() as any;
+  assert.deepEqual(overlay.pawnAppearance,{revision:9,styleId:'bunny-face',image:null});
+  await fetch(`http://127.0.0.1:${apiPort}/v1/channels/test-channel/obs-tokens/${issued.id}`,{method:'DELETE',headers:{origin:'https://console.example',cookie:auth.cookie,'x-csrf-token':auth.csrf}});
 });
 
 test('the initial effect board registers once through the shared runtime gate',()=>{

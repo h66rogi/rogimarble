@@ -1,36 +1,18 @@
 'use client';
 
 import Lottie from 'lottie-react';
+import type { PawnStyleId } from '@rogimarble/contracts';
 
-/** A single silhouette for both resting and moving states, sized to remain legible in OBS. */
-export function DefaultPawn({ active = false }: { active?: boolean }) {
+export const PAWN_ARTWORK_URL: Record<PawnStyleId, string> = {
+  'star-medal': '/artwork/pawn-star-medal.svg',
+  'heart-chip': '/artwork/pawn-heart-chip.svg',
+  'bunny-face': '/artwork/pawn-bunny-face.svg',
+};
+
+/** The same first-party artwork is used by the picker and live board. */
+export function DefaultPawn({ active = false, styleId = 'star-medal' }: { active?: boolean; styleId?: PawnStyleId }) {
   return <span className={`default-pawn ${active ? 'is-moving' : ''}`} role="img" aria-label="공유 말">
-    <svg viewBox="0 0 88 112" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="default-pawn-body" x1=".1" y1="0" x2=".9" y2="1">
-          <stop stopColor="#7188FF" />
-          <stop offset=".48" stopColor="#4260E8" />
-          <stop offset="1" stopColor="#2844BC" />
-        </linearGradient>
-        <linearGradient id="default-pawn-head" x1=".15" y1="0" x2=".85" y2="1">
-          <stop stopColor="#9AA9FF" />
-          <stop offset=".55" stopColor="#5671F4" />
-          <stop offset="1" stopColor="#3550C7" />
-        </linearGradient>
-      </defs>
-      <ellipse cx="44" cy="105" rx="32" ry="5" fill="#18254D" opacity=".22" />
-      <g className="default-pawn-figure">
-        <path d="M34 50h20c-2 14 3 23 12 34H22c9-11 14-20 12-34Z" fill="url(#default-pawn-body)" stroke="#fff" strokeWidth="7" strokeLinejoin="round" />
-        <path d="M34 50h20c-2 14 3 23 12 34H22c9-11 14-20 12-34Z" fill="none" stroke="#202C59" strokeWidth="3.5" strokeLinejoin="round" />
-        <path d="M29 66c-2 8-5 12-7 16h44c-2-4-5-8-7-16" fill="none" stroke="#A8B5FF" strokeWidth="3" strokeLinecap="round" opacity=".65" />
-        <circle cx="44" cy="31" r="19" fill="url(#default-pawn-head)" stroke="#fff" strokeWidth="7" />
-        <circle cx="44" cy="31" r="19" fill="none" stroke="#202C59" strokeWidth="3.5" />
-        <path d="M31 30c1-8 6-13 14-14" fill="none" stroke="#DDE4FF" strokeWidth="5" strokeLinecap="round" opacity=".88" />
-        <path d="M20 84h48c5 0 9 4 9 9s-4 9-9 9H20c-5 0-9-4-9-9s4-9 9-9Z" fill="#fff" />
-        <path d="M20 87h48c4 0 6 2 6 6s-2 6-6 6H20c-4 0-6-2-6-6s2-6 6-6Z" fill="#253B9E" stroke="#202C59" strokeWidth="3" />
-        <path d="M20 90h48" stroke="#A5B5FF" strokeWidth="3" strokeLinecap="round" opacity=".8" />
-      </g>
-    </svg>
+    <img src={PAWN_ARTWORK_URL[styleId]} alt="" draggable={false} />
   </span>;
 }
 

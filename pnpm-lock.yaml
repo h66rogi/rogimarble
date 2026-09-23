@@ -427,6 +427,10 @@ importers:
         version: 5.9.3
 
   packages/animation:
+    dependencies:
+      '@rogimarble/contracts':
+        specifier: workspace:*
+        version: link:../contracts
     devDependencies:
       '@types/react':
         specifier: ^19.0.0

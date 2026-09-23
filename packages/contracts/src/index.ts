@@ -171,7 +171,9 @@ export interface PawnImageDto {
   readonly assetId:string; readonly url:string; readonly mimeType:'image/png'|'image/jpeg'|'image/webp';
   readonly width:number; readonly height:number; readonly source:'upload'; readonly updatedAt:string;
 }
-export interface PawnAppearanceDto { readonly revision:number; readonly image:PawnImageDto|null }
+export const PAWN_STYLE_IDS = ['star-medal','heart-chip','bunny-face'] as const;
+export type PawnStyleId = typeof PAWN_STYLE_IDS[number];
+export interface PawnAppearanceDto { readonly revision:number; readonly styleId:PawnStyleId; readonly image:PawnImageDto|null }
 
 export interface OperatorStateDto {
   readonly boardThemeId?: BoardThemeId;
@@ -301,5 +303,6 @@ export const operatorApi = {
   operations: (channelId:string) => `${API_V1}/channels/${channelId}/operations`,
   obsTokens: (channelId:string) => `${API_V1}/channels/${channelId}/obs-tokens`,
   pawnImage: (channelId:string) => `${API_V1}/channels/${channelId}/pawn-image`,
+  pawnStyle: (channelId:string) => `${API_V1}/channels/${channelId}/pawn-style`,
   overlayState: `${API_V1}/overlay/state`,
 } as const;

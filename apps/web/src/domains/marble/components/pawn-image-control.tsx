@@ -1,12 +1,21 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { PawnAppearanceDto } from "@rogimarble/contracts";
-import { api, apiAssetUrl } from "../../../../lib/api";
+import { PAWN_STYLE_IDS, type PawnAppearanceDto, type PawnStyleId } from "@rogimarble/contracts";
+import { PAWN_ARTWORK_URL } from "@rogimarble/animation";
+import { api, apiAssetUrl, ApiError } from "../../../../lib/api";
 import { ConsolePanel } from "@/shared/components/common/console-ui";
 import { Input } from "@/shared/components/ui/input";
 import { ConsoleAvatar } from "@/shared/components/common/console-avatar";
 import { Button } from "@/shared/components/ui/button";
+import { SelectionButton } from "@/shared/components/ui/selection-button";
+import { Separator } from "@/shared/components/ui/separator";
+
+const STYLE_NAMES: Record<PawnStyleId, string> = {
+  "star-medal": "별 메달",
+  "heart-chip": "하트 칩",
+  "bunny-face": "토끼 얼굴",
+};
 
 export function PawnImageControl({
   appearance,
@@ -20,6 +29,29 @@ export function PawnImageControl({
   const input = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const reportError = async (error: unknown) => {
+    if (error instanceof ApiError && error.status === 409) {
+      try {
+        onChange(await api.currentPawnAppearance());
+        setMessage("말 설정이 다른 화면에서 변경됐습니다. 다시 선택해 주세요.");
+        return;
+      } catch { /* Show the original save error below. */ }
+    }
+    setMessage(error instanceof Error ? error.message : "말 설정을 저장하지 못했습니다.");
+  };
+  const selectStyle = async (styleId: PawnStyleId) => {
+    if (styleId === appearance.styleId && !appearance.image) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      onChange(await api.selectPawnStyle(styleId, appearance.revision));
+      setMessage(`${PAWN_STYLE_IDS.indexOf(styleId) + 1}번 ${STYLE_NAMES[styleId]} 말을 적용했습니다.`);
+    } catch (error) {
+      await reportError(error);
+    } finally {
+      setBusy(false);
+    }
+  };
   const upload = async (file: File) => {
     if (
       !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
@@ -34,11 +66,7 @@ export function PawnImageControl({
       onChange(await api.uploadPawnImage(file, appearance.revision));
       setMessage("사진 말을 저장했습니다. 방송 화면에도 바로 반영됩니다.");
     } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "사진 말을 저장하지 못했습니다.",
-      );
+      await reportError(error);
     } finally {
       setBusy(false);
       if (input.current) input.current.value = "";
@@ -51,23 +79,33 @@ export function PawnImageControl({
       onChange(await api.removePawnImage(appearance.revision));
       setMessage("기본 말로 되돌렸습니다.");
     } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "사진 말을 삭제하지 못했습니다.",
-      );
+      await reportError(error);
     } finally {
       setBusy(false);
     }
   };
   return (
     <ConsolePanel
-      title="사진 말"
-      description="얼굴이 잘 보이는 정사각형 사진을 권장합니다."
+      title="말 디자인"
+      description="기본 말은 1번 별 메달입니다. 선택하면 방송 화면에도 바로 반영됩니다."
     >
-      <ConsoleAvatar
-        src={appearance.image ? apiAssetUrl(appearance.image.url) : undefined}
-      />
+      <div className="grid grid-cols-3 gap-2">
+        {PAWN_STYLE_IDS.map((styleId, index) => (
+          <SelectionButton
+            key={styleId}
+            layout="tile"
+            selected={!appearance.image && appearance.styleId === styleId}
+            disabled={disabled || busy}
+            onClick={() => void selectStyle(styleId)}
+          >
+            <img src={PAWN_ARTWORK_URL[styleId]} alt="" className="h-16 w-16 object-contain" />
+            <span>{index + 1}. {STYLE_NAMES[styleId]}</span>
+          </SelectionButton>
+        ))}
+      </div>
+      <Separator />
+      {appearance.image && <ConsoleAvatar src={apiAssetUrl(appearance.image.url)} />}
+      <p className="text-sm text-muted-foreground">사진을 쓰려면 얼굴이 잘 보이는 정사각형 이미지를 올려 주세요.</p>
       <Input
         ref={input}
         className="hidden"

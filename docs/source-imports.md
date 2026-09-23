@@ -21,7 +21,8 @@ Compose, Caddy 설정, helper와 문서는 최종 설계에 맞춰 새로 작성
 | `meloming-gateway-service` @ `22ae747cc0c3bb038981d06e46d277690f3ba1f7` | `src/main.ts` | gateway bootstrap 경계 | backend 담당이 패턴만 참고해 신규 작성; 직접 반입 없음 |
 
 웹 구현은 외부 참고 저장소 파일을 직접 반입하지 않았다. 이 저장소 안의 `presets`, game core와 contracts를
-재사용했다. 기본 말은 이번 제품을 위해 작성한 SVG 실루엣으로 정지·이동 상태를 함께 표시한다.
+재사용했다. 별 메달·하트 칩·토끼 얼굴 기본 말 SVG는 이번 제품을 위해 작성했으며,
+정지·이동 상태와 관리 화면 미리보기에 같은 자산을 사용한다.
 기존 `token-bounce-v1` 자산 ID는 저장된 보드 설정과의 호환성을 위해 유지한다.
 
 참고 저장소의 build/dev server는 실행하지 않았다. 참고 시점의 고정 SHA는 작업 저장소 밖의
