@@ -29,7 +29,6 @@ import {
   LayoutGrid,
   ListMusic,
   MonitorCog,
-  ReceiptText,
   MoreVertical,
   GripVertical,
   FileText,
@@ -224,6 +223,7 @@ import { formatDonationAmount } from '@/domains/channel/utils/donation-amount-fo
 import { extractApiErrorMessage } from '@/shared/lib/api-error';
 import { MarbleOperationsPanel } from '@/domains/marble/components/marble-operations-panel';
 import { MarbleDataPanel } from '@/domains/marble/components/marble-data-panel';
+import { MarbleDonationsSection } from '@/domains/marble/components/marble-donations-section';
 import type { OperatorSnapshot } from '../../../../lib/types';
 
 const NOW_PLAYING_CLEAR_GRACE_MS = 1200;
@@ -4062,37 +4062,6 @@ export function LiveConsoleContent({
                 />
               )}
             </button>
-            <button
-              type="button"
-              role="tab"
-              data-console-tab="queue"
-              id="console-tab-queue"
-              aria-controls="console-panel-queue"
-              aria-selected={activeTab === 'queue'}
-              tabIndex={activeTab === 'queue' ? 0 : -1}
-              onClick={() => setActiveTab('queue')}
-              className={cn(
-                "relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
-                activeTab === 'queue' ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <span className="flex items-center gap-1.5">
-                <ReceiptText className="size-3.5" />
-                후원 내역
-                {queue.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
-                    {queue.length}
-                  </Badge>
-                )}
-              </span>
-              {activeTab === 'queue' && (
-                <motion.div
-                  layoutId="tab-indicator"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
-                />
-              )}
-            </button>
             {(
               <button
                 onClick={() => setActiveTab('omakase')}
@@ -4573,19 +4542,6 @@ export function LiveConsoleContent({
               )}
             >
               {(() => {
-                const lyricsSongId = nowPlaying?.songId ?? null;
-                // lyricsText 는 보안 정책상 overlay socket payload 에서 strip 되므로
-                // (meloming-back/song-request/prisma/song-request.selections.ts 참조)
-                // 매니저 인증된 single-song endpoint(useSongByChannelIdentifierSongId,
-                // exposeLyricsToManager=true)에서 가져온 값을 source 로 쓴다.
-                const managerLyricsText =
-                  nowPlayingSongQuery.data?.lyricsText ?? null;
-                // Musixmatch 매칭 여부와 무관하게, 사용자 가사가 있으면 패널을 띄운다 —
-                // '내 가사' 탭으로 노출.
-                const lyricsAvailable =
-                  (isLyricsConsoleEnabled && typeof lyricsSongId === 'number') ||
-                  (typeof managerLyricsText === 'string' &&
-                    managerLyricsText.length > 0);
                 const upper = (
                   <div className="relative h-full overflow-y-auto p-3 md:p-5 space-y-4 bg-rose-50/30 dark:bg-background">
                 <MarbleOperationsPanel />
@@ -4722,94 +4678,24 @@ export function LiveConsoleContent({
                   </div>
                 );
 
-                const sheetAvailable =
-                  isSheetMusicEnabled &&
-                  nowPlayingHasSheetMusic &&
-                  typeof lyricsSongId === 'number';
-
-                if (!lyricsAvailable && !sheetAvailable) return upper;
-
-                // 가사/악보 분리 패널: 좌측 메인을 vertical split.
-                // 가능한 조합: lyrics-only (현재) / sheet-only / both
-                // 라이브 중 악보·가사를 항상 시야 안에 두고 비율 자유 조정.
-                // autoSaveId 가 조합별로 달라서 각 layout 의 사용자 비율이 따로 기억됨.
-                const upperDefaultSize =
-                  sheetAvailable && lyricsAvailable ? 44 : sheetAvailable ? 60 : 72;
-                const sheetDefaultSize =
-                  sheetAvailable && lyricsAvailable ? 28 : 40;
-                const lyricsDefaultSize =
-                  sheetAvailable && lyricsAvailable ? 28 : 28;
-                const verticalAutoSaveId =
-                  sheetAvailable && lyricsAvailable
-                    ? 'song-request-console-home-vertical-both'
-                    : sheetAvailable
-                      ? 'song-request-console-home-vertical-sheet'
-                      : 'song-request-console-home-vertical';
-
+                // 원본 리모컨의 가사 하단 패널과 같은 세로 분할을 후원 내역에 사용한다.
                 return (
                   <ResizablePanelGroup
                     direction="vertical"
-                    autoSaveId={verticalAutoSaveId}
+                    autoSaveId="jurumarble-console-home-donations"
                     className="flex-1 overflow-hidden"
                   >
                     <ResizablePanel
-                      defaultSize={upperDefaultSize}
+                      defaultSize={72}
                       minSize={30}
                       order={1}
                     >
                       {upper}
                     </ResizablePanel>
-                    {sheetAvailable && (
-                      <>
-                        <ResizableHandle withHandle />
-                        <ResizablePanel
-                          defaultSize={sheetDefaultSize}
-                          minSize={15}
-                          order={2}
-                        >
-                          <SheetMusicResizableSection
-                            user={user}
-                            songId={lyricsSongId as number}
-                          />
-                        </ResizablePanel>
-                      </>
-                    )}
-                    {lyricsAvailable && (
-                      <>
-                        <ResizableHandle withHandle />
-                        <ResizablePanel
-                          defaultSize={lyricsDefaultSize}
-                          minSize={15}
-                          // sheet 패널 동반 시 3, lyrics-only 시 기존 2 유지 — 기존 사용자의
-                          // autoSaveId 'song-request-console-home-vertical' 비율 보존.
-                          order={sheetAvailable ? 3 : 2}
-                        >
-                          <LyricsResizableSection
-                            // 곡 변경 시 RAF 루프/active line/viewSource 상태 리셋.
-                            // manual 신청곡(songId 없음)도 request id 단위로 재마운트.
-                            key={`lyrics-${lyricsSongId ?? 'manual'}-${nowPlaying?.id ?? 'none'}`}
-                            identifier={user}
-                            songId={lyricsSongId}
-                            initialPreferredLyricsOffsetMs={
-                              nowPlaying?.preferredLyricsOffsetMs ?? null
-                            }
-                            fallbackText={managerLyricsText}
-                            getCurrentTime={getYouTubeCurrentTime}
-                            fallbackVideoRef={fallbackVideoRef}
-                            useHtml5Player={useHtml5Player}
-                            sessionId={sessionId}
-                            overlayToken={overlayToken ?? null}
-                            songRequestId={nowPlaying?.id ?? null}
-                            videoPlaybackState={
-                              useHtml5Player ? fallbackState : youtubePlaybackState
-                            }
-                            videoDurationMs={
-                              useHtml5Player ? fallbackVideoDurationMs : youtubeDurationMs
-                            }
-                          />
-                        </ResizablePanel>
-                      </>
-                    )}
+                    <ResizableHandle withHandle />
+                    <ResizablePanel defaultSize={28} minSize={15} order={2}>
+                      <MarbleDonationsSection />
+                    </ResizablePanel>
                   </ResizablePanelGroup>
                 );
               })()}

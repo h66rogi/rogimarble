@@ -72,7 +72,18 @@ async function mockApi(page: Page) {
     else if (path.endsWith("/obs-tokens")) response = [];
     else if (path.endsWith("/overlay-layout/live")) response = {canEdit:true,layoutVersion:0,layoutUpdatedAt:null,layout:{schemaVersion:1,width:1920,height:1080,aspectRatio:"16:9",background:"transparent",widgets:[{id:"board",bounds:{x:0,y:0,width:1,height:1},z:1}]}};
     else if (path.endsWith("/donations"))
-      response = { items: [], nextCursor: null, collectionConnected: true };
+      response = {
+        items: [{
+          id: "test-donation",
+          donorDisplayName: "테스트 후원자",
+          amount: 33,
+          result: "matched",
+          occurredAt: "2026-01-01T00:00:00Z",
+          message: "테스트 후원",
+        }],
+        nextCursor: null,
+        collectionConnected: true,
+      };
     else if (path.endsWith("/operations"))
       response = { items: [], nextCursor: null };
     else if (path.includes("/config/")) {
@@ -182,15 +193,21 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   expect(
     await homeTab.evaluate((element) => getComputedStyle(element).borderRadius),
   ).toBe("0px");
+  await expect(nav.getByRole("tab", { name: "후원 내역" })).toHaveCount(0);
+  const donations = page.locator("#console-panel-home").getByRole("region", { name: "후원 내역" });
+  await expect(donations).toBeVisible();
+  await expect(donations).toHaveClass(/overflow-y-auto/);
+  await expect(donations.getByText("테스트 후원자")).toBeVisible();
   await nav.getByRole("tab", { name: "홈", exact: true }).focus();
   await page.keyboard.press("ArrowRight");
-  await expect(nav.getByRole("tab", { name: "후원 내역" })).toBeFocused();
+  await expect(nav.getByRole("tab", { name: "규칙·보드" })).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(nav.getByRole("tab", { name: "후원 내역" })).toHaveAttribute(
+  await expect(nav.getByRole("tab", { name: "규칙·보드" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
-  const filter = page.getByRole("combobox", { name: "처리 결과" });
+  await homeTab.click();
+  const filter = donations.getByRole("combobox", { name: "처리 결과" });
   await filter.click();
   await page.getByRole("option", { name: "규칙 일치", exact: true }).click();
   await expect(filter).toContainText("규칙 일치");
@@ -233,7 +250,7 @@ test("configuration remains mounted when leaving its top-level tab", async ({
   await workspace.evaluate((element) =>
     element.setAttribute("data-mount-test", "preserved"),
   );
-  await nav.getByRole("tab", { name: "후원 내역" }).click();
+  await nav.getByRole("tab", { name: "홈", exact: true }).click();
   await nav.getByRole("tab", { name: "규칙·보드" }).click();
   await expect(workspace).toHaveAttribute("data-mount-test", "preserved");
   expect(

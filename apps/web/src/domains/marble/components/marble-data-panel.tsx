@@ -61,8 +61,10 @@ const reasonNames: Record<string, string> = {
 
 export function MarbleDataPanel({
   view,
+  embedded = false,
 }: {
   view: "donations" | "operations" | "obs" | "config" | "sessions" | "missions";
+  embedded?: boolean;
 }) {
   const [items, setItems] = useState<readonly unknown[]>([]);
   const [tokens, setTokens] = useState<readonly ObsTokenDto[]>([]);
@@ -272,6 +274,7 @@ export function MarbleDataPanel({
       <Panel
         title="후원 내역"
         description="후원자·개수·메시지와 처리 결과를 확인합니다."
+        embedded={embedded}
       >
         {!connected && (
           <ConsoleNotice>
@@ -471,11 +474,14 @@ function Panel({
   title,
   description,
   children,
+  embedded = false,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
+  embedded?: boolean;
 }) {
+  if (embedded) return <div className="space-y-4 p-3 md:p-5">{children}</div>;
   return (
     <div className="mx-auto max-w-4xl">
       <ConsolePanel title={title} description={description}>

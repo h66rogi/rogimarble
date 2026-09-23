@@ -13,7 +13,7 @@
     "src/domains/channel/components/sheet-music/SheetMusicUploader.tsx": "131f5b9e7a0038afc129505058af613e64eb6a8c60c74174499d12f8599db1cf",
     "src/domains/channel/components/sheet-music/viewers/ImageViewer.tsx": "5726af9b29112ba385e995062ac8f451f6bb6fd129c305b95fcfac7d4bc1891c",
     "src/domains/overlay/components/console-karaoke-suggestions.tsx": "cb2aa60a6dce2b49b937f1eea6f5cb969628b92d3f24edfa3a36c50157c99fef",
-    "src/domains/overlay/components/live-console-content.tsx": "283153151b004cd0a35ebfb01c4c3e32f6fabab85573f1070d82ed1495b65957",
+    "src/domains/overlay/components/live-console-content.tsx": "b6d499e494cbec477e0546c2f01862780a760fda231dc6c6520c97f3c7993b17",
     "src/domains/overlay/components/lyrics-panel.tsx": "ef4ff65e6420bf6cd1139502561f7e497b001f1ddf706f4f871a285fc84ab02f",
     "src/domains/overlay/components/onboarding/contextual-hint.tsx": "e9ffdbea385c53a81e5fa63b63a05bbeb787b910809744ef60c95842e91f9285",
     "src/domains/overlay/components/onboarding/feature-flow.tsx": "85f0e20e73179dbd8465e8e8b0d7f2fa77b601babbed5a8aef1287c1934b4710",
