@@ -33,6 +33,7 @@ import {
 } from "@/shared/components/ui/collapsible";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { MarbleDataPanel } from "@/domains/marble/components/marble-data-panel";
 import {
   api,
   ApiError,
@@ -114,7 +115,8 @@ export default function CollectorPage() {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [auto, setAuto] = useState(true),
-    [login, setLogin] = useState(false);
+    [login, setLogin] = useState(false),
+    [authenticated, setAuthenticated] = useState(false);
   const [target, setTarget] = useState(""),
     [checking, setChecking] = useState(false),
     [result, setResult] = useState<BroadcastStatus | null>(null),
@@ -158,7 +160,10 @@ export default function CollectorPage() {
     alive.current = true;
     void api
       .bootstrapSession()
-      .then(refresh)
+      .then(() => {
+        if (alive.current) setAuthenticated(true);
+        return refresh();
+      })
       .catch((e) => {
         if (alive.current) {
           const unauthorized = e instanceof ApiError && e.status === 401;
@@ -219,9 +224,9 @@ export default function CollectorPage() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-lg font-bold">방송·수집 관리</h1>
+              <h1 className="text-lg font-bold">개발자도구</h1>
               <p className="text-xs text-muted-foreground">
-                실제 연결 상태와 방송 정보를 확인하세요.
+                방송·수집 상태와 운영 기록을 확인하세요.
               </p>
             </div>
           </div>
@@ -563,6 +568,7 @@ export default function CollectorPage() {
             </CollapsibleContent>
           </Collapsible>
         </ConsolePanel>
+        {authenticated && !login && <MarbleDataPanel view="operations" />}
       </div>
     </main>
   );

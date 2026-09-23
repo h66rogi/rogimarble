@@ -4139,32 +4139,6 @@ export function LiveConsoleContent({
               )}
             </button>
             <button
-              type="button"
-              role="tab"
-              data-console-tab="settings"
-              id="console-tab-settings"
-              aria-controls="console-panel-settings"
-              aria-selected={activeTab === 'settings'}
-              tabIndex={activeTab === 'settings' ? 0 : -1}
-              onClick={() => setActiveTab('settings')}
-              className={cn(
-                "relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
-                activeTab === 'settings' ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <span className="flex items-center gap-1.5">
-                <History className="size-3.5" />
-                운영 기록
-              </span>
-              {activeTab === 'settings' && (
-                <motion.div
-                  layoutId="tab-indicator"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
-                />
-              )}
-            </button>
-            <button
               onClick={() => setActiveTab('session-history')}
               className={cn(
                 "hidden relative px-3 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0",

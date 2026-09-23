@@ -85,7 +85,17 @@ async function mockApi(page: Page) {
         collectionConnected: true,
       };
     else if (path.endsWith("/operations"))
-      response = { items: [], nextCursor: null };
+      response = {
+        items: [{
+          id: "test-operation",
+          operation_type: "set_position",
+          source_kind: "operator",
+          createdAt: "2026-01-01T00:00:00Z",
+          before_state: { position: 1 },
+          after_state: { position: 2 },
+        }],
+        nextCursor: null,
+      };
     else if (path.includes("/config/")) {
       const kind = path.split("/").at(-1)!;
       const document =
@@ -194,6 +204,7 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
     await homeTab.evaluate((element) => getComputedStyle(element).borderRadius),
   ).toBe("0px");
   await expect(nav.getByRole("tab", { name: "후원 내역" })).toHaveCount(0);
+  await expect(nav.getByRole("tab", { name: "운영 기록" })).toHaveCount(0);
   const donations = page.locator("#console-panel-home").getByRole("region", { name: "후원 내역" });
   await expect(donations).toBeVisible();
   await expect(donations).toHaveClass(/overflow-y-auto/);
@@ -214,7 +225,7 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   await filter.click();
   await page.getByRole("option", { name: "전체 결과", exact: true }).click();
   await expect(filter).toContainText("전체 결과");
-  for (const name of ["OBS 설정", "운영 기록", "홈"]) {
+  for (const name of ["OBS 설정", "홈"]) {
     await nav.getByRole("tab", { name, exact: true }).click();
     await expect(collectorLink).toBeInViewport();
     await expect
@@ -231,6 +242,20 @@ test("original animated top tabs, new Shadcn controls, empty option, checkbox an
   }
   await expect(arrival).toBeChecked(); // home controller was never remounted
   expect(errors).toEqual([]);
+});
+
+test("developer tools includes the operation history from the former console tab", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "개발자도구", exact: true }).click();
+  await expect(page).toHaveURL(/\/collector$/);
+  await expect(page.getByRole("heading", { name: "개발자도구" })).toBeVisible();
+  await expect(page.getByText("방송·수집 상태와 운영 기록을 확인하세요.")).toBeVisible();
+  await expect(page.getByText("운영 기록", { exact: true })).toBeVisible();
+  await expect(page.getByText("위치 보정", { exact: true })).toBeVisible();
+  await page.getByText("변경 전·후 상세").click();
+  await expect(page.getByText(/"position": 1/)).toBeVisible();
+  await expect(page.getByText(/"position": 2/)).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test("configuration remains mounted when leaving its top-level tab", async ({
