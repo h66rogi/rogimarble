@@ -454,6 +454,16 @@ test('supported arrival effects persist counters, reservations, missions, modifi
   response=await http.post(path,clearModifier);assert.equal(response.status,201);const modifierAck=await response.json();response=await http.post(path,clearModifier);assert.equal(response.status,201);assert.deepEqual(await response.json(),modifierAck);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.deepEqual(state.rollModifiers,[]);assert.equal((await http.post(path,{...clearModifier,commandId:randomUUID(),expectedRevision:state.session.revision})).status,409);
   await land(board.cells[4].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.movementLock.rollsRemaining,1);
+  const setRemaining={commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'set_movement_lock_remaining',reason:'operator correction',payload:{rollsRemaining:3}};
+  response=await http.post(path,{...setRemaining,commandId:randomUUID(),payload:{rollsRemaining:0}});assert.equal(response.status,422);
+  response=await http.post(path,setRemaining);assert.equal(response.status,201);const remainingAck=await response.json();assert.equal(remainingAck.result.rollsRemaining,3);
+  response=await http.post(path,setRemaining);assert.equal(response.status,201);assert.deepEqual(await response.json(),remainingAck);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.movementLock.rollsRemaining,3);
+  response=await http.get(`/v1/channels/test-channel/sessions/${state.session.id}/history`);assert.equal(response.status,200);
+  const history=await response.json() as any;assert.equal(history.items[0].type,'set_movement_lock_remaining');
+  assert.ok(history.items.some((entry:any)=>entry.type==='create_session'));
+  assert.equal((await http.get(`/v1/channels/test-channel/sessions/${state.session.id}/history?beforeRevision=invalid`)).status,400);
+  assert.equal((await http.get(`/v1/channels/test-channel/sessions/${randomUUID()}/history`)).status,404);
   const clearLock={commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'clear_movement_lock',reason:'operator correction',payload:{}};
   response=await http.post(path,clearLock);assert.equal(response.status,201);const lockAck=await response.json();response=await http.post(path,clearLock);assert.equal(response.status,201);assert.deepEqual(await response.json(),lockAck);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.movementLock,null);assert.equal((await http.post(path,{...clearLock,commandId:randomUUID(),expectedRevision:state.session.revision})).status,409);

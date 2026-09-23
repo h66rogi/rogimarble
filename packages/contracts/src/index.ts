@@ -4,7 +4,7 @@ export type SessionStatus = 'ready' | 'running' | 'paused' | 'ended';
 export type Direction = 'forward' | 'reverse';
 export type OperatorCommandType = 'create_session' | 'roll_dice' | 'set_direction' | 'set_position' |
   'pause' | 'resume' | 'end_session' | 'adjust_inventory' | 'create_mission' |
-  'complete_mission' | 'waive_mission' | 'use_shield' | 'choose_destination' | 'cancel_destination' | 'adjust_counter' | 'clear_movement_lock' | 'clear_roll_modifier' | 'apply_board_version';
+  'complete_mission' | 'waive_mission' | 'use_shield' | 'choose_destination' | 'cancel_destination' | 'adjust_counter' | 'clear_movement_lock' | 'set_movement_lock_remaining' | 'clear_roll_modifier' | 'apply_board_version';
 
 export type OperatorCommandStatus = 'completed' | 'rejected';
 
@@ -111,6 +111,7 @@ export type SessionCommandRequest =
   | CommandBase<'cancel_destination', { readonly taskId: string; readonly expectedTaskRevision: number }>
   | CommandBase<'adjust_counter', { readonly counterId: string; readonly quantity: number; readonly expectedCounterRevision: number }>
   | CommandBase<'clear_movement_lock', Record<string, never>>
+  | CommandBase<'set_movement_lock_remaining', { readonly rollsRemaining: number }>
   | CommandBase<'clear_roll_modifier', { readonly modifierId: string }>
   | CommandBase<'apply_board_version', { readonly boardVersionId: string }>;
 
@@ -228,6 +229,19 @@ export interface DonationPageDto { readonly items:readonly DonationEventDto[]; r
 export interface ChatEventDto { readonly id:string; readonly userId:string; readonly userDisplayName:string; readonly message:string; readonly occurredAt:string; readonly receivedAt:string; readonly gapBefore:boolean; readonly matchedTaskId:string|null }
 export interface ChatPageDto { readonly items:readonly ChatEventDto[]; readonly nextCursor:string|null; readonly collectionConnected:boolean }
 export interface OperationPageDto { readonly items:readonly unknown[]; readonly nextCursor:string|null }
+export interface SessionHistoryEntryDto {
+  readonly commandId: string;
+  readonly type: OperatorCommandType;
+  readonly source: 'operator' | 'donation';
+  readonly reason: string;
+  readonly result: unknown;
+  readonly afterRevision: number;
+  readonly createdAt: string;
+}
+export interface SessionHistoryPageDto {
+  readonly items: readonly SessionHistoryEntryDto[];
+  readonly nextCursor: string | null;
+}
 export interface ChannelOverlayTokenDto { readonly id:string; readonly token:string|null; readonly tokenSuffix:string; readonly createdAt:string; readonly lastUsedAt:string|null; readonly overlayUrlPath:string|null }
 export interface OverlayPresentationCommandDto { readonly commandId:string; readonly sessionId:string; readonly sessionEpoch:number; readonly presentationEpoch:number; readonly type:OperatorCommandType; readonly afterRevision:number; readonly result:SessionCommandDto['result']; readonly createdAt:string }
 export type OverlayWidgetId='board'|'dice'|'current_mission'|'inventory'|'direction'|'menu'|'dice_price'|'chatbox';

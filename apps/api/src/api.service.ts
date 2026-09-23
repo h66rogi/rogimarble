@@ -1,7 +1,7 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { resolveBoardFontId, resolveBoardThemeId } from '../../../packages/contracts/src/index.ts';
-import type { CreateSessionRequest, GameSessionDto, InventoryItemDto, InventoryLedgerDto, MissionDto, OperatorStateDto, OverlayLayoutDto, RunnableBoardVersionDto, SessionCommandDto, SessionCommandRequest } from '../../../packages/contracts/src/index.ts';
+import type { CreateSessionRequest, GameSessionDto, InventoryItemDto, InventoryLedgerDto, MissionDto, OperatorStateDto, OverlayLayoutDto, RunnableBoardVersionDto, SessionCommandDto, SessionCommandRequest, SessionHistoryPageDto } from '../../../packages/contracts/src/index.ts';
 import type { BoardDefinition } from '../../../packages/game-core/src/board-definition.ts';
 import { transaction, pool } from '../../../packages/database/src/index.ts';
 import type pg from 'pg';
@@ -167,6 +167,11 @@ export class ApiService {
       }else if(body.type==='clear_movement_lock'){
         const removed=await client.query('DELETE FROM session_movement_locks WHERE session_id=$1 RETURNING release_type,rolls_remaining',[sessionId]);
         if(!removed.rowCount)throw new ConflictException('이미 이동 제한이 해제되었습니다.');result={clearedLock:removed.rows[0]};
+      }else if(body.type==='set_movement_lock_remaining'){
+        const lock=(await client.query<{release_type:string;rolls_remaining:number|null}>('SELECT release_type,rolls_remaining FROM session_movement_locks WHERE session_id=$1 FOR UPDATE',[sessionId])).rows[0];
+        if(!lock||!['skip_rolls','skip_rolls_or_doubles'].includes(lock.release_type))throw new ConflictException('남은 횟수를 조정할 수 있는 이동 제한이 없습니다.');
+        await client.query('UPDATE session_movement_locks SET rolls_remaining=$2 WHERE session_id=$1',[sessionId,body.payload.rollsRemaining]);
+        result={releaseType:lock.release_type,beforeRemaining:lock.rolls_remaining,rollsRemaining:body.payload.rollsRemaining};
       }else if(body.type==='clear_roll_modifier'){
         const removed=await client.query('DELETE FROM session_roll_modifiers WHERE session_id=$1 AND id=$2 RETURNING factor,uses_remaining',[sessionId,body.payload.modifierId]);
         if(!removed.rowCount)throw new ConflictException('이미 이동 배수가 해제되었습니다.');result={clearedModifier:removed.rows[0]};
@@ -246,6 +251,18 @@ export class ApiService {
   }
   async getCommand(operator:Operator,channelId:string,commandId:string):Promise<SessionCommandDto>{await this.assertAccess(operator,channelId);const r=await pool().query('SELECT * FROM game_commands WHERE command_id=$1 AND channel_id=$2',[commandId,channelId]);if(!r.rowCount)throw new NotFoundException('Command not found');if(r.rows[0].type==='create_session'&&!isStoredSessionAck(r.rows[0].result))throw new ConflictException('Legacy create command has no immutable creation response; reconcile current state before issuing a new command');return commandDto(r.rows[0]);}
   async inventoryLedger(operator:Operator,channelId:string,sessionId:string):Promise<InventoryLedgerDto[]>{await this.assertAccess(operator,channelId);await this.assertSessionChannel(sessionId,channelId);const result=await pool().query<any>('SELECT * FROM inventory_ledger WHERE session_id=$1 ORDER BY created_at,id',[sessionId]);return result.rows.map(row=>({id:row.id,commandId:row.command_id,itemId:row.item_id,beforeQuantity:row.before_quantity,delta:row.delta,afterQuantity:row.after_quantity,beforeRevision:Number(row.before_revision),afterRevision:Number(row.after_revision),operatorId:row.operator_id,reason:row.reason,createdAt:new Date(row.created_at).toISOString()}));}
+  async sessionHistory(operator:Operator,channelId:string,sessionId:string,q:any):Promise<SessionHistoryPageDto>{
+    await this.assertAccess(operator,channelId);await this.assertSessionChannel(sessionId,channelId);
+    const before=q?.beforeRevision===undefined?null:Number(q.beforeRevision);
+    if(before!==null&&(!Number.isSafeInteger(before)||before<0))throw new BadRequestException('Invalid history cursor');
+    const values:unknown[]=[channelId,sessionId];
+    const older=before===null?'':` AND after_revision<$3`;
+    if(before!==null)values.push(before);
+    values.push(51);
+    const result=await pool().query<any>(`SELECT command_id,type,source_kind,reason,result,after_revision,created_at FROM game_commands WHERE channel_id=$1 AND session_id=$2${older} ORDER BY after_revision DESC,command_id DESC LIMIT $${values.length}`,values);
+    const rows=result.rows.slice(0,50);
+    return{items:rows.map(row=>({commandId:row.command_id,type:row.type,source:row.source_kind,reason:row.reason,result:row.result,afterRevision:Number(row.after_revision),createdAt:new Date(row.created_at).toISOString()})),nextCursor:result.rows.length>50?String(rows.at(-1).after_revision):null};
+  }
   async missions(operator:Operator,channelId:string,sessionId:string):Promise<MissionDto[]>{await this.assertAccess(operator,channelId);await this.assertSessionChannel(sessionId,channelId);return missionState(pool(),sessionId);}
   private async assertSessionChannel(sessionId:string,channelId:string):Promise<void>{const result=await pool().query('SELECT 1 FROM game_sessions WHERE id=$1 AND channel_id=$2',[sessionId,channelId]);if(!result.rowCount)throw new NotFoundException('Session not found');}
 }
@@ -271,6 +288,8 @@ function validateCommand(v:unknown):asserts v is SessionCommandRequest{
     if(!exactObject(v.payload,['counterId','quantity','expectedCounterRevision'])||typeof v.payload.counterId!=='string'||!v.payload.counterId||v.payload.counterId.length>128||!Number.isSafeInteger(v.payload.quantity)||Number(v.payload.quantity)<0||Number(v.payload.quantity)>100000||!Number.isSafeInteger(v.payload.expectedCounterRevision)||Number(v.payload.expectedCounterRevision)<0)throw new UnprocessableEntityException('Invalid counter adjustment');
   }else if(v.type==='clear_movement_lock'){
     if(!exactObject(v.payload,[]))throw new UnprocessableEntityException('Invalid lock command');
+  }else if(v.type==='set_movement_lock_remaining'){
+    if(!exactObject(v.payload,['rollsRemaining'])||!Number.isSafeInteger(v.payload.rollsRemaining)||Number(v.payload.rollsRemaining)<1||Number(v.payload.rollsRemaining)>1000)throw new UnprocessableEntityException('Invalid remaining lock count');
   }else if(v.type==='clear_roll_modifier'){
     if(!exactObject(v.payload,['modifierId'])||!isUuid(v.payload.modifierId))throw new UnprocessableEntityException('Invalid modifier command');
   }else if(v.type==='apply_board_version'){

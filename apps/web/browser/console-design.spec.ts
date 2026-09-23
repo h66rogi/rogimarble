@@ -57,6 +57,12 @@ async function mockApi(page: Page) {
             updatedAt: "2026-01-01T00:00:00Z",
           },
         ],
+        counters: [{ counterId: "cups", label: "커피", unit: "잔", value: 5, reserved: 1, available: 4, revision: 1 }],
+        effectTasks: [{
+          id: "travel-task", type: "choose_destination", status: "pending", revision: 1,
+          payload: { allowedCellIds: [board.path[1], board.path[2]], selection: "operator" },
+        }],
+        movementLock: { releaseType: "skip_rolls", rollsRemaining: 2, release: { type: "skip_rolls", count: 3 }, createdAt: "2026-01-01T00:00:00Z" },
         missions: [],
         pawnAppearance: { revision: 0, image: null },
         capabilities: {
@@ -107,6 +113,13 @@ async function mockApi(page: Page) {
         }],
         nextCursor: null,
       };
+    else if (path.endsWith("/history"))
+      response = { items: [
+        { commandId: "history-2", type: "roll_dice", source: "operator", reason: "방송 운영 조작",
+          result: { dice: [2, 3], toCellId: board.path[2] }, afterRevision: 1, createdAt: "2026-01-01T00:01:00Z" },
+        { commandId: "history-1", type: "create_session", source: "operator", reason: "create session",
+          result: {}, afterRevision: 0, createdAt: "2026-01-01T00:00:00Z" },
+      ], nextCursor: null };
     else if (path.includes("/config/")) {
       const kind = path.split("/").at(-1)!;
       const document =
@@ -368,4 +381,49 @@ test("configuration remains mounted when leaving its top-level tab", async ({
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+});
+
+test("home controls use full-width sections, contextual actions, rewards, and session history", async ({ page }) => {
+  const submitted: Array<{ type: string; payload: Record<string, unknown> }> = [];
+  await page.route("**/v1/channels/**/sessions/**/commands", async (route) => {
+    const command = route.request().postDataJSON();
+    submitted.push(command);
+    await route.fulfill({ json: {
+      commandId: command.commandId, sessionId: session.id, sessionEpoch: session.sessionEpoch,
+      presentationEpoch: session.presentationEpoch, type: command.type, status: "completed",
+      operatorId: "test-operator", beforeRevision: 1, afterRevision: 2, result: {},
+      rejectionCode: null, createdAt: "2026-01-01T00:02:00Z",
+    } });
+  });
+  await page.goto("/");
+  const actions = page.getByRole("region", { name: "현재 할 수 있는 액션" });
+  await expect(actions.getByRole("heading", { name: "현재 할 수 있는 액션" })).toBeVisible();
+  await expect(actions.getByText("세계여행 목적지")).toBeVisible();
+  await actions.getByRole("group", { name: "이동할 칸 선택" }).getByRole("button").first().click();
+  await actions.getByRole("button", { name: "목적지 저장" }).click();
+  await expect.poll(() => submitted.at(-1)).toMatchObject({
+    type: "choose_destination", payload: { taskId: "travel-task", cellId: board.path[1] },
+  });
+  await actions.getByRole("button", { name: "3회 남김" }).click();
+  await expect.poll(() => submitted.at(-1)).toMatchObject({
+    type: "set_movement_lock_remaining", payload: { rollsRemaining: 3 },
+  });
+  const details = page.getByRole("region", { name: "게임 현황" });
+  await expect(details.getByRole("tab", { name: "적립/보상" })).toHaveAttribute("aria-selected", "true");
+  await expect(details.getByText("사용 가능 2개")).toBeVisible();
+  await expect(details.getByText("청산 대기 1 · 사용 가능 4")).toBeVisible();
+  await details.getByRole("tab", { name: "게임 기록" }).click();
+  await expect(details.getByText("게임 시작")).toBeVisible();
+  await expect(details.getByText("주사위 2 + 3")).toBeVisible();
+  for (const name of ["현재 할 수 있는 액션", "방송 조작", "판 효과", "수동 미션"]) {
+    const section = page.getByRole("region", { name });
+    const widths = await section.evaluate((element) => {
+      const parent = element.parentElement!.getBoundingClientRect();
+      const rect = element.getBoundingClientRect();
+      const header = element.firstElementChild!.getBoundingClientRect();
+      return { section: rect.width, parent: parent.width, header: header.width };
+    });
+    expect(Math.abs(widths.section - widths.parent)).toBeLessThan(2);
+    expect(Math.abs(widths.header - widths.section)).toBeLessThan(2);
+  }
 });

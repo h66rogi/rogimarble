@@ -1,4 +1,4 @@
-import { resolveBoardFontId, resolveBoardThemeId, operatorApi, type AccessTokenDto, type ChannelConfigKind, type ChannelConfigStateDto, type ChannelConfigVersionDto, type ChannelOverlayTokenDto, type ChatPageDto, type DonationPageDto, type GameSessionDto, type IssuedAccessTokenDto, type LoginResponse, type OperationPageDto, type OperatorStateDto, type OverlayStateDto, type PawnAppearanceDto, type PawnStyleId, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest } from '@rogimarble/contracts';
+import { resolveBoardFontId, resolveBoardThemeId, operatorApi, type AccessTokenDto, type ChannelConfigKind, type ChannelConfigStateDto, type ChannelConfigVersionDto, type ChannelOverlayTokenDto, type ChatPageDto, type DonationPageDto, type GameSessionDto, type IssuedAccessTokenDto, type LoginResponse, type OperationPageDto, type OperatorStateDto, type OverlayStateDto, type PawnAppearanceDto, type PawnStyleId, type RunnableBoardVersionDto, type SessionCommandDto, type SessionCommandRequest, type SessionHistoryPageDto } from '@rogimarble/contracts';
 import type { OperatorCommand, OperatorSnapshot } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
@@ -99,6 +99,7 @@ export const api = {
   chats: (filters: { search?: string; cursor?: string } = {}) => request<ChatPageDto>(`${operatorApi.chats(channelId())}?${new URLSearchParams({ limit: '50', ...filters })}`, { cache: 'no-store' }),
   feedEventsUrl: () => `${API_BASE}${operatorApi.feedEvents(channelId())}`,
   operations: (cursor?: string) => request<OperationPageDto>(`${operatorApi.operations(channelId())}?${new URLSearchParams({ limit: '50', ...(cursor ? { cursor } : {}) })}`, { cache: 'no-store' }),
+  sessionHistory: (sessionId: string, beforeRevision?: string) => request<SessionHistoryPageDto>(`${operatorApi.sessions(channelId())}/${encodeURIComponent(sessionId)}/history${beforeRevision ? `?${new URLSearchParams({ beforeRevision })}` : ''}`, { cache: 'no-store' }),
   overlayToken: () => request<ChannelOverlayTokenDto>(operatorApi.overlayToken(channelId()), { cache: 'no-store' }),
   rotateOverlayToken: (expectedTokenId: string) => request<ChannelOverlayTokenDto>(`${operatorApi.overlayToken(channelId())}/rotate`, { method: 'PATCH', body: JSON.stringify({ expectedTokenId }) }),
   createSession: async (board: RunnableBoardVersionDto) => {
@@ -116,6 +117,7 @@ export const api = {
     const body: SessionCommandRequest = command.type === 'adjust_counter'
       ? { ...base, type: 'adjust_counter', payload: { counterId: command.counterId, quantity: command.quantity, expectedCounterRevision: command.expectedCounterRevision } }
       : command.type === 'clear_movement_lock' ? { ...base, type: 'clear_movement_lock', payload: {} }
+      : command.type === 'set_movement_lock_remaining' ? { ...base, type: 'set_movement_lock_remaining', payload: { rollsRemaining: command.rollsRemaining } }
       : command.type === 'clear_roll_modifier' ? { ...base, type: 'clear_roll_modifier', payload: { modifierId: command.modifierId } }
       : command.type === 'cancel_destination' ? { ...base, type: 'cancel_destination', payload: { taskId: command.taskId, expectedTaskRevision: command.expectedTaskRevision } }
       : command.type === 'choose_destination'

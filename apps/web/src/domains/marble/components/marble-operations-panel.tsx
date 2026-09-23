@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { MissionDto } from "@rogimarble/contracts";
 import { createPortal } from "react-dom";
 import { Board } from "@rogimarble/overlay-ui";
@@ -24,9 +24,13 @@ import {
   ConsoleField,
   ConsoleSelect,
 } from "@/shared/components/common/console-ui";
-import { Separator } from "@/shared/components/ui/separator";
+import { PillTabs } from "@/shared/components/ui/pill-tabs";
 import { useRollPresentation } from "../../../../lib/use-roll-presentation";
 import { GameEffectsPanel } from "./game-effects-panel";
+import { HomeControlSection } from "./home-control-section";
+import { CurrentActionsSection } from "./current-actions-section";
+import { AccumulationRewardsPanel } from "./accumulation-rewards-panel";
+import { GameHistoryPanel } from "./game-history-panel";
 
 const board = boardPreset as unknown as BoardDefinition;
 
@@ -53,7 +57,8 @@ export function MarbleOperationsPanel({
   } | null>(null);
   const [pending, setPending] = useState(() => api.pending());
   const [controlsRoot, setControlsRoot] = useState<HTMLElement | null>(null);
-  const [inventorySet, setInventorySet] = useState<Record<string, string>>({});
+  const tabId = useId();
+  const [activeDetailsTab, setActiveDetailsTab] = useState<"rewards" | "history">("rewards");
   const [missionMessage, setMissionMessage] = useState("");
   const [missionQuantity, setMissionQuantity] = useState("1");
   const [missionShield, setMissionShield] = useState("");
@@ -99,8 +104,6 @@ export function MarbleOperationsPanel({
       )
     )
       return;
-    const previous = canonical.current?.session;
-    const incoming = next.session;
     canonical.current = next;
     appliedSequence.current = requestSequence;
     setState(next);
@@ -305,427 +308,146 @@ export function MarbleOperationsPanel({
 
   const locked = busy || Boolean(pending);
   const controls = (
-    <div className="space-y-4">
-      {error && <ConsoleNotice variant="destructive">{error}</ConsoleNotice>}
-      {pending && (
-        <ConsoleNotice variant="warning" title="이전 명령 확인 필요">
+    <div className="w-full bg-background">
+      <CurrentActionsSection
+        state={state}
+        board={liveBoard}
+        boards={boards}
+        locked={locked}
+        effectIdle={presentation.effectPhase === "idle"}
+        reason={reason}
+        start={start}
+        send={send}
+      />
+      {(error || pending) && <div className="space-y-3 border-b p-3">
+        {error && <ConsoleNotice variant="destructive">{error}</ConsoleNotice>}
+        {pending && <ConsoleNotice variant="warning" title="이전 명령 확인 필요">
           <p>같은 명령 ID로 결과를 확인하거나 안전하게 재시도합니다.</p>
           <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              disabled={busy}
-              onClick={() => {
-                const requestSequence = ++sequence.current;
-                mutationFence.current = requestSequence;
-                setBusy(true);
-                void api
-                  .reconcilePending()
-                  .then((result) => {
-                    applySnapshot(result.snapshot, requestSequence, true);
-                    queuePresentation(result.command);
-                    setPending(null);
-                  })
-                  .catch((cause) => setError(cause.message))
-                  .finally(() => setBusy(false));
-              }}
-            >
-              결과 확인
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => {
-                const requestSequence = ++sequence.current;
-                mutationFence.current = requestSequence;
-                setBusy(true);
-                void api
-                  .retryPending()
-                  .then((result) => {
-                    applySnapshot(result.snapshot, requestSequence, true);
-                    queuePresentation(result.command);
-                    setPending(null);
-                  })
-                  .catch((cause) => setError(cause.message))
-                  .finally(() => setBusy(false));
-              }}
-            >
-              같은 명령 재시도
-            </Button>
+            <Button size="sm" disabled={busy} onClick={() => {
+              const requestSequence = ++sequence.current;
+              mutationFence.current = requestSequence;
+              setBusy(true);
+              void api.reconcilePending()
+                .then((result) => {
+                  applySnapshot(result.snapshot, requestSequence, true);
+                  queuePresentation(result.command);
+                  setPending(null);
+                })
+                .catch((cause) => setError(cause.message))
+                .finally(() => setBusy(false));
+            }}>결과 확인</Button>
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => {
+              const requestSequence = ++sequence.current;
+              mutationFence.current = requestSequence;
+              setBusy(true);
+              void api.retryPending()
+                .then((result) => {
+                  applySnapshot(result.snapshot, requestSequence, true);
+                  queuePresentation(result.command);
+                  setPending(null);
+                })
+                .catch((cause) => setError(cause.message))
+                .finally(() => setBusy(false));
+            }}>같은 명령 재시도</Button>
           </div>
-        </ConsoleNotice>
-      )}
-      <ConsolePanel
-        title="방송 조작"
-        description="서버가 결과와 위치를 확정합니다."
-      >
-        <Badge
-          variant={
-            state?.session?.status === "running" ? "default" : "secondary"
-          }
-        >
-          {state?.session?.status === "running"
-            ? "진행 중"
-            : state?.session?.status === "paused"
-              ? "일시정지"
-              : "세션 없음"}
-        </Badge>
-        {!state?.session && (
-          <div className="space-y-2">
-            {boards.length ? (
-              boards.map((candidate) => (
-                <Button
-                  className="w-full"
-                  key={candidate.id}
-                  disabled={locked || !state?.capabilities?.sessionLifecycle}
-                  onClick={() => void start(candidate)}
-                >
-                  {candidate.previewOnly
-                    ? `${candidate.name} · 효과 없는 검증 세션`
-                    : `${candidate.name} 시작`}
-                </Button>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                실행 가능한 보드가 없습니다.
-              </p>
-            )}
-          </div>
-        )}
-        <ConsoleField label="작업 사유">
-          <Input
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
+        </ConsoleNotice>}
+      </div>}
+      <section aria-label="게임 현황" className="w-full border-b bg-background">
+        <div className="border-b px-3 py-2">
+          <PillTabs
+            idPrefix={tabId}
+            ariaLabel="게임 현황 세부 메뉴"
+            activeTab={activeDetailsTab}
+            onTabChange={setActiveDetailsTab}
+            tabs={[
+              { id: "rewards", label: "적립/보상" },
+              { id: "history", label: "게임 기록" },
+            ]}
           />
+        </div>
+        <div id={`${tabId}-panel-rewards`} role="tabpanel" aria-labelledby={`${tabId}-tab-rewards`}
+          hidden={activeDetailsTab !== "rewards"} className="p-3">
+          {activeDetailsTab === "rewards" && <AccumulationRewardsPanel
+            state={state} disabled={locked} reason={reason} send={send} />}
+        </div>
+        <div id={`${tabId}-panel-history`} role="tabpanel" aria-labelledby={`${tabId}-tab-history`}
+          hidden={activeDetailsTab !== "history"} className="p-3">
+          {activeDetailsTab === "history" && <GameHistoryPanel
+            sessionId={state?.session?.id ?? null}
+            revision={state?.revision ?? 0}
+            board={liveBoard}
+            active
+          />}
+        </div>
+      </section>
+      <HomeControlSection title="방송 조작">
+        <ConsoleField label="작업 사유">
+          <Input value={reason} onChange={(event) => setReason(event.target.value)} />
         </ConsoleField>
         <div className="grid grid-cols-2 gap-2">
-          <Button
-            disabled={
-              !state?.session ||
-              locked ||
-              presentation.effectPhase !== "idle" ||
-              !state.capabilities?.manualRoll
-            }
-            onClick={() => void send({ type: "roll", ...base })}
-          >
-            {state?.session?.status === "paused"
-              ? "한 건 진행"
-              : "주사위 굴리기"}
-          </Button>
-          {state?.session?.status === "paused" ? (
-            <Button
-              variant="outline"
-              disabled={locked || !state?.capabilities?.sessionLifecycle}
-              onClick={() => void send({ type: "resume", ...base })}
-            >
-              재개
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              disabled={
-                !state?.session ||
-                locked ||
-                !state.capabilities?.sessionLifecycle
-              }
-              onClick={() => void send({ type: "pause", ...base })}
-            >
-              일시정지
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            disabled={
-              !state?.session || locked || !state.capabilities?.setDirection
-            }
-            onClick={() =>
-              void send({
-                type: "set_direction",
-                direction: "forward",
-                ...base,
-              })
-            }
-          >
+          <Button variant="outline"
+            disabled={!state?.session || locked || !state.capabilities?.setDirection}
+            onClick={() => void send({ type: "set_direction", direction: "forward", ...base })}>
             정방향
           </Button>
-          <Button
-            variant="outline"
-            disabled={
-              !state?.session || locked || !state.capabilities?.setDirection
-            }
-            onClick={() =>
-              void send({
-                type: "set_direction",
-                direction: "reverse",
-                ...base,
-              })
-            }
-          >
+          <Button variant="outline"
+            disabled={!state?.session || locked || !state.capabilities?.setDirection}
+            onClick={() => void send({ type: "set_direction", direction: "reverse", ...base })}>
             역방향
           </Button>
-          <Button
-            className="col-span-2"
-            variant="destructive"
-            disabled={
-              !state?.session || locked || !state.capabilities?.sessionLifecycle
-            }
-            onClick={() => void send({ type: "end_session", ...base })}
-          >
+          <Button className="col-span-2" variant="destructive"
+            disabled={!state?.session || locked || !state.capabilities?.sessionLifecycle}
+            onClick={() => void send({ type: "end_session", ...base })}>
             세션 종료
           </Button>
         </div>
-      </ConsolePanel>
-      {state && (
-        <GameEffectsPanel
-          state={state}
-          board={liveBoard}
-          disabled={locked}
-          reason={reason}
-          send={send}
-        />
-      )}
-      <ConsolePanel title="보상 수량">
-        {state?.inventory.length ? (
-          state.inventory.map((item) => (
-            <div className="space-y-2" key={item.itemId}>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-medium">
-                  {item.name} · {item.quantity}
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    aria-label={`${item.name} 1개 추가`}
-                    disabled={locked || !state.capabilities?.inventory}
-                    onClick={() =>
-                      void send({
-                        type: "adjust_inventory",
-                        itemId: item.itemId,
-                        mode: "delta",
-                        quantity: 1,
-                        expectedInventoryRevision: item.revision,
-                        ...base,
-                      })
-                    }
-                  >
-                    +1
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    aria-label={`${item.name} 1개 차감`}
-                    disabled={
-                      locked ||
-                      item.quantity < 1 ||
-                      !state.capabilities?.inventory
-                    }
-                    onClick={() =>
-                      void send({
-                        type: "adjust_inventory",
-                        itemId: item.itemId,
-                        mode: "delta",
-                        quantity: -1,
-                        expectedInventoryRevision: item.revision,
-                        ...base,
-                      })
-                    }
-                  >
-                    −1
-                  </Button>
-                </div>
-              </div>
-              <div className="flex items-end gap-2">
-                <div className="min-w-0 flex-1">
-                  <ConsoleField label={`${item.name} 최종 수량`}>
-                    <Input
-                      inputMode="numeric"
-                      value={inventorySet[item.itemId] ?? ""}
-                      onChange={(event) =>
-                        setInventorySet((current) => ({
-                          ...current,
-                          [item.itemId]: event.target.value,
-                        }))
-                      }
-                    />
-                  </ConsoleField>
-                </div>
-                <Button
-                  size="sm"
-                  disabled={
-                    locked ||
-                    !state?.capabilities?.inventory ||
-                    !/^\d+$/.test(inventorySet[item.itemId] ?? "")
-                  }
-                  onClick={() =>
-                    void send({
-                      type: "adjust_inventory",
-                      itemId: item.itemId,
-                      mode: "set",
-                      quantity: Number(inventorySet[item.itemId]),
-                      expectedInventoryRevision: item.revision,
-                      ...base,
-                    })
-                  }
-                >
-                  설정
-                </Button>
-              </div>
-              <Separator />
-            </div>
-          ))
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            등록된 보상 아이템이 없습니다.
-          </p>
-        )}
-      </ConsolePanel>
-      <ConsolePanel title="수동 미션">
-        <form
-          className="space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const quantity = Number(missionQuantity);
-            if (
-              !missionMessage.trim() ||
-              !Number.isInteger(quantity) ||
-              quantity < 1
-            )
-              return;
-            void send({
-              type: "create_mission",
-              message: missionMessage.trim(),
-              quantity,
-              shield: missionShield
-                ? { itemId: missionShield, quantity: 1 }
-                : null,
-              ...base,
-            }).then((ok) => {
-              if (ok) setMissionMessage("");
-            });
-          }}
-        >
+      </HomeControlSection>
+      {state && <GameEffectsPanel state={state} disabled={locked} reason={reason} send={send} />}
+      <HomeControlSection title="수동 미션">
+        <form className="space-y-4" onSubmit={(event) => {
+          event.preventDefault();
+          const quantity = Number(missionQuantity);
+          if (!missionMessage.trim() || !Number.isInteger(quantity) || quantity < 1) return;
+          void send({
+            type: "create_mission", message: missionMessage.trim(), quantity,
+            shield: missionShield ? { itemId: missionShield, quantity: 1 } : null,
+            ...base,
+          }).then((ok) => { if (ok) setMissionMessage(""); });
+        }}>
           <ConsoleField label="미션 문구">
-            <Input
-              value={missionMessage}
-              onChange={(event) => setMissionMessage(event.target.value)}
-            />
+            <Input value={missionMessage} onChange={(event) => setMissionMessage(event.target.value)} />
           </ConsoleField>
           <ConsoleField label="수량">
-            <Input
-              type="number"
-              min="1"
-              value={missionQuantity}
-              onChange={(event) => setMissionQuantity(event.target.value)}
-            />
+            <Input type="number" min="1" value={missionQuantity}
+              onChange={(event) => setMissionQuantity(event.target.value)} />
           </ConsoleField>
           <ConsoleField label="실드 정책">
-            <ConsoleSelect
-              value={missionShield}
-              onValueChange={setMissionShield}
-              options={[
-                { value: "", label: "실드 불허" },
-                ...(state?.inventory.map((item) => ({
-                  value: item.itemId,
-                  label: item.name,
-                })) ?? []),
-              ]}
-            />
+            <ConsoleSelect value={missionShield} onValueChange={setMissionShield}
+              options={[{ value: "", label: "실드 불허" },
+                ...(state?.inventory.map((item) => ({ value: item.itemId, label: item.name })) ?? [])]} />
           </ConsoleField>
-          <Button
-            className="w-full"
-            disabled={
-              !state?.session ||
-              locked ||
-              Boolean(pending) ||
-              !state.capabilities?.missions
-            }
-          >
+          <Button className="w-full"
+            disabled={!state?.session || locked || Boolean(pending) || !state.capabilities?.missions}>
             미션 만들기
           </Button>
         </form>
-      </ConsolePanel>
-      {state?.missions.map((mission) => {
-        const shieldItem = mission.shield
-          ? state.inventory.find(
-              (item) => item.itemId === mission.shield?.itemId,
-            )
-          : null;
-        return (
-          <ConsolePanel
-            key={mission.id}
-            title={`${mission.message} · ${mission.quantity}개`}
-          >
+        {state?.missions.length ? <div className="space-y-3 border-t pt-3">
+          <h3 className="text-sm font-semibold">미션 현황</h3>
+          {state.missions.map((mission) => <div key={mission.id}
+            className="flex flex-wrap items-start justify-between gap-2 border-b pb-3 last:border-b-0 last:pb-0">
+            <div className="min-w-0">
+              <strong className="text-sm">{mission.message} · {mission.quantity}개</strong>
+              {mission.status === "pending" && <MissionRemaining mission={mission} />}
+            </div>
             <Badge variant="secondary">
-              {mission.status === "pending"
-                ? "진행 중"
-                : mission.status === "completed"
-                  ? "완료"
-                  : mission.status === "waived"
-                    ? "면제"
-                    : "실드 사용"}
+              {mission.status === "pending" ? "진행 중" :
+                mission.status === "completed" ? "완료" :
+                mission.status === "waived" ? "면제" : "실드 사용"}
             </Badge>
-            {mission.status === "pending" && (
-              <>
-                <MissionRemaining mission={mission} />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    disabled={locked || !state.capabilities?.missions}
-                    onClick={() =>
-                      void send({
-                        type: "complete_mission",
-                        missionId: mission.id,
-                        expectedMissionRevision: mission.revision,
-                        ...base,
-                      })
-                    }
-                  >
-                    완료
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={locked || !state.capabilities?.missions}
-                    onClick={() =>
-                      void send({
-                        type: "waive_mission",
-                        missionId: mission.id,
-                        expectedMissionRevision: mission.revision,
-                        ...base,
-                      })
-                    }
-                  >
-                    면제
-                  </Button>
-                  {mission.shield && shieldItem && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={
-                        locked ||
-                        !state.capabilities?.missions ||
-                        shieldItem.quantity < mission.shield.quantity
-                      }
-                      onClick={() =>
-                        void send({
-                          type: "use_shield",
-                          missionId: mission.id,
-                          expectedMissionRevision: mission.revision,
-                          expectedInventoryRevision: shieldItem.revision,
-                          ...base,
-                        })
-                      }
-                    >
-                      실드 사용
-                    </Button>
-                  )}
-                </div>
-              </>
-            )}
-          </ConsolePanel>
-        );
-      })}
+          </div>)}
+        </div> : <p className="text-sm text-muted-foreground">만든 미션이 없습니다.</p>}
+      </HomeControlSection>
     </div>
   );
   if (view === "controls") return controls;
@@ -785,11 +507,11 @@ export function MarbleOperationsPanel({
       {boardView}
       {controlsRoot ? (
         createPortal(
-          <div className="space-y-4 p-4">{controls}</div>,
+          controls,
           controlsRoot,
         )
       ) : (
-        <aside className="mt-4 space-y-4 lg:hidden">{controls}</aside>
+        <aside className="mt-4 lg:hidden">{controls}</aside>
       )}
     </>
   );

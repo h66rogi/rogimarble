@@ -28,6 +28,7 @@ export interface OperatorSnapshot {
 export type OperatorCommand =
   | { type: 'adjust_counter'; counterId: string; quantity: number; expectedCounterRevision: number; expectedRevision: number; reason: string }
   | { type: 'clear_movement_lock'; expectedRevision: number; reason: string }
+  | { type: 'set_movement_lock_remaining'; rollsRemaining: number; expectedRevision: number; reason: string }
   | { type: 'clear_roll_modifier'; modifierId: string; expectedRevision: number; reason: string }
   | { type: 'cancel_destination'; taskId: string; expectedTaskRevision: number; expectedRevision: number; reason: string }
   | { type: 'choose_destination'; taskId: string; cellId: string; expectedTaskRevision: number; expectedRevision: number; reason: string }

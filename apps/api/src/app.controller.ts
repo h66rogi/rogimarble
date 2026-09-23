@@ -14,9 +14,9 @@ export class AppController {
   constructor(private readonly api: ApiService,private readonly configuration:ConfigurationService,private readonly overlayLayout:OverlayLayoutService,private readonly feedRealtime:OperatorFeedRealtimeService) {}
   @Get('/health') health() { return { status: 'ok' }; }
   @Get('/ready') async ready() {
-    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['016_correct_cell_07_text.sql']);
+    try { const result=await pool().query('SELECT 1 FROM schema_migrations WHERE version=$1', ['017_home_actions_history.sql']);
       if(!result.rowCount)throw new Error('required migration missing');
-      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0');await pool().query('SELECT 1 FROM pawn_assets LIMIT 0');await pool().query('SELECT style_id FROM channel_pawn_appearances LIMIT 0');await pool().query('SELECT 1 FROM channel_live_overlay_layouts LIMIT 0');await pool().query('SELECT token_value FROM obs_access_tokens LIMIT 0'); return { status:'ready',schemaVersion:'016_correct_cell_07_text.sql' }; }
+      await pool().query('SELECT 1 FROM collector_donation_inbox LIMIT 0');await pool().query('SELECT 1 FROM pawn_assets LIMIT 0');await pool().query('SELECT style_id FROM channel_pawn_appearances LIMIT 0');await pool().query('SELECT 1 FROM channel_live_overlay_layouts LIMIT 0');await pool().query('SELECT token_value FROM obs_access_tokens LIMIT 0'); return { status:'ready',schemaVersion:'017_home_actions_history.sql' }; }
     catch { throw new ServiceUnavailableException('Database or migrations are not ready'); }
   }
   @Post('/v1/auth/login') @HttpCode(200) @Header('Cache-Control','no-store')
@@ -96,6 +96,8 @@ export class AppController {
   command(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Param('sessionId') sessionId:string,@Body() body:SessionCommandRequest){return this.api.command(req.operator!,channelId,sessionId,body);}
   @Get('/v1/channels/:channelId/sessions/:sessionId/inventory-ledger') @UseGuards(SessionGuard)
   inventoryLedger(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Param('sessionId') sessionId:string){return this.api.inventoryLedger(req.operator!,channelId,sessionId);}
+  @Get('/v1/channels/:channelId/sessions/:sessionId/history') @UseGuards(SessionGuard)
+  sessionHistory(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Param('sessionId') sessionId:string,@Query() query:unknown){return this.api.sessionHistory(req.operator!,channelId,sessionId,query);}
   @Get('/v1/channels/:channelId/sessions/:sessionId/missions') @UseGuards(SessionGuard)
   missions(@Req() req:AuthenticatedRequest,@Param('channelId') channelId:string,@Param('sessionId') sessionId:string){return this.api.missions(req.operator!,channelId,sessionId);}
   @Get('/v1/channels/:channelId/commands/:commandId') @UseGuards(SessionGuard)
