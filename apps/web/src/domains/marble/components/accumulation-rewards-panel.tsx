@@ -11,17 +11,22 @@ export function AccumulationRewardsPanel({
   state,
   disabled,
   reason,
+  onReasonChange,
   send,
 }: {
   state: OperatorSnapshot | null;
   disabled: boolean;
   reason: string;
+  onReasonChange: (value: string) => void;
   send: (command: OperatorCommand) => Promise<boolean>;
 }) {
   const [counterValues, setCounterValues] = useState<Record<string, string>>({});
   const [inventoryValues, setInventoryValues] = useState<Record<string, string>>({});
   if (!state?.session) return <p className="text-sm text-muted-foreground">게임을 시작하면 적립과 보상 현황이 표시됩니다.</p>;
   return <div className="space-y-6">
+    <ConsoleField label="수량 조정 사유">
+      <Input value={reason} onChange={(event) => onReasonChange(event.target.value)} />
+    </ConsoleField>
     <div className="space-y-3">
       <h3 className="text-sm font-semibold">현재 적립</h3>
       {state.counters?.length ? state.counters.map((counter) => <div key={counter.counterId} className="space-y-3 border-b pb-3 last:border-b-0">

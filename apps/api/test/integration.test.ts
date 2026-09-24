@@ -292,7 +292,7 @@ test('legacy mission commands remain consistent and unresolved notices do not bl
   assert.equal((await send(14,'adjust_inventory',{itemId:'drink-shield',mode:'delta',quantity:1,expectedInventoryRevision:2})).status,409);
   const ledger=await http.get(`/v1/channels/test-channel/sessions/${oldSessionId}/inventory-ledger`);assert.equal(ledger.status,200);assert.equal((await ledger.json() as any[]).length,2);
   const history=await http.get(`/v1/channels/test-channel/sessions/${oldSessionId}/missions`);assert.equal(history.status,200);assert.equal((await history.json() as any[]).length,3);
-  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session,null);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session,null);assert.equal(state.lastEndedSession.id,oldSessionId);assert.ok(state.lastEndedSession.boardDefinition);
   const boards=await (await http.get('/v1/channels/test-channel/board-versions/runnable')).json() as any[];
   response=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId:boards.find((board:any)=>board.previewOnly)!.id,initialCellId:boards.find((board:any)=>board.previewOnly)!.initialCellId,direction:'forward'});assert.equal(response.status,201);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session.status,'running');assert.equal(state.session.previewOnly,true);assert.equal(state.inventory[0].quantity,0);assert.deepEqual(state.missions,[]);
@@ -300,7 +300,7 @@ test('legacy mission commands remain consistent and unresolved notices do not bl
   response=await http.post(`/v1/channels/test-channel/sessions/${nextSessionId}/commands`,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'create_mission',reason:'untracked mission notice',payload:{message:'notice only',quantity:1,shield:null}});assert.equal(response.status,201);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.missions.at(-1).status,'pending');
   response=await http.post(`/v1/channels/test-channel/sessions/${nextSessionId}/commands`,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'end_session',reason:'finish without mission check',payload:{}});assert.equal(response.status,201);
-  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session,null);
+  state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session,null);assert.equal(state.lastEndedSession.id,nextSessionId);
   response=await http.get(`/v1/channels/test-channel/sessions/${nextSessionId}/missions`);assert.equal(response.status,200);assert.equal((await response.json() as any[]).at(-1).status,'pending');
   response=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId:boards.find((board:any)=>board.previewOnly)!.id,initialCellId:boards.find((board:any)=>board.previewOnly)!.initialCellId,direction:'forward'});assert.equal(response.status,201);
 });

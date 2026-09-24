@@ -46,6 +46,7 @@ export class ApiService {
       if(!access.rowCount)throw new ForbiddenException('Channel access denied');
       const result=await client.query<SessionRow>(`SELECT s.*,b.board_definition FROM game_sessions s JOIN board_versions b ON b.id=s.board_version_id WHERE s.channel_id=$1 AND s.status<>'ended' ORDER BY s.created_at DESC LIMIT 1`,[channelId]);
       const session=result.rowCount?this.dto(result.rows[0]):null;
+      const lastEnded= session ? null : await client.query<{id:string;board_definition:BoardDefinition}>(`SELECT s.id,b.board_definition FROM game_sessions s JOIN board_versions b ON b.id=s.board_version_id WHERE s.channel_id=$1 AND s.status='ended' ORDER BY s.updated_at DESC,s.created_at DESC,s.id DESC LIMIT 1`,[channelId]);
       const inventory:InventoryItemDto[]=session?await inventoryState(client,session.id,channelId):[];
       const missions:MissionDto[]=session?await missionState(client,session.id):[];
       const counters=session?await counterState(client,session.id,result.rows[0]!.board_definition!):[];
@@ -57,7 +58,7 @@ export class ApiService {
       const overlayLayout=await effectiveOverlayLayout(client,channelId);
       const pawn=await pawnAppearance(client,channelId);
       const canOperate=operator.role!=='viewer'&&access.rows[0].permission!=='view';
-      return { boardThemeId:resolveBoardThemeId(overlayLayout.layout.boardThemeId),fontId:resolveBoardFontId(overlayLayout.layout.fontId),session,boardDefinition:result.rows[0]?.board_definition??null,latestCommand:latest.rows[0]?commandDto(latest.rows[0]):null,inventory,missions,counters,effectTasks,movementLock,rollModifiers,pawnAppearance:pawn,capabilities:{ manualRoll:canOperate,setDirection:canOperate,setPosition:canOperate,
+      return { boardThemeId:resolveBoardThemeId(overlayLayout.layout.boardThemeId),fontId:resolveBoardFontId(overlayLayout.layout.fontId),session,boardDefinition:result.rows[0]?.board_definition??null,lastEndedSession:lastEnded?.rows[0]?{id:lastEnded.rows[0].id,boardDefinition:lastEnded.rows[0].board_definition}:null,latestCommand:latest.rows[0]?commandDto(latest.rows[0]):null,inventory,missions,counters,effectTasks,movementLock,rollModifiers,pawnAppearance:pawn,capabilities:{ manualRoll:canOperate,setDirection:canOperate,setPosition:canOperate,
         arrivalEffects:canOperate&&!!session&&isBoardSupportedForLive(result.rows[0]!.board_definition!),donations:canOperate&&!!collectorEnabled.rowCount,inventory:canOperate,missions:canOperate,sessionLifecycle:canOperate } };
     });
   }

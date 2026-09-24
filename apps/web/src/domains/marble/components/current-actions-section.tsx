@@ -44,11 +44,12 @@ export function CurrentActionsSection({
   const canAdjustLock = Boolean(lock && canOperate);
   const hasQuickAction = !session
     ? boards.length > 0
-    : canOperate || Boolean(state?.capabilities?.sessionLifecycle);
+    : canOperate;
 
   return (
     <HomeControlSection
       title="현재 할 수 있는 액션"
+      emphasis
       action={session && <Badge variant={session.status === "running" ? "default" : "secondary"}>
         {session.status === "running" ? "진행 중" : "일시정지"}
       </Badge>}
@@ -69,10 +70,6 @@ export function CurrentActionsSection({
           {canOperate && <Button disabled={locked || !effectIdle || waitingForDestination}
             onClick={() => void send({ type: "roll", expectedRevision: state.revision, reason })}>
             {session.status === "paused" ? "한 건 진행" : "주사위 굴리기"}
-          </Button>}
-          {state.capabilities?.sessionLifecycle && <Button variant="outline" disabled={locked}
-            onClick={() => void send({ type: session.status === "paused" ? "resume" : "pause", expectedRevision: state.revision, reason })}>
-            {session.status === "paused" ? "게임 재개" : "일시정지"}
           </Button>}
         </div>
         {choiceTasks.map((task) => <DestinationTaskControls key={task.id} task={task} state={state}

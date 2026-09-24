@@ -446,7 +446,7 @@ test("configuration remains mounted when leaving its top-level tab", async ({
   ).toBe(true);
 });
 
-test("home controls use full-width sections, contextual actions, rewards, and session history", async ({ page }) => {
+test("home separates current actions from three tabs that own all remaining controls", async ({ page }) => {
   const submitted: Array<{ type: string; payload: Record<string, unknown> }> = [];
   await page.route("**/v1/channels/**/sessions/**/commands", async (route) => {
     const command = route.request().postDataJSON();
@@ -464,10 +464,7 @@ test("home controls use full-width sections, contextual actions, rewards, and se
   await expect(actions.getByText("세계여행 목적지")).toHaveCount(1);
   await expect(actions.getByText("후원 목적지")).toHaveCount(0);
   await expect(actions.getByText("선택됨", { exact: false })).toHaveCount(0);
-  const effects = page.getByRole("region", { name: "판 효과" });
-  await expect(effects.getByText("세계여행 목적지")).toBeVisible();
-  await expect(effects.getByText("후원 목적지")).toBeVisible();
-  await expect(effects.getByRole("button", { name: "목적지 변경" })).toBeVisible();
+  await expect(actions.getByRole("button", { name: "게임 재개" })).toHaveCount(0);
   await expect(actions.getByText("일회성 미션")).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "완료", exact: true })).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "면제", exact: true })).toHaveCount(0);
@@ -480,25 +477,68 @@ test("home controls use full-width sections, contextual actions, rewards, and se
   await expect.poll(() => submitted.at(-1)).toMatchObject({
     type: "set_movement_lock_remaining", payload: { rollsRemaining: 3 },
   });
-  const details = page.getByRole("region", { name: "게임 현황" });
+  const details = page.getByRole("region", { name: "게임 관리 탭" });
   await expect(details.getByRole("tab", { name: "적립/보상" })).toHaveAttribute("aria-selected", "true");
   await expect(details.getByText("사용 가능 2개")).toBeVisible();
   await expect(details.getByText("총 5 잔")).toBeVisible();
+  await details.getByRole("tab", { name: "게임 조작" }).click();
+  const operations = details.getByRole("tabpanel", { name: "게임 조작" });
+  await expect(operations.getByRole("button", { name: "게임 재개" })).toBeVisible();
+  const effects = operations.getByRole("region", { name: "적용 중인 판 효과" });
+  await expect(effects.getByText("세계여행 목적지")).toBeVisible();
+  await expect(effects.getByText("후원 목적지")).toBeVisible();
+  await expect(effects.getByRole("button", { name: "목적지 변경" })).toBeVisible();
+  await operations.getByRole("region", { name: "수동 미션" }).getByRole("textbox", { name: "미션 문구" }).fill("방송 중 새 미션");
+  await expect(operations.getByRole("button", { name: "세션 종료" })).toBeVisible();
   await details.getByRole("tab", { name: "게임 기록" }).click();
   await expect(details.getByText("게임 시작")).toBeVisible();
   await expect(details.getByText("주사위 2 + 3")).toBeVisible();
   await expect(details.getByText("지난 칸의 미션", { exact: false })).toBeVisible();
   await expect(actions.getByText("지난 칸의 미션")).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "수동 미션" }).getByText("일회성 미션")).toHaveCount(0);
-  for (const name of ["현재 할 수 있는 액션", "방송 조작", "판 효과", "수동 미션"]) {
-    const section = page.getByRole("region", { name });
-    const widths = await section.evaluate((element) => {
-      const parent = element.parentElement!.getBoundingClientRect();
-      const rect = element.getBoundingClientRect();
-      const header = element.firstElementChild!.getBoundingClientRect();
-      return { section: rect.width, parent: parent.width, header: header.width };
-    });
-    expect(Math.abs(widths.section - widths.parent)).toBeLessThan(2);
-    expect(Math.abs(widths.header - widths.section)).toBeLessThan(2);
-  }
+  await details.getByRole("tab", { name: "게임 조작" }).click();
+  await expect(operations.getByRole("textbox", { name: "미션 문구" })).toHaveValue("방송 중 새 미션");
+  const layout = await actions.evaluate((element) => {
+    const tabs = document.querySelector('[aria-label="게임 관리 탭"]')!;
+    const actionRect = element.getBoundingClientRect();
+    const tabsRect = tabs.getBoundingClientRect();
+    return {
+      actionWidth: actionRect.width,
+      tabsWidth: tabsRect.width,
+      parentWidth: tabs.parentElement!.getBoundingClientRect().width,
+      gap: tabsRect.top - element.parentElement!.getBoundingClientRect().bottom,
+      actionBackground: getComputedStyle(element).backgroundColor,
+      tabsBackground: getComputedStyle(tabs).backgroundColor,
+      tabsOwnRemainingArea: tabs.parentElement!.lastElementChild === tabs,
+    };
+  });
+  expect(Math.abs(layout.actionWidth - layout.parentWidth)).toBeLessThan(2);
+  expect(Math.abs(layout.tabsWidth - layout.parentWidth)).toBeLessThan(2);
+  expect(layout.gap).toBeGreaterThanOrEqual(12);
+  expect(layout.actionBackground).not.toBe(layout.tabsBackground);
+  expect(layout.tabsOwnRemainingArea).toBe(true);
+});
+
+test("the last game remains available in history after it ends", async ({ page }) => {
+  let requestedHistory = "";
+  await page.route("**/v1/channels/**/operator-state", async (route) => {
+    await route.fulfill({ json: {
+      session: null, boardDefinition: null,
+      lastEndedSession: { id: "ended-session", boardDefinition: board },
+      inventory: [], missions: [], pawnAppearance: { revision: 0, image: null },
+      capabilities: { sessionLifecycle: true },
+    } });
+  });
+  await page.route("**/v1/channels/**/sessions/**/history", async (route) => {
+    requestedHistory = new URL(route.request().url()).pathname;
+    await route.fulfill({ json: { items: [{
+      commandId: "ended-history", type: "create_session", source: "operator",
+      reason: "create session", result: {}, afterRevision: 0,
+      createdAt: "2026-01-01T00:00:00Z",
+    }], nextCursor: null } });
+  });
+  await page.goto("/");
+  const details = page.getByRole("region", { name: "게임 관리 탭" });
+  await details.getByRole("tab", { name: "게임 기록" }).click();
+  await expect(details.getByText("게임 시작")).toBeVisible();
+  expect(requestedHistory).toContain("/sessions/ended-session/history");
 });

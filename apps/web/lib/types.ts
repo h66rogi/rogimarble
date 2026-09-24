@@ -21,6 +21,7 @@ export interface OperatorSnapshot {
   queue: Array<{ id: string; label: string; status: string }>;
   capabilities?: { manualRoll: boolean; setDirection: boolean; setPosition: boolean; arrivalEffects: boolean; donations: boolean; inventory: boolean; missions: boolean; sessionLifecycle: boolean };
   boardDefinition?: unknown | null;
+  lastEndedSession?: { id: string; boardDefinition: unknown } | null;
   boardThemeId?: BoardThemeId;
   fontId?: BoardFontId;
 }

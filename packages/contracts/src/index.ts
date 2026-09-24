@@ -182,6 +182,7 @@ export interface OperatorStateDto {
   readonly latestCommand?: SessionCommandDto | null;
   readonly session: GameSessionDto | null;
   readonly boardDefinition: unknown | null;
+  readonly lastEndedSession: { readonly id: string; readonly boardDefinition: unknown } | null;
   readonly inventory: readonly InventoryItemDto[];
   readonly missions: readonly MissionDto[];
   readonly counters?: readonly SessionCounterDto[];
