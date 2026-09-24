@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { api } from "../../../lib/api";
+import { api, ApiError } from "../../../lib/api";
 export default function AccountPage() {
   const [account, setAccount] = useState<string | null>(null),
     [tokens, setTokens] = useState<readonly AccessTokenDto[]>([]),
@@ -58,10 +58,20 @@ export default function AccountPage() {
     setError("");
     try {
       await api.revokeAccessToken(id);
-      await refresh();
-      setMessage("토큰과 연결된 로그인 세션을 회수했습니다.");
+      setMessage("접근 토큰을 삭제했습니다. 연결된 로그인 세션도 종료됩니다.");
+      try {
+        await refresh();
+      } catch (refreshError) {
+        if (refreshError instanceof ApiError && refreshError.status === 401) {
+          setAccount(null);
+          setTokens([]);
+          setIssued("");
+        } else {
+          setError("토큰은 삭제했지만 목록을 새로고침하지 못했습니다.");
+        }
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "토큰을 회수하지 못했습니다.");
+      setError(e instanceof Error ? e.message : "토큰을 삭제하지 못했습니다.");
     } finally {
       setBusy(false);
     }
@@ -80,7 +90,7 @@ export default function AccountPage() {
           <h1 className="text-xl font-semibold">접근 토큰</h1>
           {account && (
             <p className="mt-2 text-sm text-muted-foreground">
-              {account} 계정의 토큰을 발급하고 회수합니다.
+              {account} 계정의 토큰을 발급하고 삭제합니다.
             </p>
           )}
         </div>
@@ -169,7 +179,7 @@ export default function AccountPage() {
                                   "ko-KR",
                                 )
                               : "없음"}
-                            {token.revokedAt ? " · 회수됨" : ""}
+                            {token.revokedAt ? " · 삭제됨" : ""}
                           </div>
                         </div>
                         <Button
@@ -179,7 +189,7 @@ export default function AccountPage() {
                           onClick={() => void revoke(token.id)}
                         >
                           <Trash2 className="mr-2 size-4" />
-                          회수
+                          삭제
                         </Button>
                       </div>
                     </CardContent>

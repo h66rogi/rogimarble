@@ -38,7 +38,7 @@ export default function LoginPage() {
       router.replace("/");
     } catch {
       setError(
-        "접근 토큰이 올바르지 않거나 만료·회수되었습니다. 새 토큰을 발급받아 다시 입력해 주세요.",
+        "접근 토큰이 올바르지 않거나 만료·삭제되었습니다. 새 토큰을 발급받아 다시 입력해 주세요.",
       );
     } finally {
       setBusy(false);

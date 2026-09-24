@@ -5,6 +5,7 @@ import { ChatReceptionTest } from "./chat-reception-test";
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type FormEvent,
@@ -17,6 +18,7 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
+  ScrollText,
 } from "lucide-react";
 import {
   ConsolePanel,
@@ -33,6 +35,7 @@ import {
 } from "@/shared/components/ui/collapsible";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { PillTabs, type PillTabItem } from "@/shared/components/ui/pill-tabs";
 import { MarbleDataPanel } from "@/domains/marble/components/marble-data-panel";
 import {
   api,
@@ -79,6 +82,12 @@ const errors: Record<string, string> = {
   inbox_dispatch_failed:
     "저장한 후원을 게임에 적용하지 못했습니다. 후원 내역과 운영 기록을 확인하세요.",
 };
+type DeveloperTab = "status" | "tests" | "operations";
+const developerTabs: readonly PillTabItem<DeveloperTab>[] = [
+  { id: "status", label: "수집 현황", icon: Radio },
+  { id: "tests", label: "방송 테스트", icon: Search },
+  { id: "operations", label: "운영 기록", icon: ScrollText },
+];
 function time(value?: string | null) {
   return value
     ? new Date(value).toLocaleString("ko-KR", { hour12: false })
@@ -111,6 +120,8 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export default function CollectorPage() {
+  const tabId = useId();
+  const [activeTab, setActiveTab] = useState<DeveloperTab>("status");
   const [status, setStatus] = useState<CollectorStatus | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -257,6 +268,20 @@ export default function CollectorPage() {
             )}
           </ConsoleNotice>
         )}
+        <PillTabs
+          tabs={developerTabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          ariaLabel="개발자도구 메뉴"
+          idPrefix={tabId}
+        />
+        <div
+          id={`${tabId}-panel-status`}
+          role="tabpanel"
+          aria-labelledby={`${tabId}-tab-status`}
+          hidden={activeTab !== "status"}
+          className="space-y-6"
+        >
         <Card>
           <CardContent>
             <section className="flex flex-wrap items-center justify-between gap-3">
@@ -396,6 +421,50 @@ export default function CollectorPage() {
             </CardContent>
           </Card>
         </div>
+        <ConsolePanel title="상세 진단 정보">
+          <Collapsible>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" size="sm">
+                진단 정보 펼치기
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <dl className="mt-3">
+                <Row label="수집기 저장 위치">
+                  {status?.remote?.currentCursor?.channelOffset ?? "—"}
+                </Row>
+                <Row label="주루마블 저장 위치">
+                  {status?.cursor?.channelOffset ?? "—"}
+                </Row>
+                <Row label="재생 시작 위치">
+                  {status?.remote?.earliestCursor?.channelOffset ?? "—"}
+                </Row>
+                <Row label="수집기 저장 세대">
+                  {status?.remote?.currentCursor?.journalGeneration ?? "—"}
+                </Row>
+                <Row label="복구 버전">
+                  {status?.remote?.recoveryRevision ?? "—"}
+                </Row>
+                <Row label="수집 품질 사유">
+                  {status?.remote?.qualityReasons?.join(", ") ||
+                    "보고된 사유 없음"}
+                </Row>
+              </dl>
+              <p className="mt-3 text-xs text-muted-foreground">
+                이 화면은 수집기 RPC와 주루마블 저장 상태를 조회합니다. EC2 전체
+                컨테이너의 상태나 백업 복원 성공을 판정하는 화면은 아닙니다.
+              </p>
+            </CollapsibleContent>
+          </Collapsible>
+        </ConsolePanel>
+        </div>
+        <div
+          id={`${tabId}-panel-tests`}
+          role="tabpanel"
+          aria-labelledby={`${tabId}-tab-tests`}
+          hidden={activeTab !== "tests"}
+          className="space-y-6"
+        >
         <Card>
           <CardContent>
             <section className="">
@@ -532,43 +601,15 @@ export default function CollectorPage() {
           onTargetChange={setTarget}
           allowed={Boolean(status?.canCheckBroadcast) && !login}
         />
-        <ConsolePanel title="상세 진단 정보">
-          <Collapsible>
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" size="sm">
-                진단 정보 펼치기
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <dl className="mt-3">
-                <Row label="수집기 저장 위치">
-                  {status?.remote?.currentCursor?.channelOffset ?? "—"}
-                </Row>
-                <Row label="주루마블 저장 위치">
-                  {status?.cursor?.channelOffset ?? "—"}
-                </Row>
-                <Row label="재생 시작 위치">
-                  {status?.remote?.earliestCursor?.channelOffset ?? "—"}
-                </Row>
-                <Row label="수집기 저장 세대">
-                  {status?.remote?.currentCursor?.journalGeneration ?? "—"}
-                </Row>
-                <Row label="복구 버전">
-                  {status?.remote?.recoveryRevision ?? "—"}
-                </Row>
-                <Row label="수집 품질 사유">
-                  {status?.remote?.qualityReasons?.join(", ") ||
-                    "보고된 사유 없음"}
-                </Row>
-              </dl>
-              <p className="mt-3 text-xs text-muted-foreground">
-                이 화면은 수집기 RPC와 주루마블 저장 상태를 조회합니다. EC2 전체
-                컨테이너의 상태나 백업 복원 성공을 판정하는 화면은 아닙니다.
-              </p>
-            </CollapsibleContent>
-          </Collapsible>
-        </ConsolePanel>
+        </div>
+        <div
+          id={`${tabId}-panel-operations`}
+          role="tabpanel"
+          aria-labelledby={`${tabId}-tab-operations`}
+          hidden={activeTab !== "operations"}
+        >
         {authenticated && !login && <MarbleDataPanel view="operations" />}
+        </div>
       </div>
     </main>
   );

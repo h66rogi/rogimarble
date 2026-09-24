@@ -262,8 +262,48 @@ test("default buttons share one visual contract across console, login and accoun
     await page.goto("/account");
     expect(await buttonStyle(page, "새 토큰 발급")).toEqual(consoleStyle);
     await page.goto("/collector");
+    await page.getByRole("tablist", { name: "개발자도구 메뉴" })
+      .getByRole("tab", { name: "방송 테스트" }).click();
     expect(await buttonStyle(page, "방송 조회")).toEqual(consoleStyle);
   }
+});
+
+test("access token management calls removal 삭제 throughout the account screen", async ({ page }) => {
+  await page.route("**/v1/auth/tokens", async (route) => {
+    await route.fulfill({ json: [
+      { id: "active-token", label: "방송용", expiresAt: "2026-12-01T00:00:00Z", lastUsedAt: null, revokedAt: null },
+      { id: "deleted-token", label: "이전 토큰", expiresAt: "2026-12-01T00:00:00Z", lastUsedAt: null, revokedAt: "2026-09-01T00:00:00Z" },
+    ] });
+  });
+  await page.goto("/account");
+  await expect(page.getByText("테스트 운영자 계정의 토큰을 발급하고 삭제합니다.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "삭제", exact: true })).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "삭제", exact: true }).last()).toBeDisabled();
+  await expect(page.getByText("삭제됨")).toBeVisible();
+  await expect(page.getByText("회수", { exact: true })).toHaveCount(0);
+});
+
+test("deleting the current access token reports success after its session ends", async ({ page }) => {
+  let deleted = false;
+  await page.route("**/v1/auth/session", async (route) => {
+    await route.fulfill(deleted
+      ? { status: 401, json: { message: "Unauthorized" } }
+      : { json: { csrfToken: "test-csrf", operator: { id: "test-operator", username: "테스트 운영자" } } });
+  });
+  await page.route("**/v1/auth/tokens", async (route) => {
+    await route.fulfill(deleted
+      ? { status: 401, json: { message: "Unauthorized" } }
+      : { json: [{ id: "current-token", label: "현재 로그인 토큰", expiresAt: "2026-12-01T00:00:00Z", lastUsedAt: null, revokedAt: null }] });
+  });
+  await page.route("**/v1/auth/tokens/current-token", async (route) => {
+    deleted = true;
+    await route.fulfill({ status: 204 });
+  });
+  await page.goto("/account");
+  await page.getByRole("button", { name: "삭제", exact: true }).click();
+  await expect(page.getByText("접근 토큰을 삭제했습니다. 연결된 로그인 세션도 종료됩니다.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "로그인", exact: true })).toBeVisible();
+  await expect(page.getByText("토큰을 삭제하지 못했습니다.")).toHaveCount(0);
 });
 
 test("original animated top tabs, new Shadcn controls, empty option, checkbox and responsive page", async ({
@@ -357,11 +397,25 @@ test("developer tools includes the operation history from the former console tab
   await expect(page).toHaveURL(/\/collector$/);
   await expect(page.getByRole("heading", { name: "개발자도구" })).toBeVisible();
   await expect(page.getByText("방송·수집 상태와 운영 기록을 확인하세요.")).toBeVisible();
-  await expect(page.getByText("운영 기록", { exact: true })).toBeVisible();
+  const tabs = page.getByRole("tablist", { name: "개발자도구 메뉴" });
+  const statusTab = tabs.getByRole("tab", { name: "수집 현황" });
+  const testsTab = tabs.getByRole("tab", { name: "방송 테스트" });
+  const operationsTab = tabs.getByRole("tab", { name: "운영 기록" });
+  await expect(statusTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel", { name: "수집 현황" })
+    .getByText("주루마블 수신 현황")).toBeVisible();
+  await expect(page.getByRole("button", { name: "방송 조회" })).toBeHidden();
+  await testsTab.click();
+  await expect(page.getByRole("heading", { name: "방송 조회 테스트" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "입장·채팅 수집 테스트" })).toBeVisible();
+  await operationsTab.click();
+  await expect(page.getByRole("heading", { name: "방송 조회 테스트" })).toBeHidden();
   await expect(page.getByText("위치 보정", { exact: true })).toBeVisible();
   await page.getByText("변경 전·후 상세").click();
   await expect(page.getByText(/"position": 1/)).toBeVisible();
   await expect(page.getByText(/"position": 2/)).toBeVisible();
+  await statusTab.click();
+  await expect(page.getByText("상세 진단 정보")).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
