@@ -49,7 +49,6 @@ export function CurrentActionsSection({
   return (
     <HomeControlSection
       title="현재 할 수 있는 액션"
-      emphasis
       action={session && <Badge variant={session.status === "running" ? "default" : "secondary"}>
         {session.status === "running" ? "진행 중" : "일시정지"}
       </Badge>}

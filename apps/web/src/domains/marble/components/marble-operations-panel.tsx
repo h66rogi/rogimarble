@@ -310,8 +310,8 @@ export function MarbleOperationsPanel({
 
   const locked = busy || Boolean(pending);
   const controls = (
-    <div className="w-full space-y-4 bg-muted/40 pb-4">
-      <div className="w-full bg-background">
+    <div className="w-full space-y-5 bg-muted/20 pb-5">
+      <div className="w-full">
         <CurrentActionsSection
           state={state}
           board={liveBoard}
@@ -358,7 +358,8 @@ export function MarbleOperationsPanel({
         </div>}
       </div>
       <section aria-label="게임 관리 탭" className="w-full border-y bg-background">
-        <div className="border-b px-3 py-2">
+        <div className="space-y-3 px-4 py-4">
+          <h2 className="text-sm font-semibold">게임 관리</h2>
           <PillTabs
             idPrefix={tabId}
             ariaLabel="게임 관리 메뉴"
@@ -372,17 +373,17 @@ export function MarbleOperationsPanel({
           />
         </div>
         <div id={`${tabId}-panel-rewards`} role="tabpanel" aria-labelledby={`${tabId}-tab-rewards`}
-          hidden={activeDetailsTab !== "rewards"} className="p-3">
+          hidden={activeDetailsTab !== "rewards"} className="border-t px-4 pb-5 pt-4">
           <AccumulationRewardsPanel
             state={state} disabled={locked} reason={reason} onReasonChange={setReason} send={send} />
         </div>
         <div id={`${tabId}-panel-operations`} role="tabpanel" aria-labelledby={`${tabId}-tab-operations`}
-          hidden={activeDetailsTab !== "operations"} className="p-3">
+          hidden={activeDetailsTab !== "operations"} className="border-t px-4 pb-5 pt-4">
           <GameOperationsPanel state={state} board={liveBoard} disabled={locked} reason={reason}
             onReasonChange={setReason} send={send} />
         </div>
         <div id={`${tabId}-panel-history`} role="tabpanel" aria-labelledby={`${tabId}-tab-history`}
-          hidden={activeDetailsTab !== "history"} className="p-3">
+          hidden={activeDetailsTab !== "history"} className="border-t px-4 pb-5 pt-4">
           <GameHistoryPanel
             sessionId={state?.session?.id ?? state?.lastEndedSession?.id ?? null}
             revision={state?.revision ?? 0}

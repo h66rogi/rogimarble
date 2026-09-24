@@ -507,6 +507,7 @@ test("home separates current actions from three tabs that own all remaining cont
       parentWidth: tabs.parentElement!.getBoundingClientRect().width,
       gap: tabsRect.top - element.parentElement!.getBoundingClientRect().bottom,
       actionBackground: getComputedStyle(element).backgroundColor,
+      actionTopBorder: parseFloat(getComputedStyle(element).borderTopWidth),
       tabsBackground: getComputedStyle(tabs).backgroundColor,
       tabsOwnRemainingArea: tabs.parentElement!.lastElementChild === tabs,
     };
@@ -515,6 +516,7 @@ test("home separates current actions from three tabs that own all remaining cont
   expect(Math.abs(layout.tabsWidth - layout.parentWidth)).toBeLessThan(2);
   expect(layout.gap).toBeGreaterThanOrEqual(12);
   expect(layout.actionBackground).not.toBe(layout.tabsBackground);
+  expect(layout.actionTopBorder).toBeLessThanOrEqual(1);
   expect(layout.tabsOwnRemainingArea).toBe(true);
 });
 
