@@ -16,7 +16,7 @@ const rules = JSON.parse(
 
 async function fixture(
   page: Page,
-  options: { conflict?: boolean; loadError?: boolean; legacyTheme?: boolean; runnableBoards?: unknown[] } = {},
+  options: { conflict?: boolean; loadError?: boolean; legacyTheme?: boolean; runnableBoards?: unknown[]; unsupportedBoard?: boolean } = {},
 ) {
   const writes: { kind: string; verb: string; body: any }[] = [];
   let pawnAppearance = { revision: 0, styleId: "star-medal", image: null };
@@ -33,6 +33,10 @@ async function fixture(
       widgets: [],
     },
   };
+  if (options.unsupportedBoard) {
+    const travel = documents.board.cells.flatMap((cell: any) => cell.onLand).find((effect: any) => effect.type === "choose_destination");
+    travel.timing = "immediate";
+  }
   if (options.legacyTheme) documents["overlay-layout"].boardThemeId = "classic-party";
   const drafts: Record<string, any> = options.legacyTheme ? {
     "overlay-layout": { id: "fixture-legacy-layout", kind: "overlay-layout", revision: 1, status: "validated", document: structuredClone(documents["overlay-layout"]), validationErrors: [] },
@@ -192,8 +196,33 @@ test("home starts the one published board without a board picker", async ({ page
   await page.getByRole("tab", { name: "홈", exact: true }).click();
   const actions = page.getByRole("region", { name: "현재 할 수 있는 액션" });
   await expect(actions.getByText("게임판: 방송판 · 26칸")).toBeVisible();
+  await expect(actions.getByText(/현재 저장된 판에 실행할 수 없는 동작/)).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "게임 시작", exact: true })).toHaveCount(1);
   await expect(actions.getByRole("button", { name: "게임판 변경" })).toHaveCount(0);
+});
+
+test("home falls back to the latest runnable board when the saved version cannot run", async ({ page }) => {
+  await fixture(page, { runnableBoards: [
+    { id: "previous-runnable", boardId: board.id, name: "기본 게임판", path: board.path, initialCellId: board.startCellId, previewOnly: false },
+    { id: "preview-only", boardId: `${board.id}-safe-preview`, name: "미리보기", path: board.path, initialCellId: board.startCellId, previewOnly: true },
+  ] });
+  await page.getByRole("tab", { name: "홈", exact: true }).click();
+  const actions = page.getByRole("region", { name: "현재 할 수 있는 액션" });
+  await expect(actions.getByText("게임판: 기본 게임판 · 26칸")).toBeVisible();
+  await expect(actions.getByText(/현재 저장된 판에 실행할 수 없는 동작/)).toBeVisible();
+  await expect(actions.getByRole("button", { name: "게임 시작", exact: true })).toHaveCount(1);
+  await expect(actions.getByText("시작할 수 있는 게임판이 없습니다.")).toHaveCount(0);
+});
+
+test("an unsupported saved travel effect can be changed to a runnable setting", async ({ page }) => {
+  const state = await fixture(page, { unsupportedBoard: true });
+  await selectCell(page, 14);
+  await expect(config(page).getByText("기존의 즉시 이동 설정은 실행할 수 없어요. 다음 차례로 바꿔주세요.")).toBeVisible();
+  await config(page).getByLabel("언제 이동하나요?").click();
+  await page.getByRole("option", { name: "다음 차례의 주사위 대신 여행" }).click();
+  await config(page).getByRole("button", { name: "게임판 저장" }).click();
+  await expect(config(page).getByRole("button", { name: "저장됨" })).toBeDisabled();
+  expect(state.writes.map((write) => write.verb)).toEqual(["POST", "validate", "publish"]);
 });
 
 async function selectCell(page: Page, number: number) {
@@ -202,7 +231,7 @@ async function selectCell(page: Page, number: number) {
     .click();
 }
 
-test("board editing keeps identities, actions and unsaved values across both levels of tabs; publishing uses the validated revision", async ({
+test("board editing keeps identities and saves the next-game board in one step", async ({
   page,
 }) => {
   const state = await fixture(page);
@@ -259,22 +288,15 @@ test("board editing keeps identities, actions and unsaved values across both lev
     "방향전환이라는 이름의 미션",
   );
   await config(page)
-    .getByRole("button", { name: "검사하고 게시", exact: true })
+    .getByRole("button", { name: "게임판 저장", exact: true })
     .click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  expect(state.writes.map((w) => w.verb)).toEqual(["POST", "validate"]);
+  await expect(config(page).getByRole("button", { name: "저장됨", exact: true })).toBeDisabled();
+  expect(state.writes.map((w) => w.verb)).toEqual(["POST", "validate", "publish"]);
   const saved = state.writes[0].body.document;
   expect(saved.path).toEqual(board.path);
   expect(saved.cells[1].id).toBe(board.cells[1].id);
   expect(saved.name).toBe("금요일 방송판");
   expect(saved.cells[1].onLand).toEqual(board.cells[1].onLand);
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "게시하기", exact: true })
-    .click();
-  await expect(
-    config(page).getByRole("button", { name: "게시됨", exact: true }),
-  ).toBeDisabled();
   expect(state.writes.at(-1)?.body.expectedRevision).toBe(2);
   expect(state.errors).toEqual([]);
 });
@@ -364,16 +386,16 @@ test("board sequence and resize keep stable references and can be undone", async
     .getByRole("tab", { name: "칸 편집" }).click();
   await expect(config(page).locator("[data-cell-id]")).toHaveCount(28);
   await config(page)
-    .getByRole("button", { name: "초안 저장", exact: true })
+    .getByRole("button", { name: "게임판 저장", exact: true })
     .click();
   await expect(
-    config(page).getByText("초안 저장됨", { exact: true }),
+    config(page).getByText("게임판을 저장했어요. 다음 게임부터 자동으로 사용돼요.", { exact: true }),
   ).toBeVisible();
   expect(state.writes[0].body.document.path.slice(0, 26)).toEqual(board.path);
   expect(state.errors).toEqual([]);
 });
 
-test("multiple arrival and safe pass effects are editable; draft preview never sends game commands", async ({
+test("multiple arrival and safe pass effects are editable; preview never sends game commands", async ({
   page,
 }) => {
   const state = await fixture(page);
@@ -399,10 +421,10 @@ test("multiple arrival and safe pass effects are editable; draft preview never s
   await expect(config(page).getByLabel("미리보기 말")).toBeVisible();
   expect(state.writes).toEqual([]);
   await config(page)
-    .getByRole("button", { name: "초안 저장", exact: true })
+    .getByRole("button", { name: "게임판 저장", exact: true })
     .click();
   await expect(
-    config(page).getByText("초안 저장됨", { exact: true }),
+    config(page).getByText("게임판을 저장했어요. 다음 게임부터 자동으로 사용돼요.", { exact: true }),
   ).toBeVisible();
   expect(state.writes[0].body.document.cells[1].onLand).toHaveLength(2);
   expect(state.writes[0].body.document.cells[1].onPass[0].type).toBe(
@@ -453,7 +475,7 @@ test("revision conflicts keep edited values", async ({ page }) => {
   await selectCell(page, 2);
   await config(page).getByLabel("칸 이름", { exact: true }).fill("보존할 수정");
   await config(page)
-    .getByRole("button", { name: "초안 저장", exact: true })
+    .getByRole("button", { name: "게임판 저장", exact: true })
     .click();
   await expect(config(page).getByRole("alert")).toContainText(
     "다른 곳에서 설정이 변경됐어요",
@@ -474,10 +496,10 @@ test("responsive editor contains the board scroll and supports artwork selection
     .click();
   await config(page).getByRole("button", { name: "노래", exact: true }).click();
   await config(page)
-    .getByRole("button", { name: "초안 저장", exact: true })
+    .getByRole("button", { name: "게임판 저장", exact: true })
     .click();
   await expect(
-    config(page).getByText("초안 저장됨", { exact: true }),
+    config(page).getByText("게임판을 저장했어요. 다음 게임부터 자동으로 사용돼요.", { exact: true }),
   ).toBeVisible();
   expect(
     state.writes[0].body.document.cells[1].appearance.artwork.assetId,
@@ -501,7 +523,7 @@ test("failed configuration loads require retry and never expose a blank writable
     }),
   ).toBeVisible();
   await expect(
-    config(page).getByRole("button", { name: "초안 저장", exact: true }),
+    config(page).getByRole("button", { name: "게임판 저장", exact: true }),
   ).toHaveCount(0);
   options.loadError = false;
   await config(page)

@@ -5,6 +5,6 @@ export function preferredStartBoard(
   publishedVersionId: string | null,
 ): RunnableBoardVersionDto | null {
   const available = boards.filter((board) => !board.previewOnly);
-  if (publishedVersionId) return available.find((board) => board.id === publishedVersionId) ?? null;
+  if (publishedVersionId) return available.find((board) => board.id === publishedVersionId) ?? available[0] ?? null;
   return available[0] ?? null;
 }

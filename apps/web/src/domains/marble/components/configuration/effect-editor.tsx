@@ -185,14 +185,14 @@ export function EffectFields({ value, board, items, change }: Props) {
             value={value.timing}
             options={[
               ["next_turn", "다음 차례의 주사위 대신 여행"],
-              ["immediate", "목적지를 고르면 바로 이동"],
             ]}
+            help={value.timing === "immediate" ? "기존의 즉시 이동 설정은 실행할 수 없어요. 다음 차례로 바꿔주세요." : undefined}
             change={(timing) => change({ ...value, timing })}
           />
           <Options
             label="누가 목적지를 고르나요?"
             value={value.selection}
-            options={selectionOptions}
+            options={selectionOptions.filter(([selection]) => selection !== "donor_chat")}
             change={(selection) => change({ ...value, selection })}
           />
           <Options
@@ -356,8 +356,6 @@ export function EffectFields({ value, board, items, change }: Props) {
             value={value.modifier.type}
             options={[
               ["movement_multiplier", "나온 눈에 따른 이동 거리"],
-              ["dice_count", "한 번에 던지는 주사위 개수"],
-              ["repeat_roll", "순서대로 굴리는 횟수"],
             ]}
             change={(type) =>
               change({
@@ -514,8 +512,8 @@ export function EffectList({
 }) {
   const types =
     trigger === "onPass"
-      ? passTypes
-      : (Object.keys(effectNames) as BoardEffect["type"][]);
+      ? passTypes.filter((type) => type !== "unconfigured")
+      : (Object.keys(effectNames) as BoardEffect["type"][]).filter((type) => type !== "choice_mission" && type !== "unconfigured");
   const update = (index: number, effect: BoardEffect) =>
     change(effects.map((e, i) => (i === index ? effect : e)));
   const move = (index: number, delta: number) => {

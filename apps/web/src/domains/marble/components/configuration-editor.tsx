@@ -52,9 +52,9 @@ export const configLabels: Record<ChannelConfigKind, string> = {
 };
 const applicationTiming: Record<ChannelConfigKind, { detail: string; short: string; published: string }> = {
   board: {
-    detail: "게시한 게임판은 다음 게임부터 자동으로 사용돼요. 진행 중인 게임판은 바뀌지 않아요.",
+    detail: "저장한 게임판은 다음 게임부터 자동으로 사용돼요. 진행 중인 게임판은 바뀌지 않아요.",
     short: "다음 게임부터 자동 적용",
-    published: "게임판을 게시했어요. 다음 게임부터 자동으로 사용돼요.",
+    published: "게임판을 저장했어요. 다음 게임부터 자동으로 사용돼요.",
   },
   rules: {
     detail: "게시한 규칙은 새로 수락하는 후원부터 적용돼요. 이미 대기 중인 요청은 이전 규칙을 유지해요.",
@@ -187,6 +187,16 @@ export function ConfigurationEditor({
         next = await api.validateConfig(kind, next.id, next.revision);
         accept(next);
       }
+      if (kind === "board" && validate) {
+        if (next.status !== "validated" || next.validationErrors.length) {
+          setError("게임판을 저장할 수 없어요. 아래 항목을 확인해주세요.");
+          return;
+        }
+        const applied = await api.publishConfig(kind, next.id, next.revision);
+        accept(applied);
+        setMessage(applicationTiming.board.published);
+        return;
+      }
       if (next.validationErrors.length)
         setError(
           "게시하기 전에 아래 항목을 확인해주세요. 초안은 저장되어 있어요.",
@@ -263,7 +273,7 @@ export function ConfigurationEditor({
       </header>
       <Alert variant="warning" role="note">
         <Clock3 aria-hidden="true" />
-        <AlertTitle>게시 후 적용 시점</AlertTitle>
+        <AlertTitle>{kind === "board" ? "저장 후 적용 시점" : "게시 후 적용 시점"}</AlertTitle>
         <AlertDescription>{applicationTiming[kind].detail}</AlertDescription>
       </Alert>
       {!ready ? (
@@ -292,7 +302,7 @@ export function ConfigurationEditor({
           {!shape ? (
             <div className="text-sm text-destructive" role="alert">
               저장된 데이터에 지원하지 않는 형식이 있어 편집기를 열 수 없어요.
-              기본 구성 가져오기에서 새 초안을 시작할 수 있어요.
+              기본 구성 가져오기에서 다시 시작할 수 있어요.
               <Disclosure title={<>저장 데이터 확인</>}>
                 <pre>{JSON.stringify(document, null, 2)}</pre>
               </Disclosure>
@@ -363,6 +373,8 @@ export function ConfigurationEditor({
                 <Badge variant={dirty ? "default" : "secondary"}>
                   {dirty
                     ? "저장하지 않은 변경"
+                    : kind === "board"
+                      ? version ? "확인 필요" : published ? "저장됨" : "기본 게임판"
                     : version?.status === "validated"
                       ? "검사 완료 · 게시 가능"
                       : version
@@ -392,14 +404,14 @@ export function ConfigurationEditor({
                 )}
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <Button
+                {kind !== "board" && <Button
                   variant="outline"
                   disabled={busy || !shape || (!dirty && !!version)}
                   onClick={() => void save(false)}
                 >
                   <Save />
                   초안 저장
-                </Button>
+                </Button>}
                 <Button
                   disabled={busy || !shape || !hasChanges}
                   onClick={() => void save(true)}
@@ -411,7 +423,7 @@ export function ConfigurationEditor({
                   ) : (
                     <CheckCircle2 />
                   )}
-                  {busy ? "처리 중…" : !hasChanges ? "게시됨" : "검사하고 게시"}
+                  {busy ? "처리 중…" : kind === "board" ? !hasChanges ? "저장됨" : "게임판 저장" : !hasChanges ? "게시됨" : "검사하고 게시"}
                 </Button>
               </div>
             </footer>
@@ -468,8 +480,8 @@ export function ConfigurationEditor({
           <DialogHeader>
             <DialogTitle>기본 구성을 가져올까요?</DialogTitle>
             <DialogDescription>
-              편집 중인 {configLabels[kind]} 전체를 아래 구성으로 바꿔요. 게시된
-              설정은 게시하기 전까지 유지돼요.
+              편집 중인 {configLabels[kind]} 전체를 아래 구성으로 바꿔요.
+              {kind === "board" ? " 저장하면 다음 게임부터 적용돼요." : " 게시된 설정은 게시하기 전까지 유지돼요."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-3">
@@ -508,7 +520,7 @@ export function ConfigurationEditor({
                 );
                 setPresetReview(false);
                 setMessage(
-                  "기본 구성을 가져왔어요. 초안을 저장하고 확인해주세요.",
+                  kind === "board" ? "기본 구성을 가져왔어요. 게임판을 저장하면 다음 게임부터 적용돼요." : "기본 구성을 가져왔어요. 초안을 저장하고 확인해주세요.",
                 );
               }}
             >
@@ -542,6 +554,10 @@ function textError(error: unknown) {
       : "요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.";
 }
 function friendlyValidation(message: string) {
+  if (/Unsupported live board effects.*choose_destination/i.test(message))
+    return "세계여행 칸의 즉시 이동이나 후원자 채팅 전용 선택은 현재 실행할 수 없어요. 다음 차례 이동과 운영자 선택으로 바꿔주세요.";
+  if (/Unsupported live board effects/i.test(message))
+    return "게임에서 실행할 수 없는 칸 동작이 있어요. 해당 칸의 동작을 변경해주세요.";
   if (/unconfigured|Unconfirmed|unconfirmed/i.test(message))
     return "아직 정하지 않은 칸 동작이 있어요. 해당 칸에서 동작을 선택해주세요.";
   if (/unknown.*item|item.*unknown|active item/i.test(message))

@@ -39,6 +39,7 @@ export function MarbleOperationsPanel({
 }) {
   const [state, setState] = useState<OperatorSnapshot | null>(null);
   const [startBoard, setStartBoard] = useState<RunnableBoardVersionDto | null>(null);
+  const [startBoardFallback, setStartBoardFallback] = useState(false);
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
   const boardInteraction = useRef<HTMLDivElement | null>(null);
   const reason = "방송 운영 조작";
@@ -119,7 +120,8 @@ export function MarbleOperationsPanel({
       api.config("board").catch(() => undefined),
     ]);
     applySnapshot(snapshot, requestSequence);
-    setStartBoard(boardConfig ? preferredStartBoard(runnable, boardConfig.published?.id ?? null) : null);
+    setStartBoard(preferredStartBoard(runnable, boardConfig?.published?.id ?? null));
+    setStartBoardFallback(Boolean(boardConfig?.published && !runnable.some((candidate) => candidate.id === boardConfig.published?.id)));
     if (!boardConfig) setError("게임판 설정을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.");
   };
 
@@ -321,6 +323,7 @@ export function MarbleOperationsPanel({
           state={state}
           board={liveBoard}
           startBoard={startBoard}
+          startBoardFallback={startBoardFallback}
           locked={locked}
           effectIdle={presentation.effectPhase === "idle"}
           reason={reason}

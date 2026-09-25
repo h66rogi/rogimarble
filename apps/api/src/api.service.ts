@@ -9,6 +9,7 @@ import { decideTravel, moveTravelNow, reserveTravelTurn, type TravelReservation 
 import { isBoardSupportedForLive, unsupportedBoardEffects } from './board-support.ts';
 import { pawnAppearance } from './pawn-assets.ts';
 import { effectiveOverlayLayout } from './overlay-layout.ts';
+import { DEFAULT_BOARD, DEFAULT_BOARD_VERSION_ID } from './default-board.ts';
 
 type Operator = { id: string; role: 'admin'|'operator'|'viewer' };
 export type SessionRow = { id:string; channel_id:string; status:'ready'|'running'|'paused'|'ended'; session_epoch:number; revision:string;
@@ -66,8 +67,11 @@ export class ApiService {
     await this.assertAccess(operator,channelId);
     const result=await pool().query<{id:string;board_definition:BoardDefinition}>(`SELECT id,board_definition FROM board_versions
       WHERE channel_id=$1 AND status='validated' AND supported_for_live=true ORDER BY created_at DESC`,[channelId]);
-    return result.rows.map(({id,board_definition:board})=>({id,boardId:board.id,name:board.name,path:board.path,
+    const boards=result.rows.map(({id,board_definition:board})=>({id,boardId:board.id,name:board.name,path:board.path,
       initialCellId:board.startCellId,previewOnly:board.id.endsWith('-safe-preview')}));
+    if(boards.some(board=>!board.previewOnly))return boards;
+    return [...boards,{id:DEFAULT_BOARD_VERSION_ID,boardId:DEFAULT_BOARD.id,name:DEFAULT_BOARD.name,
+      path:DEFAULT_BOARD.path,initialCellId:DEFAULT_BOARD.startCellId,previewOnly:false}];
   }
   async createSession(operator:Operator, channelId:string, body:CreateSessionRequest):Promise<GameSessionDto> {
     await this.assertAccess(operator,channelId,true);
@@ -82,15 +86,32 @@ export class ApiService {
         if(!isStoredSessionAck(prior.rows[0].result))throw new ConflictException('Legacy create command has no immutable creation response; reconcile current state before issuing a new command');
         return prior.rows[0].result; }
       const active=await client.query('SELECT 1 FROM game_sessions WHERE channel_id=$1 AND status<>\'ended\'',[channelId]);if(active.rowCount)throw new ConflictException('Channel already has an active session');
-      const boardResult=await client.query<{board_definition:BoardDefinition}>(`SELECT board_definition FROM board_versions
-        WHERE id=$1 AND channel_id=$2 AND status='validated' AND supported_for_live=true`,[body.boardVersionId,channelId]);
-      if(!boardResult.rowCount) throw new UnprocessableEntityException('Board is not validated for this server');
-      const board=boardResult.rows[0].board_definition;
+      let selectedBoardVersionId=body.boardVersionId;
+      let initialCellId=body.initialCellId;
+      let board:BoardDefinition;
+      if(body.boardVersionId===DEFAULT_BOARD_VERSION_ID){
+        const existing=await client.query<{id:string;board_definition:BoardDefinition}>(`SELECT id,board_definition FROM board_versions
+          WHERE channel_id=$1 AND status='validated' AND supported_for_live=true AND board_definition->>'id' NOT LIKE '%-safe-preview'
+          ORDER BY created_at DESC LIMIT 1`,[channelId]);
+        if(existing.rowCount){selectedBoardVersionId=existing.rows[0].id;board=existing.rows[0].board_definition;}
+        else{
+          selectedBoardVersionId=randomUUID();board=DEFAULT_BOARD;
+          assertRunnableBoard(board);
+          await client.query(`INSERT INTO board_versions(id,channel_id,board_definition,status,supported_for_live,created_by)
+            VALUES($1,$2,$3,'validated',true,$4)`,[selectedBoardVersionId,channelId,board,operator.id]);
+        }
+        initialCellId=board.startCellId;
+      }else{
+        const boardResult=await client.query<{board_definition:BoardDefinition}>(`SELECT board_definition FROM board_versions
+          WHERE id=$1 AND channel_id=$2 AND status='validated' AND supported_for_live=true`,[body.boardVersionId,channelId]);
+        if(!boardResult.rowCount)throw new UnprocessableEntityException('Board is not validated for this server');
+        board=boardResult.rows[0].board_definition;
+      }
       assertRunnableBoard(board);
-      if(!board.path.includes(body.initialCellId)) throw new UnprocessableEntityException('Initial cell is not on board path');
+      if(!board.path.includes(initialCellId)) throw new UnprocessableEntityException('Initial cell is not on board path');
       const id=randomUUID(), now=new Date();
       const session=await client.query<SessionRow>(`INSERT INTO game_sessions(id,channel_id,board_version_id,status,current_cell_id,direction)
-        VALUES($1,$2,$3,'running',$4,$5) RETURNING *`,[id,channelId,body.boardVersionId,body.initialCellId,body.direction??board.defaultDirection]);
+        VALUES($1,$2,$3,'running',$4,$5) RETURNING *`,[id,channelId,selectedBoardVersionId,initialCellId,body.direction??board.defaultDirection]);
       session.rows[0].board_definition=board;
       const created=this.dto(session.rows[0]);
       await client.query(`INSERT INTO game_commands(command_id,channel_id,session_id,operator_id,type,request_hash,status,before_revision,after_revision,result,reason,session_epoch,presentation_epoch)

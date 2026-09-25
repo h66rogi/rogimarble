@@ -16,7 +16,7 @@ test("starts only the published board when a channel has multiple board versions
   ], "published");
   assert.equal(selected?.id, "published");
   assert.equal(selected?.name, "방송판");
-  assert.equal(preferredStartBoard([board("older", "main", "과거 판")], "missing"), null);
+  assert.equal(preferredStartBoard([board("older", "main", "과거 판")], "missing")?.id, "older");
 });
 
 test("falls back to the latest runnable board when nothing is published", () => {

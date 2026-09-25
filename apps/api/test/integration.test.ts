@@ -95,8 +95,37 @@ test('health, readiness, cookie session and CSRF fail closed',async()=>{
   assert.equal((await fetch(`http://127.0.0.1:${apiPort}/ready`)).status,200);
   const auth=await login(),http=client(auth);
   const boards=await http.get('/v1/channels/test-channel/board-versions/runnable');assert.equal(boards.status,200);
-  const boardList=await boards.json() as unknown[];assert.equal(boardList.length,1);
+  const boardList=await boards.json() as Array<{previewOnly:boolean}>;assert.equal(boardList.length,2);
+  assert.equal(boardList.filter(board=>!board.previewOnly).length,1);
   assert.equal((await http.post('/v1/channels/test-channel/sessions',{},null)).status,403);
+});
+
+test('a channel without a board starts from the built-in board and keeps one runnable choice',async()=>{
+  const db=new pg.Client({connectionString:databaseUrl});await db.connect();
+  try{
+    await db.query(`INSERT INTO channels(id,display_name,owner_operator_id) SELECT 'default-board-channel','Default board',id FROM operators WHERE username='admin'`);
+    await db.query(`INSERT INTO channel_operators(channel_id,operator_id,permission) SELECT 'default-board-channel',id,'manage' FROM operators WHERE username='admin'`);
+  }finally{await db.end();}
+  const http=client(await login()),path='/v1/channels/default-board-channel';
+  const options=await (await http.get(`${path}/board-versions/runnable`)).json() as any[];
+  assert.equal(options.length,1);assert.equal(options[0].previewOnly,false);
+  const created=await http.post(`${path}/sessions`,{commandId:randomUUID(),boardVersionId:options[0].id,initialCellId:options[0].initialCellId});
+  assert.equal(created.status,201);const session=await created.json() as any;
+  assert.notEqual(session.boardVersionId,options[0].id);
+  const saved=await (await http.get(`${path}/board-versions/runnable`)).json() as any[];
+  assert.equal(saved.length,1);assert.equal(saved[0].id,session.boardVersionId);
+});
+
+test('board validation rejects effects the live game cannot execute',async()=>{
+  const source=JSON.parse(await readFile(new URL('../../../presets/streamer-board.json',import.meta.url),'utf8')) as any;
+  const travel=source.cells.flatMap((cell:any)=>cell.onLand).find((effect:any)=>effect.type==='choose_destination');
+  assert.ok(travel);travel.timing='immediate';
+  const http=client(await login()),path='/v1/channels/default-board-channel/config/board';
+  const draftResponse=await http.post(path,{document:source});assert.equal(draftResponse.status,201);
+  const draft=await draftResponse.json() as any;
+  const checked=await http.post(`${path}/${draft.id}/validate`,{expectedRevision:draft.revision});
+  assert.equal(checked.status,201);const result=await checked.json() as any;
+  assert.equal(result.status,'draft');assert.match(result.validationErrors[0],/Unsupported live board effects/);
 });
 
 test('chat history is scoped, searchable, cursor paged, and its live stream requires a session',async()=>{
@@ -352,7 +381,7 @@ test('configuration rejects stale revisions and read-only writes; OBS permits co
   const document={schemaVersion:1,boardThemeId:'lime-clover',width:1920,height:1080,aspectRatio:'16:9',background:'transparent',widgets:[{id:'board',bounds:{x:0,y:0,width:1,height:1},z:0}]};
   const liveBeforePublish=await (await http.get('/v1/channels/test-channel/overlay-layout/live')).json() as any;
   const beforeTheme=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
-  assert.equal(beforeTheme.boardThemeId,'lavender-dream');
+  assert.equal(beforeTheme.boardThemeId,DEFAULT_MARBLE_OVERLAY_LAYOUT.boardThemeId);
   assert.equal((await viewer.post(path,{document})).status,403);
   assert.equal((await viewer.patch('/v1/channels/test-channel/overlay-token/rotate',{expectedTokenId:'stale'})).status,403);
   for(const boardThemeId of ['classic-party','unknown-theme',null,42]){
