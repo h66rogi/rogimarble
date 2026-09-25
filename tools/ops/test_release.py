@@ -272,7 +272,20 @@ class ReleaseTest(unittest.TestCase):
         docker.write_text(f"#!/bin/sh\nprintf '%s\\n' \"$@\" > '{capture}'\n",encoding="utf-8");docker.chmod(0o755)
         environment={**os.environ,"PATH":f"{fake_bin}:{os.environ['PATH']}","ROGIMARBLE_APP_ROOT":str(app),"ROGIMARBLE_ENV_FILE":str(env_file)}
         subprocess.run(["sh",str(source)],check=True,env=environment)
-        arguments=capture.read_text().splitlines();self.assertIn("--abort-on-container-failure",arguments);self.assertNotIn("--no-recreate",arguments)
+        arguments=capture.read_text().splitlines();self.assertIn("--abort-on-container-exit",arguments);self.assertNotIn("--no-recreate",arguments)
+
+    def test_slot_supervisor_exits_when_either_app_exits(self):
+        temporary,app,_,run,_,_,_=self.fixture();self.addCleanup(temporary.cleanup)
+        source=Path(__file__).resolve().parent/"supervise-slot.sh"
+        env_file=run/"release-green.env";env_file.parent.mkdir(parents=True,exist_ok=True);env_file.write_text("IMAGE_API=changed-digest\n")
+        fake_bin=run/"bin";fake_bin.mkdir();capture=run/"argv";docker=fake_bin/"docker"
+        docker.write_text(f"#!/bin/sh\nprintf '%s\\n' \"$@\" > '{capture}'\n",encoding="utf-8");docker.chmod(0o755)
+        environment={**os.environ,"PATH":f"{fake_bin}:{os.environ['PATH']}","ROGIMARBLE_APP_ROOT":str(app),"ROGIMARBLE_ENV_FILE":str(env_file)}
+        subprocess.run(["sh",str(source),"green"],check=True,env=environment)
+        arguments=capture.read_text().splitlines()
+        self.assertIn("--abort-on-container-exit",arguments)
+        self.assertIn("--no-recreate",arguments)
+        self.assertEqual(arguments[-2:],["api-green","web-green"])
 
     def test_reboot_prepare_restores_active_env_and_role_scoped_secrets(self):
         temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
