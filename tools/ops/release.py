@@ -492,6 +492,8 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
             active_compose = ["docker", "compose", "--env-file", str(run_root / "release.env"), "-f", str(app_root / COMPOSE_PATH)]
             wait_for_services(active_compose, runner, CORE_SERVICES | set(slot_services), sleep)
             if old_slot:
+                # Let requests accepted by the previous Caddy config finish before stopping it.
+                sleep(30)
                 runner.run(["systemctl", "stop", f"rogimarble-slot@{old_slot}.service"])
                 old_stopped = True
                 runner.run(["systemctl", "disable", f"rogimarble-slot@{old_slot}.service"])

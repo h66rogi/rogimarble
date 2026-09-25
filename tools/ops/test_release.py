@@ -195,14 +195,17 @@ class ReleaseTest(unittest.TestCase):
         temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
         runner=FakeRunner(uuid)
         options=dict(app_root=app,config_root=config,run_root=run,data_root=data,
-                     lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None,capacity_check=lambda:None)
+                     lib_root=run/"lib",unit_root=run/"units",
+                     sleep=lambda seconds:runner.commands.append(["sleep",str(seconds)]),capacity_check=lambda:None)
         deploy(manifest_path,runner,**options)
         runner.commands.clear()
         deploy(manifest_path,runner,**options)
         commands=runner.commands
         route=next(index for index,command in enumerate(commands) if command[:4]==["docker","exec","-i","edge-id"])
+        drain=commands.index(["sleep","30"])
         stop=commands.index(["systemctl","stop","rogimarble-slot@green.service"])
-        self.assertLess(route,stop)
+        self.assertLess(route,drain)
+        self.assertLess(drain,stop)
         self.assertFalse(any(command in (["systemctl","restart","rogimarble-app.service"],
                                          ["systemctl","stop","rogimarble-app.service"]) for command in commands))
         self.assertEqual((config/"active-slot").read_text().strip(),"blue")

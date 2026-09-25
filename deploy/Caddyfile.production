@@ -11,10 +11,14 @@
 		Referrer-Policy strict-origin-when-cross-origin
 	}
 	handle /socket.io/* {
-		reverse_proxy {$API_UPSTREAM}
+		reverse_proxy {$API_UPSTREAM} {
+			stream_close_delay 15s
+		}
 	}
 	handle_path /api/* {
-		reverse_proxy {$API_UPSTREAM}
+		reverse_proxy {$API_UPSTREAM} {
+			stream_close_delay 15s
+		}
 	}
 	handle {
 		reverse_proxy {$WEB_UPSTREAM}
@@ -28,5 +32,7 @@
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
 	}
-	reverse_proxy {$API_UPSTREAM}
+	reverse_proxy {$API_UPSTREAM} {
+		stream_close_delay 15s
+	}
 }
