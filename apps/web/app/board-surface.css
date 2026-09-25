@@ -69,11 +69,12 @@
 .marble-board .die i { display: block; border-radius: 50%; }
 .marble-board .die i.is-pip { background: #74264c; box-shadow: inset 0 2px 2px rgba(0,0,0,.22); }
 .marble-board .die-number { place-items: center; color: #74264c; font-size: 38px; font-weight: 900; }
-.marble-board .dice-tray { --cube-size: 6.25cqw; --dice-edge: #cb779b; --dice-pip: #74264c; width: 100%; max-width: 100%; flex-wrap: wrap; }
-.marble-board .thrown-die { position: relative; display: block; flex: 0 0 var(--cube-size); width: var(--cube-size); height: var(--cube-size); perspective: 24cqw; }
-.marble-board .three-die-canvas { position: absolute; z-index: 1; top: -120%; left: -120%; width: 340%; height: 340%; pointer-events: none; }
-.marble-board .thrown-die.has-three .thrown-die-flight,
-.marble-board .thrown-die.has-three .thrown-die-shadow { visibility: hidden; }
+.marble-board .dice-tray { --cube-size: 6.25cqw; --dice-edge: #cb779b; --dice-pip: #74264c; width: 100%; max-width: 100%; height: 15cqw; flex-wrap: wrap; }
+.marble-board .dice-tray::before { content: ''; position: absolute; z-index: 0; left: 9%; right: 9%; top: 65%; height: 21%; border: max(2px, .12cqw) solid var(--dice-edge); border-radius: 50%; background: #fff8fb; box-shadow: 0 .45cqw .7cqw rgba(55,30,48,.15), inset 0 -.22cqw .2cqw rgba(160,92,121,.1); transform: perspective(12cqw) rotateX(50deg); }
+.marble-board .thrown-die { position: relative; z-index: 1; display: block; flex: 0 0 var(--cube-size); width: var(--cube-size); height: var(--cube-size); perspective: 24cqw; }
+.marble-board .three-dice-canvas { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.marble-board .dice-tray.has-three::before,
+.marble-board .dice-tray.has-three .thrown-die { visibility: hidden; }
 .marble-board .thrown-die.face-up-1 { --settle-x: 0deg; --settle-y: 0deg; }
 .marble-board .thrown-die.face-up-2 { --settle-x: 0deg; --settle-y: -90deg; }
 .marble-board .thrown-die.face-up-3 { --settle-x: -90deg; --settle-y: 0deg; }
@@ -106,27 +107,27 @@
 @keyframes marble-die-throw {
   0% { opacity: 0; transform: translate3d(var(--launch-x), -11cqw, 0) scale(.55); }
   10% { opacity: 1; }
-  37% { transform: translate3d(var(--arc-x), -7cqw, 0) scale(1.14); }
-  57% { transform: translate3d(var(--impact-x), 0, 0) scale(1.02,.82); }
-  70% { transform: translate3d(var(--rebound-x), -2.5cqw, 0) scale(.98,1.04); }
-  83% { transform: translate3d(var(--roll-x), 0, 0) scale(1.02,.93); }
-  92% { transform: translate3d(0, -.55cqw, 0) scale(1); }
+  26% { transform: translate3d(var(--arc-x), -4cqw, 0) scale(1.06); }
+  42% { transform: translate3d(var(--impact-x), 0, 0) scale(1.02,.82); }
+  54% { transform: translate3d(var(--rebound-x), -1.6cqw, 0) scale(.98,1.04); }
+  68% { transform: translate3d(var(--roll-x), 0, 0) scale(1.02,.93); }
+  84% { transform: translate3d(0, -.22cqw, 0) scale(1); }
   100% { opacity: 1; transform: translate3d(0,0,0) scale(1); }
 }
 @keyframes marble-die-tumble {
   0% { transform: rotateX(calc(var(--settle-x) - 760deg)) rotateY(calc(var(--settle-y) + 680deg)) rotateZ(-28deg); }
-  37% { transform: rotateX(calc(var(--settle-x) - 480deg)) rotateY(calc(var(--settle-y) + 420deg)) rotateZ(17deg); }
-  57% { transform: rotateX(calc(var(--settle-x) - 225deg)) rotateY(calc(var(--settle-y) + 180deg)) rotateZ(-11deg); }
-  70% { transform: rotateX(calc(var(--settle-x) - 105deg)) rotateY(calc(var(--settle-y) + 80deg)) rotateZ(7deg); }
-  83% { transform: rotateX(calc(var(--settle-x) + 19deg)) rotateY(calc(var(--settle-y) - 13deg)) rotateZ(-3deg); }
-  92% { transform: rotateX(calc(var(--settle-x) - 6deg)) rotateY(calc(var(--settle-y) + 4deg)) rotateZ(1deg); }
+  26% { transform: rotateX(calc(var(--settle-x) - 540deg)) rotateY(calc(var(--settle-y) + 470deg)) rotateZ(17deg); }
+  42% { transform: rotateX(calc(var(--settle-x) - 310deg)) rotateY(calc(var(--settle-y) + 260deg)) rotateZ(-11deg); }
+  54% { transform: rotateX(calc(var(--settle-x) - 220deg)) rotateY(calc(var(--settle-y) + 180deg)) rotateZ(7deg); }
+  68% { transform: rotateX(calc(var(--settle-x) - 105deg)) rotateY(calc(var(--settle-y) + 80deg)) rotateZ(-3deg); }
+  84% { transform: rotateX(calc(var(--settle-x) + 16deg)) rotateY(calc(var(--settle-y) - 12deg)) rotateZ(1deg); }
   100% { transform: rotateX(var(--settle-x)) rotateY(var(--settle-y)) rotateZ(0); }
 }
 @keyframes marble-die-shadow {
   0% { opacity: 0; transform: translateX(var(--shadow-launch-x)) scale(.35); }
-  37% { opacity: .12; transform: translateX(var(--shadow-arc-x)) scale(.55); }
-  57% { opacity: .8; transform: translateX(0) scale(1.25); }
-  70% { opacity: .26; transform: scale(.7); }
+  26% { opacity: .12; transform: translateX(var(--shadow-arc-x)) scale(.55); }
+  42% { opacity: .8; transform: translateX(0) scale(1.25); }
+  54% { opacity: .26; transform: scale(.7); }
   83% { opacity: .65; transform: scale(1.1); }
   100% { opacity: .48; transform: scale(1); }
 }
@@ -275,7 +276,7 @@ html:has([data-total-overlay-source]),body:has([data-total-overlay-source]) { ba
 .marble-board[data-board-theme="pink-bunny"] .theme-bunny .bunny-eye { fill: #df5b94; stroke: none; }
 .marble-board[data-board-theme="pink-bunny"] .theme-bunny .bunny-face { fill: none; stroke: #df5b94; stroke-width: 3; }
 .marble-board[data-board-theme="lime-clover"] .center-widget,
-.marble-board[data-board-theme="pink-bunny"] .center-widget { inset: 35% 38%; justify-content: center; }
+.marble-board[data-board-theme="pink-bunny"] .center-widget { inset: 25% 38%; justify-content: center; }
 .marble-board[data-board-theme="lime-clover"] .dice-tray,
 .marble-board[data-board-theme="pink-bunny"] .dice-tray { min-height: 4cqw; margin: 0; gap: .5cqw; }
 .marble-board[data-board-theme="lime-clover"] .die,
@@ -311,7 +312,7 @@ html:has([data-total-overlay-source]),body:has([data-total-overlay-source]) { ba
 .marble-board.is-pastel-theme .board-cell.is-spatial-corner .cell-face { fill:transparent;stroke:transparent;pointer-events:all; }
 .marble-board.is-pastel-theme .board-cell.is-spatial-corner .cell-shadow { display:none; }
 .marble-board.is-pastel-theme .board-cell.is-spatial-corner .cell-label { font-size:38px; }
-.marble-board.is-pastel-theme .center-widget { inset:35% 38%;justify-content:center; }
+.marble-board.is-pastel-theme .center-widget { inset:25% 38%;justify-content:center; }
 .marble-board.is-pastel-theme .dice-tray { min-height:4cqw;margin:0;gap:.5cqw; }
 .marble-board.is-pastel-theme .die { width:4cqw;padding:.55cqw;border-width:.12cqw;border-radius:.7cqw; }
 .marble-board.is-pastel-theme .dice-idle { font-size:.8cqw; }

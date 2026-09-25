@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { OverlayPresentationCommandDto } from '@rogimarble/contracts';
 import { buildRollTimeline, buildTravelTimeline, DICE_THROW_DURATION_MS, rollPlayback } from '../src/integrated-overlay/roll-playback.ts';
-import { diceThrowMotion } from '../../../packages/overlay-ui/src/dice-motion.ts';
+import { diceThrowMotion, roundedDieSupportHeight } from '../../../packages/overlay-ui/src/dice-motion.ts';
 
 const command = (result: unknown, presentationEpoch = 4): OverlayPresentationCommandDto => ({ commandId:'command', sessionId:'session', sessionEpoch:1, presentationEpoch, type:'roll_dice', afterRevision:2, result:result as OverlayPresentationCommandDto['result'], createdAt:'2026-09-21T00:00:00.000Z' });
 
@@ -62,4 +62,12 @@ test('visual throw variation is stable per command and always settles before the
     assert.ok(motion.durationMs+motion.delayMs<DICE_THROW_DURATION_MS);
     assert.ok(motion.launchY>0&&motion.bounceHeight>0);
   }
+});
+
+test('rounded dice stay above the ground as their corners rotate toward it',()=>{
+  const upright=roundedDieSupportHeight({x:0,y:0,z:0,w:1});
+  const tilted=roundedDieSupportHeight({x:0,y:0,z:Math.sin(Math.PI/8),w:Math.cos(Math.PI/8)});
+  assert.equal(upright,1);
+  assert.ok(tilted>upright);
+  assert.ok(tilted<Math.SQRT2);
 });

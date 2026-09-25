@@ -42,11 +42,15 @@ test("OBS updates a theme at the same game revision, keeps the camera space open
   await page.waitForFunction(() => document.querySelector(".dice-tray.is-throwing .dice-cube")?.getAnimations().some(animation => animation.playState === "running"), {}, { timeout: 7000 });
   await expect(page.locator(".dice-cube-face")).toHaveCount(6);
   if (await page.evaluate(() => Boolean(document.createElement("canvas").getContext("webgl2")))) {
-    await expect(page.locator(".thrown-die.has-three")).toHaveCount(1);
+    await expect(page.locator(".dice-tray.has-three")).toHaveCount(1);
+    await expect(page.locator(".three-dice-canvas")).toHaveCount(1);
   }
   await page.waitForFunction(() => document.querySelector(".marble-board")?.getAttribute("data-presentation-phase") === "reveal", { }, { timeout: 7000 });
   await expect(page.locator(".thrown-die")).toHaveCount(1);
   await expect(page.locator(".dice-tray")).toHaveAttribute("aria-label", "주사위 3");
+  const trayBounds = await page.locator(".dice-tray").boundingBox();
+  const totalBounds = await page.locator(".dice-total").boundingBox();
+  expect(trayBounds && totalBounds && totalBounds.y >= trayBounds.y + trayBounds.height).toBeTruthy();
   await expect(surface).toHaveAttribute("data-presentation-phase", "idle", { timeout: 10000 });
   await expect(page.locator(".center-widget")).toHaveCount(0);
   await expect(page.locator(".token-wrapper")).toHaveAttribute("data-cell-id", "cell-04");
@@ -62,6 +66,7 @@ test("OBS updates a theme at the same game revision, keeps the camera space open
   await page.waitForFunction(() => document.querySelector(".marble-board")?.getAttribute("data-presentation-phase") === "reveal", { }, { timeout: 7000 });
   await expect(page.locator(".thrown-die")).toHaveCount(2);
   await expect(page.locator(".dice-tray")).toHaveAttribute("aria-label", "주사위 2, 2");
+  await expect(page.locator(".three-dice-canvas")).toHaveCount(1);
   await expect(surface).toHaveAttribute("data-presentation-phase", "idle", { timeout: 10000 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   state.session.revision = 4;
