@@ -44,6 +44,10 @@ test("OBS updates a theme at the same game revision, keeps the camera space open
   if (await page.evaluate(() => Boolean(document.createElement("canvas").getContext("webgl2")))) {
     await expect(page.locator(".dice-tray.has-three")).toHaveCount(1);
     await expect(page.locator(".three-dice-canvas")).toHaveCount(1);
+    const trayFrame = await page.locator(".dice-tray").boundingBox();
+    const throwFrame = await page.locator(".three-dice-canvas").boundingBox();
+    expect(trayFrame && throwFrame && throwFrame.width > trayFrame.width * 2).toBeTruthy();
+    expect(throwFrame && geometry && throwFrame.x >= geometry.x && throwFrame.x + throwFrame.width <= geometry.x + geometry.width).toBeTruthy();
   }
   await page.waitForFunction(() => document.querySelector(".marble-board")?.getAttribute("data-presentation-phase") === "reveal", { }, { timeout: 7000 });
   await expect(page.locator(".thrown-die")).toHaveCount(1);

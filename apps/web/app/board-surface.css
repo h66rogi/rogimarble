@@ -69,9 +69,9 @@
 .marble-board .die i { display: block; border-radius: 50%; }
 .marble-board .die i.is-pip { background: #74264c; box-shadow: inset 0 2px 2px rgba(0,0,0,.22); }
 .marble-board .die-number { place-items: center; color: #74264c; font-size: 38px; font-weight: 900; }
-.marble-board .dice-tray { --cube-size: 6.25cqw; --dice-edge: #cb779b; --dice-pip: #74264c; width: 100%; max-width: 100%; height: 15cqw; flex-wrap: wrap; }
+.marble-board .dice-tray { --cube-size: 7cqw; --dice-edge: #cb779b; --dice-pip: #74264c; width: 100%; max-width: 100%; height: 15cqw; flex-wrap: wrap; }
 .marble-board .thrown-die { position: relative; z-index: 1; display: block; flex: 0 0 var(--cube-size); width: var(--cube-size); height: var(--cube-size); perspective: 24cqw; }
-.marble-board .three-dice-canvas { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.marble-board .three-dice-canvas { position: absolute; z-index: 2; top: 0; left: -70%; width: 240%; height: 100%; pointer-events: none; }
 .marble-board .dice-tray.has-three .thrown-die { visibility: hidden; }
 .marble-board .thrown-die.face-up-1 { --settle-x: 0deg; --settle-y: 0deg; }
 .marble-board .thrown-die.face-up-2 { --settle-x: 0deg; --settle-y: -90deg; }
@@ -99,42 +99,42 @@
 .marble-board .dice-tray.is-throwing .thrown-die.is-right .thrown-die-flight,
 .marble-board .dice-tray.is-throwing .thrown-die.is-right .dice-cube,
 .marble-board .dice-tray.is-throwing .thrown-die.is-right .thrown-die-shadow { animation-delay: 60ms; }
-.marble-board .dice-tray.is-throwing .die-number { --launch-x: -9cqw; --arc-x: -4cqw; --impact-x: -1.3cqw; --rebound-x: -.8cqw; --roll-x: -.3cqw; animation: marble-die-throw 1.55s cubic-bezier(.2,.67,.23,1) both; }
-.marble-board .thrown-die.is-right { --launch-x: 9cqw; --arc-x: 4cqw; --impact-x: 1.3cqw; --rebound-x: .8cqw; --roll-x: .3cqw; --shadow-launch-x: 4cqw; --shadow-arc-x: 2cqw; }
-.marble-board .thrown-die.is-left { --launch-x: -9cqw; --arc-x: -4cqw; --impact-x: -1.3cqw; --rebound-x: -.8cqw; --roll-x: -.3cqw; --shadow-launch-x: -4cqw; --shadow-arc-x: -2cqw; }
+.marble-board .dice-tray.is-throwing .die-number { --launch-x: -13cqw; --arc-x: -8cqw; --impact-x: -3.6cqw; --rebound-x: -3cqw; --roll-x: -.8cqw; animation: marble-die-throw 1.55s cubic-bezier(.2,.67,.23,1) both; }
+.marble-board .thrown-die.is-right { --launch-x: 13cqw; --arc-x: 8cqw; --impact-x: 3.6cqw; --rebound-x: 3cqw; --roll-x: .8cqw; --shadow-launch-x: 6cqw; --shadow-arc-x: 4cqw; }
+.marble-board .thrown-die.is-left { --launch-x: -13cqw; --arc-x: -8cqw; --impact-x: -3.6cqw; --rebound-x: -3cqw; --roll-x: -.8cqw; --shadow-launch-x: -6cqw; --shadow-arc-x: -4cqw; }
 @keyframes marble-die-throw {
-  0% { opacity: 0; transform: translate3d(var(--launch-x), -6cqw, 0); }
+  0% { opacity: 0; transform: translate3d(var(--launch-x), -8cqw, 0); }
   8% { opacity: 1; }
-  22% { transform: translate3d(var(--arc-x), -4cqw, 0); }
-  36% { transform: translate3d(var(--impact-x), 0, 0) scale(1.02,.91); }
-  48% { transform: translate3d(var(--rebound-x), -1cqw, 0); }
-  70% { transform: translate3d(var(--roll-x), 0, 0); }
-  88% { transform: translate3d(0, 0, 0); }
+  24% { transform: translate3d(var(--arc-x), -10cqw, 0); }
+  46% { transform: translate3d(var(--impact-x), 0, 0) scale(1.02,.91); }
+  58% { transform: translate3d(var(--rebound-x), -1.3cqw, 0); }
+  78% { transform: translate3d(var(--roll-x), 0, 0); }
+  93% { transform: translate3d(0, 0, 0); }
   100% { opacity: 1; transform: translate3d(0,0,0) scale(1); }
 }
 @keyframes marble-die-tumble {
   0% { transform: rotateX(calc(var(--settle-x) - 220deg)) rotateY(calc(var(--settle-y) + 20deg)) rotateZ(-12deg); }
-  22% { transform: rotateX(calc(var(--settle-x) - 145deg)) rotateY(calc(var(--settle-y) + 14deg)) rotateZ(-8deg); }
-  36% { transform: rotateX(calc(var(--settle-x) - 85deg)) rotateY(calc(var(--settle-y) + 8deg)) rotateZ(-5deg); }
-  48% { transform: rotateX(calc(var(--settle-x) - 70deg)) rotateY(calc(var(--settle-y) + 6deg)) rotateZ(-3deg); }
-  70% { transform: rotateX(calc(var(--settle-x) - 25deg)) rotateY(calc(var(--settle-y) + 2deg)); }
-  88% { transform: rotateX(calc(var(--settle-x) - 5deg)) rotateY(var(--settle-y)); }
+  24% { transform: rotateX(calc(var(--settle-x) - 145deg)) rotateY(calc(var(--settle-y) + 14deg)) rotateZ(-8deg); }
+  46% { transform: rotateX(calc(var(--settle-x) - 85deg)) rotateY(calc(var(--settle-y) + 8deg)) rotateZ(-5deg); }
+  58% { transform: rotateX(calc(var(--settle-x) - 70deg)) rotateY(calc(var(--settle-y) + 6deg)) rotateZ(-3deg); }
+  78% { transform: rotateX(calc(var(--settle-x) - 25deg)) rotateY(calc(var(--settle-y) + 2deg)); }
+  93% { transform: rotateX(calc(var(--settle-x) - 5deg)) rotateY(var(--settle-y)); }
   100% { transform: rotateX(var(--settle-x)) rotateY(var(--settle-y)) rotateZ(0); }
 }
 @keyframes marble-die-shadow {
   0% { opacity: 0; transform: translateX(var(--shadow-launch-x)) scale(.35); }
-  22% { opacity: .12; transform: translateX(var(--shadow-arc-x)) scale(.55); }
-  36% { opacity: .8; transform: translateX(0) scale(1.15); }
-  48% { opacity: .3; transform: scale(.8); }
-  70% { opacity: .55; transform: scale(1); }
+  24% { opacity: .12; transform: translateX(var(--shadow-arc-x)) scale(.55); }
+  46% { opacity: .8; transform: translateX(0) scale(1.15); }
+  58% { opacity: .3; transform: scale(.8); }
+  78% { opacity: .55; transform: scale(1); }
   100% { opacity: .48; transform: scale(1); }
 }
-.marble-board[data-board-theme="lime-clover"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #a5c54a; --dice-pip: #789523; }
-.marble-board[data-board-theme="pink-bunny"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #ee8cb5; --dice-pip: #d34f88; }
-.marble-board[data-board-theme="sky-soda"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #66c7e5; --dice-pip: #268eb8; }
-.marble-board[data-board-theme="lavender-dream"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #a98cd5; --dice-pip: #7958ad; }
-.marble-board[data-board-theme="midnight-pop"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #293e76; --dice-pip: #e84f96; }
-.marble-board[data-board-theme="peach-sorbet"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #ed9470; --dice-pip: #d96552; }
+.marble-board[data-board-theme="lime-clover"] .dice-tray { --cube-size: 6.2cqw; --dice-edge: #a5c54a; --dice-pip: #789523; }
+.marble-board[data-board-theme="pink-bunny"] .dice-tray { --cube-size: 6.2cqw; --dice-edge: #ee8cb5; --dice-pip: #d34f88; }
+.marble-board[data-board-theme="sky-soda"] .dice-tray { --cube-size: 6.2cqw; --dice-edge: #66c7e5; --dice-pip: #268eb8; }
+.marble-board[data-board-theme="lavender-dream"] .dice-tray { --cube-size: 6.2cqw; --dice-edge: #a98cd5; --dice-pip: #7958ad; }
+.marble-board[data-board-theme="midnight-pop"] .dice-tray { --cube-size: 6.2cqw; --dice-edge: #293e76; --dice-pip: #e84f96; }
+.marble-board[data-board-theme="peach-sorbet"] .dice-tray { --cube-size: 6.2cqw; --dice-edge: #ed9470; --dice-pip: #d96552; }
 .marble-board .dice-tray.is-many { --cube-size: 3.8cqw; }
 .marble-board .dice-tray.is-crowded { --cube-size: 2.3cqw; }
 @media (prefers-reduced-motion: reduce) {

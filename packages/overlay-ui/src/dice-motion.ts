@@ -26,36 +26,35 @@ export function diceThrowMotion(commandId: string, index: number) {
   const side = index % 2 ? 1 : -1;
   return {
     delayMs: index % 2 ? 45 : 0,
-    durationMs: 1380 + Math.floor(next() * 130),
-    launchX: side * (2 + next() * .35),
-    launchY: .7 + next() * .24,
-    arcHeight: .16 + next() * .15,
-    bounceHeight: .1 + next() * .09,
-    airTurnRadians: -side * Math.PI * (.62 + next() * .2),
+    durationMs: 1470 + Math.floor(next() * 100),
+    launchX: side * (5 + next() * .6),
+    launchY: 1 + next() * .24,
+    arcHeight: .72 + next() * .22,
+    bounceHeight: .14 + next() * .08,
+    airTurnRadians: -side * Math.PI * (.45 + next() * .1),
   };
 }
 
 /** A short hand throw, one low bounce, then a roll whose angle follows ground travel. */
 export function diceThrowPose(motion: ReturnType<typeof diceThrowMotion>, progress: number) {
   const t = Math.max(0, Math.min(1, progress));
-  if (t < .34) {
-    const u = t / .34;
-    const eased = u * u * (3 - 2 * u);
-    const x = motion.launchX * (1 - .32 * eased);
+  if (t < .46) {
+    const u = t / .46;
+    const x = motion.launchX * (1 - .54 * u);
     return {
       x,
       lift: motion.launchY * (1 - u) + motion.arcHeight * Math.sin(Math.PI * u),
-      rollRadians: -motion.launchX * .68 / ROLL_RADIUS + motion.airTurnRadians * (1 - eased),
+      rollRadians: -motion.launchX * .46 / ROLL_RADIUS + motion.airTurnRadians * (1 - u),
     };
   }
-  if (t < .48) {
-    const u = (t - .34) / .14;
-    const x = motion.launchX * (.68 - .08 * u);
+  if (t < .58) {
+    const u = (t - .46) / .12;
+    const x = motion.launchX * (.46 - .06 * u);
     return { x, lift: motion.bounceHeight * Math.sin(Math.PI * u), rollRadians: -x / ROLL_RADIUS };
   }
-  if (t < .9) {
-    const u = (t - .48) / .42;
-    const x = motion.launchX * .6 * (1 - u) ** 1.5;
+  if (t < .93) {
+    const u = (t - .58) / .35;
+    const x = motion.launchX * .4 * (1 - u) ** 1.3;
     return { x, lift: 0, rollRadians: -x / ROLL_RADIUS };
   }
   return { x: 0, lift: 0, rollRadians: 0 };

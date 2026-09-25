@@ -29,6 +29,7 @@ const faceToTop: readonly (readonly [number, number, number])[] = [
 ];
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
+const DIE_VISUAL_SCALE = 1.2;
 
 export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable }: {
   dice: readonly number[]; rollKey: string; animate: boolean;
@@ -96,11 +97,12 @@ export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable
     const shadowTexture = new CanvasTexture(shadowCanvas);
     shadowTexture.minFilter = LinearFilter;
     shadowTexture.magFilter = LinearFilter;
-    const shadowGeometry = new PlaneGeometry(3.2, 2.4);
+    const shadowGeometry = new PlaneGeometry(3.7, 2.9);
     const shadowMaterials: MeshBasicMaterial[] = [];
 
     const throws = dice.map((value, index) => {
       const die = new Group();
+      die.scale.setScalar(DIE_VISUAL_SCALE);
       const body = new Mesh(bodyGeometry, bodyMaterial);
       die.add(body);
       for (let face = 1; face <= 6; face++) {
@@ -127,7 +129,7 @@ export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable
       const [finalX, finalY, finalZ] = faceToTop[value];
       const faceQuaternion = new Quaternion().setFromEuler(new Euler(finalX, finalY, finalZ));
       const yaw = new Quaternion().setFromEuler(new Euler(0, index === 0 ? .16 : -.16, 0));
-      return { die, shadow, shadowMaterial, finalQuaternion: yaw.multiply(faceQuaternion), motion: diceThrowMotion(rollKey, index), finalPosition: dice.length === 1 ? 0 : index === 0 ? -1.2 : 1.2, depth: index === 0 ? .12 : -.12 };
+      return { die, shadow, shadowMaterial, finalQuaternion: yaw.multiply(faceQuaternion), motion: diceThrowMotion(rollKey, index), finalPosition: dice.length === 1 ? 0 : index === 0 ? -1.45 : 1.45, depth: index === 0 ? .12 : -.12 };
     });
     const rollQuaternion = new Quaternion();
     const rollAxis = new Vector3(0, 0, 1);
@@ -146,7 +148,7 @@ export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable
         const pose = diceThrowPose(motion, t);
         rollQuaternion.setFromAxisAngle(rollAxis, pose.rollRadians);
         die.quaternion.copy(rollQuaternion).multiply(finalQuaternion);
-        die.position.set(finalPosition + pose.x, DICE_FLOOR_Y + roundedDieSupportHeight(die.quaternion) + .012 + pose.lift, depth);
+        die.position.set(finalPosition + pose.x, DICE_FLOOR_Y + DIE_VISUAL_SCALE * roundedDieSupportHeight(die.quaternion) + .012 + pose.lift, depth);
         shadow.position.set(die.position.x, DICE_FLOOR_Y + .003, depth);
         shadow.scale.setScalar(1 + pose.lift * .35);
         shadowMaterial.opacity = .65 / (1 + pose.lift * 1.2);

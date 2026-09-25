@@ -61,18 +61,20 @@ test('visual throw variation is stable per command and always settles before the
     const motion=diceThrowMotion(`command-${index}`,index);
     assert.ok(motion.durationMs+motion.delayMs<DICE_THROW_DURATION_MS);
     assert.ok(motion.launchY>0&&motion.bounceHeight>0);
+    assert.ok(Math.abs(motion.launchX)>=5);
     assert.ok(Math.abs(diceThrowPose(motion,0).rollRadians)<2*Math.PI);
   }
 });
 
 test('a thrown die lands once, rolls toward its result, and rests on the ground',()=>{
   const motion=diceThrowMotion('one-short-throw',0);
-  const airborne=diceThrowPose(motion,.2);
-  const impact=diceThrowPose(motion,.34);
-  const rebound=diceThrowPose(motion,.41);
-  const groundRoll=diceThrowPose(motion,.7);
-  const settled=diceThrowPose(motion,.9);
+  const airborne=diceThrowPose(motion,.23);
+  const impact=diceThrowPose(motion,.46);
+  const rebound=diceThrowPose(motion,.52);
+  const groundRoll=diceThrowPose(motion,.75);
+  const settled=diceThrowPose(motion,.93);
   assert.ok(airborne.lift>0);
+  assert.ok(Math.abs(airborne.x)>Math.abs(impact.x));
   assert.ok(Math.abs(impact.lift)<1e-10);
   assert.ok(rebound.lift>0);
   assert.equal(groundRoll.lift,0);
