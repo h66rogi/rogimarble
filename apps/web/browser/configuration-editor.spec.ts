@@ -16,9 +16,23 @@ const rules = JSON.parse(
 
 async function fixture(
   page: Page,
-  options: { conflict?: boolean; loadError?: boolean; legacyTheme?: boolean; runnableBoards?: unknown[]; unsupportedBoard?: boolean } = {},
+  options: { conflict?: boolean; loadError?: boolean; legacyTheme?: boolean; runnableBoards?: unknown[]; unsupportedBoard?: boolean; pendingRecovery?: boolean } = {},
 ) {
   const writes: { kind: string; verb: string; body: any }[] = [];
+  let sessionCreated = false;
+  if (options.pendingRecovery) {
+    const channelId = process.env.NEXT_PUBLIC_CHANNEL_ID ?? "demo-channel";
+    await page.addInitScript((path) => {
+      sessionStorage.setItem("rogimarble.pending-command.v1", JSON.stringify({
+        kind: "create-session",
+        commandId: "pending-start",
+        sessionId: null,
+        path,
+        body: JSON.stringify({ commandId: "pending-start", boardVersionId: "fixture-published-board", initialCellId: "cell-01", direction: "forward" }),
+        createdAt: Date.now(),
+      }));
+    }, `/v1/channels/${channelId}/sessions`);
+  }
   let pawnAppearance = { revision: 0, styleId: "star-medal", image: null };
   const documents: Record<string, any> = {
     board: structuredClone(board),
@@ -106,13 +120,20 @@ async function fixture(
       data = { mode: "token", localLoginEnabled: false };
     else if (path.endsWith("/operator-state"))
       data = {
-        session: null,
+        session: sessionCreated ? { id: "fixture-session", channelId: "demo-channel", status: "running", sessionEpoch: 1, revision: 1, boardVersionId: "fixture-published-board", currentCellId: board.startCellId, direction: "forward", presentationEpoch: 1 } : null,
         boardDefinition: board,
         inventory: [],
         missions: [],
         pawnAppearance,
-        capabilities: {},
+        capabilities: sessionCreated ? { manualRoll: true, sessionLifecycle: true } : {},
       };
+    else if (path.endsWith("/commands/pending-start"))
+      return route.fulfill({ status: 404, json: { message: "missing" } });
+    else if (path.endsWith("/sessions") && request.method() === "POST") {
+      writes.push({ kind: "session", verb: "POST", body: request.postDataJSON() });
+      sessionCreated = true;
+      data = { id: "fixture-session" };
+    }
     else if (path.endsWith("/pawn-style")) {
       if (request.method() === "PUT") {
         const body = request.postDataJSON();
@@ -143,6 +164,8 @@ async function fixture(
   await expect(
     page.getByRole("button", { name: "로그아웃", exact: true }),
   ).toBeVisible();
+  if (options.pendingRecovery)
+    await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeVisible();
   await page.getByRole("tab", { name: "보드 설정", exact: true }).click();
   await expect(
     page.getByRole("tab", { name: "보드 설정", exact: true }),
@@ -211,6 +234,15 @@ test("home offers one start action when the saved board cannot run", async ({ pa
   await expect(actions.getByText(/현재 저장된 판에 실행할 수 없는 동작/)).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "게임 시작", exact: true })).toHaveCount(1);
   await expect(actions.getByText("시작할 수 있는 게임판이 없습니다.")).toHaveCount(0);
+});
+
+test("an interrupted game start resumes without exposing command recovery controls", async ({ page }) => {
+  const state = await fixture(page, { pendingRecovery: true });
+  expect(state.writes.filter((write) => write.kind === "session")).toHaveLength(1);
+  await page.getByRole("tab", { name: "홈", exact: true }).click();
+  await expect(page.getByText("이전 명령 확인 필요")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "같은 명령 재시도" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeVisible();
 });
 
 test("an unsupported saved travel effect can be changed to a runnable setting", async ({ page }) => {

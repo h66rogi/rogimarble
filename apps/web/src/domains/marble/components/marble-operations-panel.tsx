@@ -10,7 +10,7 @@ import type {
   RunnableBoardVersionDto,
   SessionCommandDto,
 } from "@rogimarble/contracts";
-import { api, apiAssetUrl } from "../../../../lib/api";
+import { api, apiAssetUrl, ApiError } from "../../../../lib/api";
 import type { OperatorCommand, OperatorSnapshot } from "../../../../lib/types";
 import { shouldAcceptSnapshot } from "../../../../lib/snapshot-order";
 import { Button } from "@/shared/components/ui/button";
@@ -120,7 +120,6 @@ export function MarbleOperationsPanel({
     ]);
     applySnapshot(snapshot, requestSequence);
     setStartBoard(preferredStartBoard(runnable, boardConfig?.published?.id ?? null));
-    if (!boardConfig) setError("게임판 설정을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.");
   };
 
   useEffect(() => {
@@ -146,6 +145,45 @@ export function MarbleOperationsPanel({
       window.clearInterval(timer);
     };
   }, []);
+
+  useEffect(() => {
+    if (!pending || !state) return;
+    let alive = true;
+    let attempts = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    const recover = async () => {
+      const requestSequence = ++sequence.current;
+      mutationFence.current = requestSequence;
+      try {
+        const result = await api.retryPending();
+        if (!alive) return;
+        applySnapshot(result.snapshot, requestSequence, true);
+        queuePresentation(result.command);
+        setPending(null);
+        setError("");
+      } catch (cause) {
+        if (!alive) return;
+        const remaining = api.pending();
+        if (!remaining) {
+          setPending(null);
+          setError("요청을 처리하지 못했습니다. 다시 시도해 주세요.");
+          return;
+        }
+        attempts += 1;
+        if (attempts >= 3) {
+          setError(cause instanceof ApiError && [401, 403].includes(cause.status)
+            ? "로그인이 필요합니다. 다시 로그인해 주세요."
+            : "인터넷 연결을 확인해 주세요.");
+        }
+        timer = setTimeout(recover, Math.min(attempts * 3000, 10000));
+      }
+    };
+    timer = setTimeout(recover, 0);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [pending?.commandId, Boolean(state)]);
 
   const base = useMemo(
     () => ({ expectedRevision: state?.revision ?? 0, reason }),
@@ -284,10 +322,9 @@ export function MarbleOperationsPanel({
       setPending(null);
       return true;
     } catch (cause) {
-      setPending(api.pending());
-      setError(
-        cause instanceof Error ? cause.message : "명령을 처리하지 못했습니다.",
-      );
+      const remaining = api.pending();
+      setPending(remaining);
+      setError(remaining ? "" : cause instanceof Error ? cause.message : "명령을 처리하지 못했습니다.");
       return false;
     } finally {
       setBusy(false);
@@ -303,10 +340,9 @@ export function MarbleOperationsPanel({
       applySnapshot(await api.createSession(candidate), requestSequence, true);
       setPending(null);
     } catch (cause) {
-      setPending(api.pending());
-      setError(
-        cause instanceof Error ? cause.message : "세션을 시작하지 못했습니다.",
-      );
+      const remaining = api.pending();
+      setPending(remaining);
+      setError(remaining ? "" : cause instanceof Error ? cause.message : "게임을 시작하지 못했습니다.");
     } finally {
       setBusy(false);
     }
@@ -326,39 +362,8 @@ export function MarbleOperationsPanel({
           start={start}
           send={send}
         />
-        {(error || pending) && <div className="space-y-3 border-b p-3">
+        {error && <div className="space-y-3 border-b p-3">
           {error && <ConsoleNotice variant="destructive">{error}</ConsoleNotice>}
-          {pending && <ConsoleNotice variant="warning" title="이전 명령 확인 필요">
-            <p>같은 명령 ID로 결과를 확인하거나 안전하게 재시도합니다.</p>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" disabled={busy} onClick={() => {
-                const requestSequence = ++sequence.current;
-                mutationFence.current = requestSequence;
-                setBusy(true);
-                void api.reconcilePending()
-                  .then((result) => {
-                    applySnapshot(result.snapshot, requestSequence, true);
-                    queuePresentation(result.command);
-                    setPending(null);
-                  })
-                  .catch((cause) => setError(cause.message))
-                  .finally(() => setBusy(false));
-              }}>결과 확인</Button>
-              <Button size="sm" variant="outline" disabled={busy} onClick={() => {
-                const requestSequence = ++sequence.current;
-                mutationFence.current = requestSequence;
-                setBusy(true);
-                void api.retryPending()
-                  .then((result) => {
-                    applySnapshot(result.snapshot, requestSequence, true);
-                    queuePresentation(result.command);
-                    setPending(null);
-                  })
-                  .catch((cause) => setError(cause.message))
-                  .finally(() => setBusy(false));
-              }}>같은 명령 재시도</Button>
-            </div>
-          </ConsoleNotice>}
         </div>}
       </div>
       <section aria-label="게임 관리 탭" className="w-full border-y bg-background">
