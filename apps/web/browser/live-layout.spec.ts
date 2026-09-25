@@ -280,7 +280,8 @@ test('home game management overlay copies the combined URL and saves the shared 
     .toHaveValue('http://127.0.0.1:3417/overlay#token=synthetic-overlay');
   const address = panel.getByRole('textbox', { name: '통합 오버레이 OBS 주소' });
   const copy = panel.getByRole('button', { name: '복사' });
-  await expect(address).toHaveCSS('filter', 'none');
+  await expect(address).toHaveCSS('filter', 'blur(6px)');
+  await expect(panel.getByRole('button', { name: '통합 오버레이 OBS 주소 표시' })).toBeVisible();
   const inputBounds = await address.boundingBox();
   const buttonBounds = await copy.boundingBox();
   expect(inputBounds).not.toBeNull();
@@ -291,6 +292,8 @@ test('home game management overlay copies the combined URL and saves the shared 
   await expect(panel.getByRole('region', { name: '파츠별 방송 스타일' })).toHaveCount(0);
   await copy.click();
   await expect(panel.getByText('통합 오버레이 주소를 복사했습니다.')).toBeVisible();
+  await panel.getByRole('button', { name: '통합 오버레이 OBS 주소 표시' }).click();
+  await expect(address).toHaveCSS('filter', 'none');
   await widgetSwitch(panel, '후원 메뉴').click();
   await expect.poll(() => state.writes.at(-1)?.layout.widgets.some(widget => widget.id === 'menu')).toBe(true);
   await gameTabs.getByRole('tab', { name: '게임 기록' }).click();
@@ -304,6 +307,7 @@ test('home game management overlay copies the combined URL and saves the shared 
   await page.getByRole('tablist', { name: '운영 콘솔 메뉴' }).getByRole('tab', { name: '홈' }).click();
   await expect(panel.getByRole('textbox', { name: '통합 오버레이 OBS 주소' }))
     .toHaveValue('http://127.0.0.1:3417/overlay#token=rotated-overlay');
+  await expect(panel.getByRole('textbox', { name: '통합 오버레이 OBS 주소' })).toHaveCSS('filter', 'blur(6px)');
 });
 
 test('overlay sections use the same workspace width as board settings', async ({ page }) => {
