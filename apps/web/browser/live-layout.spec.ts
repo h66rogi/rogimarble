@@ -269,6 +269,7 @@ test('overlay tab keeps one channel URL after reload and rotates it on request',
 
 test('home game management overlay copies the combined URL and saves the shared live layout', async ({ page, context }) => {
   const state = await fixture(page);
+  await expect(page.getByRole('region', { name: '파츠별 방송 스타일' })).toBeVisible();
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.getByRole('tablist', { name: '운영 콘솔 메뉴' }).getByRole('tab', { name: '홈' }).click();
   const gameTabs = page.getByRole('tablist', { name: '게임 관리 메뉴' });
@@ -287,6 +288,7 @@ test('home game management overlay copies the combined URL and saves the shared 
   expect(buttonBounds!.x).toBeGreaterThanOrEqual(inputBounds!.x + inputBounds!.width);
   expect(Math.abs(buttonBounds!.y - inputBounds!.y)).toBeLessThan(6);
   await expect(panel.getByText('레이아웃 편집', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('region', { name: '파츠별 방송 스타일' })).toHaveCount(0);
   await copy.click();
   await expect(panel.getByText('통합 오버레이 주소를 복사했습니다.')).toBeVisible();
   await widgetSwitch(panel, '후원 메뉴').click();

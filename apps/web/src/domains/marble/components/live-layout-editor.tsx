@@ -52,7 +52,7 @@ function toApiLayout(editor: TotalOverlayLayout, source: OverlayLayoutDto): Over
   };
 }
 
-export function LiveLayoutEditor() {
+export function LiveLayoutEditor({ showPartStyles = true }: { showPartStyles?: boolean }) {
   const styleTabId = useId();
   const [snapshot, setSnapshot] = useState<OverlayLayoutSnapshotDto | null>(null);
   const snapshotRef = useRef<OverlayLayoutSnapshotDto | null>(null);
@@ -211,7 +211,7 @@ export function LiveLayoutEditor() {
       widgetPreviewEnabled={false}
       adapter={adapter ?? { snapshot: null, isLoading: true, canEdit: false, widgetIds: WIDGET_IDS, canvasAspect: 16 / 9, save, renderWidget }}
     />
-    {snapshot && <section className="space-y-4" aria-label="파츠별 방송 스타일">
+    {showPartStyles && snapshot && <section className="space-y-4" aria-label="파츠별 방송 스타일">
       <div className="space-y-1">
         <h3 className="text-base font-semibold">파츠별 방송 스타일</h3>
         <p className="text-sm text-muted-foreground">파츠를 선택해 테마와 글꼴을 바꾸세요. 통합 화면과 개별 OBS 주소에 바로 반영됩니다. 전체 설정은 보드 설정에 게시한 기본값을 사용합니다.</p>

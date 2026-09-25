@@ -65,7 +65,7 @@ export function HomeOverlayPanel() {
         {feedback && <ConsoleNotice variant={feedback.variant}>{feedback.text}</ConsoleNotice>}
         <p className="text-xs text-muted-foreground">주소는 외부에 공유하지 마세요. 파츠별 주소와 주소 교체는 상단 오버레이 설정에서 관리합니다.</p>
       </section>
-      <LiveLayoutEditor />
+      <LiveLayoutEditor showPartStyles={false} />
     </div>
   );
 }
