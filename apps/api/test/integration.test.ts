@@ -352,7 +352,7 @@ test('configuration rejects stale revisions and read-only writes; OBS permits co
   const document={schemaVersion:1,boardThemeId:'lime-clover',width:1920,height:1080,aspectRatio:'16:9',background:'transparent',widgets:[{id:'board',bounds:{x:0,y:0,width:1,height:1},z:0}]};
   const liveBeforePublish=await (await http.get('/v1/channels/test-channel/overlay-layout/live')).json() as any;
   const beforeTheme=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
-  assert.equal(beforeTheme.boardThemeId,'lime-clover');
+  assert.equal(beforeTheme.boardThemeId,'lavender-dream');
   assert.equal((await viewer.post(path,{document})).status,403);
   assert.equal((await viewer.patch('/v1/channels/test-channel/overlay-token/rotate',{expectedTokenId:'stale'})).status,403);
   for(const boardThemeId of ['classic-party','unknown-theme',null,42]){
