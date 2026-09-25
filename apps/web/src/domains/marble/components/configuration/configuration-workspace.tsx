@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState } from "react";
-import { Gift, Grid2X2, HeartHandshake, Monitor, UserRound } from "lucide-react";
+import { Gift, Grid2X2, HeartHandshake, Monitor, Settings2, UserRound } from "lucide-react";
 import type { ChannelConfigKind } from "@rogimarble/contracts";
 import { api } from "../../../../../lib/api";
 import { PillTabs, type PillTabItem } from "@/shared/components/ui/pill-tabs";
@@ -11,12 +11,13 @@ import type { NamedItem } from "./editor-model";
 import { PawnSettings } from "./pawn-settings";
 
 export type ConfigurationSection = "rules" | "board";
-type WorkspaceTab = ChannelConfigKind | "pawn";
+type WorkspaceTab = ChannelConfigKind | "board-settings" | "pawn";
+type EditorTab = ChannelConfigKind | "pawn";
 const sections = {
   rules: [["rules", HeartHandshake], ["items", Gift]],
-  board: [["board", Grid2X2], ["overlay-layout", Monitor], ["pawn", UserRound]],
+  board: [["board", Grid2X2], ["board-settings", Settings2], ["overlay-layout", Monitor], ["pawn", UserRound]],
 } as const;
-const labels: Record<WorkspaceTab, string> = { ...configLabels, pawn: "말 디자인" };
+const labels: Record<WorkspaceTab, string> = { ...configLabels, board: "칸 편집", "board-settings": "판 설정", pawn: "말 디자인" };
 
 export function ConfigurationWorkspace({ section }: { section: ConfigurationSection }) {
   const idPrefix = useId();
@@ -25,7 +26,7 @@ export function ConfigurationWorkspace({ section }: { section: ConfigurationSect
     board: "board",
   });
   const tab = selected[section];
-  const [visited, setVisited] = useState<WorkspaceTab[]>(["rules", "board"]);
+  const [visited, setVisited] = useState<EditorTab[]>(["rules", "board"]);
   const [dirty, setDirty] = useState<
     Partial<Record<ChannelConfigKind, boolean>>
   >({});
@@ -84,13 +85,15 @@ export function ConfigurationWorkspace({ section }: { section: ConfigurationSect
             id: kind,
             label: labels[kind],
             icon: Icon,
-            badge: kind !== "pawn" && dirty[kind] ? "•" : undefined,
-            badgeLabel: kind !== "pawn" && dirty[kind] ? "저장하지 않은 변경" : undefined,
+            panelId: kind === "board-settings" ? `${idPrefix}-panel-board` : undefined,
+            badge: kind !== "pawn" && dirty[kind === "board-settings" ? "board" : kind] ? "•" : undefined,
+            badgeLabel: kind !== "pawn" && dirty[kind === "board-settings" ? "board" : kind] ? "저장하지 않은 변경" : undefined,
           })) satisfies PillTabItem<WorkspaceTab>[]}
           onTabChange={(kind) => {
             setSelected((current) => ({ ...current, [section]: kind }));
+            const editorKind = kind === "board-settings" ? "board" : kind;
             setVisited((current) =>
-              current.includes(kind) ? current : [...current, kind],
+              current.includes(editorKind) ? current : [...current, editorKind],
             );
           }}
         />
@@ -104,8 +107,8 @@ export function ConfigurationWorkspace({ section }: { section: ConfigurationSect
             key={kind}
             id={`${idPrefix}-panel-${kind}`}
             role="tabpanel"
-            aria-labelledby={`${idPrefix}-tab-${kind}`}
-            hidden={tab !== kind}
+            aria-labelledby={`${idPrefix}-tab-${kind === "board" && tab === "board-settings" ? "board-settings" : kind}`}
+            hidden={tab !== kind && !(kind === "board" && tab === "board-settings")}
             className="mt-6"
           >
             {kind === "pawn" ? (
@@ -113,6 +116,7 @@ export function ConfigurationWorkspace({ section }: { section: ConfigurationSect
             ) : (
               <ConfigurationEditor
                 kind={kind}
+                boardView={kind === "board" && tab === "board-settings" ? "settings" : "cells"}
                 items={items}
                 onDirty={onDirty}
                 onItemsPublished={(values) => {

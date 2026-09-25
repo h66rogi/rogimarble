@@ -9,6 +9,7 @@ import { cn } from "@/shared/lib/utils";
 export type PillTabItem<T extends string> = {
   id: T;
   label: string;
+  panelId?: string;
   icon?: LucideIcon;
   badge?: string | number;
   badgeLabel?: string;
@@ -65,7 +66,7 @@ export function PillTabs<T extends string>({
             role="tab"
             aria-label={tab.label}
             aria-description={tab.badgeLabel}
-            aria-controls={`${idPrefix}-panel-${tab.id}`}
+            aria-controls={tab.panelId ?? `${idPrefix}-panel-${tab.id}`}
             aria-selected={active}
             tabIndex={active ? 0 : -1}
             variant={active ? "default" : "outline"}

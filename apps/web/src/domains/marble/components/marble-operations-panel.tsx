@@ -24,7 +24,7 @@ import {
 import { PillTabs } from "@/shared/components/ui/pill-tabs";
 import { useRollPresentation } from "../../../../lib/use-roll-presentation";
 import { CurrentActionsSection } from "./current-actions-section";
-import { startBoardOptions } from "./start-board-options";
+import { preferredStartBoard } from "./start-board-options";
 import { AccumulationRewardsPanel } from "./accumulation-rewards-panel";
 import { GameOperationsPanel } from "./game-operations-panel";
 import { GameHistoryPanel } from "./game-history-panel";
@@ -38,7 +38,7 @@ export function MarbleOperationsPanel({
   view?: "full" | "board" | "controls";
 }) {
   const [state, setState] = useState<OperatorSnapshot | null>(null);
-  const [boards, setBoards] = useState<readonly RunnableBoardVersionDto[]>([]);
+  const [startBoard, setStartBoard] = useState<RunnableBoardVersionDto | null>(null);
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
   const boardInteraction = useRef<HTMLDivElement | null>(null);
   const reason = "방송 운영 조작";
@@ -116,10 +116,11 @@ export function MarbleOperationsPanel({
     const [snapshot, runnable, boardConfig] = await Promise.all([
       api.snapshot(),
       api.runnableBoards(),
-      api.config("board").catch(() => null),
+      api.config("board").catch(() => undefined),
     ]);
     applySnapshot(snapshot, requestSequence);
-    setBoards(startBoardOptions(runnable, boardConfig?.published?.id ?? null));
+    setStartBoard(boardConfig ? preferredStartBoard(runnable, boardConfig.published?.id ?? null) : null);
+    if (!boardConfig) setError("게임판 설정을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.");
   };
 
   useEffect(() => {
@@ -319,7 +320,7 @@ export function MarbleOperationsPanel({
         <CurrentActionsSection
           state={state}
           board={liveBoard}
-          boards={boards}
+          startBoard={startBoard}
           locked={locked}
           effectIdle={presentation.effectPhase === "idle"}
           reason={reason}

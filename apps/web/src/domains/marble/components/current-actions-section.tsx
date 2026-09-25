@@ -13,7 +13,7 @@ import { DestinationTaskControls, needsDestinationChoice } from "./destination-t
 export function CurrentActionsSection({
   state,
   board,
-  boards,
+  startBoard,
   locked,
   effectIdle,
   reason,
@@ -22,7 +22,7 @@ export function CurrentActionsSection({
 }: {
   state: OperatorSnapshot | null;
   board: BoardDefinition;
-  boards: readonly RunnableBoardVersionDto[];
+  startBoard: RunnableBoardVersionDto | null;
   locked: boolean;
   effectIdle: boolean;
   reason: string;
@@ -30,9 +30,6 @@ export function CurrentActionsSection({
   send: (command: OperatorCommand) => Promise<boolean>;
 }) {
   const [remainingInput, setRemainingInput] = useState("");
-  const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
-  const [changingBoard, setChangingBoard] = useState(false);
-  const selectedBoard = boards.find((candidate) => candidate.id === selectedBoardId) ?? boards[0];
   const session = state?.session;
   const canOperate = Boolean(state?.capabilities?.manualRoll);
   const tasks = state?.effectTasks?.filter((task) =>
@@ -46,7 +43,7 @@ export function CurrentActionsSection({
   const lock = state?.movementLock;
   const canAdjustLock = Boolean(lock && canOperate);
   const hasQuickAction = !session
-    ? boards.length > 0
+    ? Boolean(startBoard)
     : canOperate;
 
   return (
@@ -59,21 +56,10 @@ export function CurrentActionsSection({
       {!state && <p className="text-sm text-muted-foreground">게임 상태를 불러오는 중입니다.</p>}
       {state && !session && (
         <div className="space-y-2">
-          {selectedBoard ? <>
-            <p className="text-sm text-muted-foreground">현재 게임판: <span className="font-medium text-foreground">{selectedBoard.name}</span> · {selectedBoard.path.length}칸</p>
+          {startBoard ? <>
+            <p className="text-sm text-muted-foreground">게임판: <span className="font-medium text-foreground">{startBoard.name}</span> · {startBoard.path.length}칸</p>
             <Button className="w-full" disabled={locked || !state.capabilities?.sessionLifecycle}
-              onClick={() => void start(selectedBoard)}>게임 시작</Button>
-            {boards.length > 1 && <>
-              <Button variant="ghost" size="sm" aria-expanded={changingBoard}
-                onClick={() => setChangingBoard(!changingBoard)}>게임판 변경</Button>
-              {changingBoard && <div role="group" aria-label="게임판 선택" className="space-y-2">
-                {boards.map((candidate) => <Button key={candidate.id} className="w-full justify-start" variant={candidate.id === selectedBoard.id ? "secondary" : "outline"}
-                  aria-pressed={candidate.id === selectedBoard.id}
-                  onClick={() => { setSelectedBoardId(candidate.id); setChangingBoard(false); }}>
-                  {candidate.name} · {candidate.path.length}칸
-                </Button>)}
-              </div>}
-            </>}
+              onClick={() => void start(startBoard)}>게임 시작</Button>
           </> : <p className="text-sm text-muted-foreground">시작할 수 있는 게임판이 없습니다. 보드 설정에서 게임판을 게시해 주세요.</p>}
         </div>
       )}

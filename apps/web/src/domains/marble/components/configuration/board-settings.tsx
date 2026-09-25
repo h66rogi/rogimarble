@@ -4,7 +4,7 @@ import { ConsoleCheck } from "@/shared/components/common/console-ui";
 import { Disclosure } from "./editor-fields";
 
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
 import type { BoardDefinition, BoardWidget } from "@rogimarble/game-core/board";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -15,11 +15,9 @@ import { ResizePreview } from "./board-preview";
 export function BoardSettings({
   value,
   change,
-  close,
 }: {
   value: BoardDefinition;
   change: (board: BoardDefinition) => void;
-  close: () => void;
 }) {
   const [rows, setRows] = useState(
     value.layout.type === "perimeter_grid" ? value.layout.rows : 6,
@@ -78,16 +76,12 @@ export function BoardSettings({
           </span>
           <h3 className="text-lg font-semibold">판 설정</h3>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="칸 편집으로 돌아가기"
-          onClick={close}
-        >
-          <X />
-        </Button>
       </header>
-      <div className="space-y-5 xl:max-h-[calc(100vh-310px)] xl:overflow-y-auto">
+      <div className="space-y-5">
+        <Field label="게임판 이름" help="게임을 시작할 때 표시되는 이름이에요.">
+          <Input maxLength={60} required placeholder="예: 금요일 방송판" value={value.name}
+            onChange={(event) => change({ ...value, name: event.target.value })} />
+        </Field>
         <div className="space-y-4">
           <h4 className="text-sm font-semibold">시작과 주사위</h4>
           <Options

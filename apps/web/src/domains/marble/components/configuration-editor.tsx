@@ -5,7 +5,7 @@ import { Card } from "@/shared/components/ui/card";
 import { Disclosure } from "./configuration/editor-fields";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, CheckCircle2, CircleAlert, Clock3, CopyPlus, Download, Loader2, Save } from "lucide-react";
+import { Check, CheckCircle2, CircleAlert, Clock3, Download, Loader2, Save } from "lucide-react";
 import { upgradeLegacyOverlayLayout } from "@rogimarble/contracts";
 import type {
   ChannelConfigKind,
@@ -59,9 +59,9 @@ export const configLabels: Record<ChannelConfigKind, string> = {
 };
 const applicationTiming: Record<ChannelConfigKind, { detail: string; short: string; published: string }> = {
   board: {
-    detail: "게시한 게임판은 새 게임을 시작할 때 선택할 수 있어요. 진행 중인 게임판은 바뀌지 않아요.",
-    short: "새 게임을 시작할 때 선택",
-    published: "게임판을 게시했어요. 새 게임을 시작할 때 선택할 수 있어요.",
+    detail: "게시한 게임판은 다음 게임부터 자동으로 사용돼요. 진행 중인 게임판은 바뀌지 않아요.",
+    short: "다음 게임부터 자동 적용",
+    published: "게임판을 게시했어요. 다음 게임부터 자동으로 사용돼요.",
   },
   rules: {
     detail: "게시한 규칙은 새로 수락하는 후원부터 적용돼요. 이미 대기 중인 요청은 이전 규칙을 유지해요.",
@@ -82,11 +82,13 @@ const applicationTiming: Record<ChannelConfigKind, { detail: string; short: stri
 
 export function ConfigurationEditor({
   kind,
+  boardView = "cells",
   items = [],
   onDirty,
   onItemsPublished,
 }: {
   kind: ChannelConfigKind;
+  boardView?: "cells" | "settings";
   items?: readonly NamedItem[];
   onDirty?: (kind: ChannelConfigKind, dirty: boolean) => void;
   onItemsPublished?: (items: NamedItem[]) => void;
@@ -236,14 +238,16 @@ export function ConfigurationEditor({
         <div>
           <h2 className="text-xl font-semibold">
             {kind === "board"
-              ? "내 게임판 만들기"
+              ? boardView === "settings" ? "판 전체 설정" : "칸 편집"
               : kind === "rules"
                 ? "후원과 동작 연결하기"
                 : configLabels[kind]}
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             {kind === "board"
-              ? "칸을 고르고, 동작을 정하고, 나만의 판을 완성하세요."
+              ? boardView === "settings"
+                ? "이름, 출발점, 주사위와 판의 크기를 설정하세요."
+                : "칸을 고르고 이름, 동작과 꾸미기를 편집하세요."
               : kind === "rules"
                 ? "후원 개수와 동작을 한눈에 확인하고 편집하세요."
                 : kind === "items"
@@ -252,13 +256,7 @@ export function ConfigurationEditor({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {kind === "board" && published && !version && !dirty && shape && (
-            <Button variant="outline" disabled={!ready || busy}
-              onClick={() => setDocument({ ...(document as BoardDefinition), id: `board-${crypto.randomUUID()}`, name: "" })}>
-              <CopyPlus />새 게임판 만들기
-            </Button>
-          )}
-          {(kind === "rules" || kind === "board" || kind === "items") && (
+          {(kind === "rules" || kind === "items" || (kind === "board" && boardView === "settings")) && (
             <Button
               variant="outline"
               disabled={!ready || busy}
@@ -313,6 +311,7 @@ export function ConfigurationEditor({
                   value={document as BoardDefinition}
                   items={items}
                   change={setDocument}
+                  view={boardView}
                 />
               ) : kind === "rules" ? (
                 <RulesEditor

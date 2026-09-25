@@ -16,7 +16,7 @@ const rules = JSON.parse(
 
 async function fixture(
   page: Page,
-  options: { conflict?: boolean; loadError?: boolean; legacyTheme?: boolean } = {},
+  options: { conflict?: boolean; loadError?: boolean; legacyTheme?: boolean; runnableBoards?: unknown[] } = {},
 ) {
   const writes: { kind: string; verb: string; body: any }[] = [];
   let pawnAppearance = { revision: 0, styleId: "star-medal", image: null };
@@ -126,11 +126,8 @@ async function fixture(
       data = { items: [], nextCursor: null, collectionConnected: false };
     else if (path.endsWith("/operations"))
       data = { items: [], nextCursor: null };
-    else if (
-      path.includes("/board-versions/") ||
-      path.endsWith("/auth/tokens")
-    )
-      data = [];
+    else if (path.includes("/board-versions/")) data = options.runnableBoards ?? [];
+    else if (path.endsWith("/auth/tokens")) data = [];
     else if (path.endsWith("/overlay-token"))
       data = { id: "test-overlay", token: "synthetic-overlay", tokenSuffix: "rlay", createdAt: "2026-09-23T00:00:00Z", lastUsedAt: null, overlayUrlPath: "/overlay#token=synthetic-overlay" };
     else throw new Error(`Unexpected API ${request.method()} ${path}`);
@@ -150,6 +147,21 @@ async function fixture(
 }
 const config = (page: Page) =>
   page.getByRole("region", { name: "게임판 설정", exact: true });
+
+test("home starts the one published board without a board picker", async ({ page }) => {
+  const boards = [
+    { id: "recent-legacy", boardId: "legacy", name: "과거 판", path: board.path, initialCellId: board.startCellId, previewOnly: false },
+    { id: "fixture-published-board", boardId: board.id, name: "방송판", path: board.path, initialCellId: board.startCellId, previewOnly: false },
+    { id: "preview", boardId: "preview-safe-preview", name: "검증용", path: board.path, initialCellId: board.startCellId, previewOnly: true },
+  ];
+  await fixture(page, { runnableBoards: boards });
+  await page.getByRole("tab", { name: "홈", exact: true }).click();
+  const actions = page.getByRole("region", { name: "현재 할 수 있는 액션" });
+  await expect(actions.getByText("게임판: 방송판 · 26칸")).toBeVisible();
+  await expect(actions.getByRole("button", { name: "게임 시작", exact: true })).toHaveCount(1);
+  await expect(actions.getByRole("button", { name: "게임판 변경" })).toHaveCount(0);
+});
+
 async function selectCell(page: Page, number: number) {
   await config(page)
     .locator(`[data-cell-id="${board.path[number - 1]}"]`)
@@ -160,7 +172,7 @@ test("board editing keeps identities, actions and unsaved values across both lev
   page,
 }) => {
   const state = await fixture(page);
-  await expect(config(page).getByRole("note")).toContainText("새 게임을 시작할 때 선택");
+  await expect(config(page).getByRole("note")).toContainText("다음 게임부터 자동으로 사용");
   const saveBar = config(page).getByTestId("configuration-save-bar");
   await expect(saveBar).toHaveAttribute("data-state", "saved");
   await expect(saveBar).toHaveAttribute("data-variant", "floating");
@@ -192,7 +204,13 @@ test("board editing keeps identities, actions and unsaved values across both lev
   await expect(saveBar).toHaveAttribute("data-variant", "floating-warning");
   await expect(saveBar.getByRole("status")).toHaveText("변경사항을 저장해 주세요");
   expect(await saveBar.getByRole("status").evaluate((element) => element.getBoundingClientRect().height)).toBeLessThan(32);
-  await expect(saveBar).toContainText("적용 시점 · 새 게임을 시작할 때 선택");
+  await expect(saveBar).toContainText("적용 시점 · 다음 게임부터 자동 적용");
+  const boardTabs = page.getByRole("tablist", { name: "보드 설정 세부 메뉴" });
+  await boardTabs.getByRole("tab", { name: "판 설정" }).click();
+  await config(page).getByLabel("게임판 이름", { exact: true }).fill("금요일 방송판");
+  await expect(config(page).getByLabel("칸 이름", { exact: true })).toHaveCount(0);
+  await boardTabs.getByRole("tab", { name: "칸 편집" }).click();
+  await expect(config(page).getByLabel("칸 이름", { exact: true })).toHaveValue("방향전환이라는 이름의 미션");
   expect(await saveBar.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(savedAppearance.background);
   await page.getByRole("tablist", { name: "운영 콘솔 메뉴" }).getByRole("tab", { name: "게임 규칙" }).click();
   await expect(page.getByRole("region", { name: "후원 규칙 설정" })).toBeVisible();
@@ -214,6 +232,7 @@ test("board editing keeps identities, actions and unsaved values across both lev
   const saved = state.writes[0].body.document;
   expect(saved.path).toEqual(board.path);
   expect(saved.cells[1].id).toBe(board.cells[1].id);
+  expect(saved.name).toBe("금요일 방송판");
   expect(saved.cells[1].onLand).toEqual(board.cells[1].onLand);
   await page
     .getByRole("dialog")
@@ -231,7 +250,8 @@ test("game rules and board settings group their own menus and move pawn design o
   const top = page.getByRole("tablist", { name: "운영 콘솔 메뉴" });
   await expect(top.getByRole("tab", { name: "규칙·보드" })).toHaveCount(0);
   const boardTabs = page.getByRole("tablist", { name: "보드 설정 세부 메뉴" });
-  const boardTab = boardTabs.getByRole("tab", { name: "게임판" });
+  const boardTab = boardTabs.getByRole("tab", { name: "칸 편집" });
+  const settingsTab = boardTabs.getByRole("tab", { name: "판 설정" });
   const themeTab = boardTabs.getByRole("tab", { name: "방송 테마·배치" });
   await expect(boardTab).toHaveAttribute("data-slot", "button");
   await expect(boardTab).toHaveClass(/rounded-full/);
@@ -241,7 +261,12 @@ test("game rules and board settings group their own menus and move pawn design o
     .not.toBe(await themeTab.evaluate((element) => getComputedStyle(element).backgroundColor));
   await boardTab.focus();
   await page.keyboard.press("ArrowRight");
+  await expect(settingsTab).toHaveAttribute("aria-selected", "true");
+  await expect(config(page).getByLabel("게임판 이름", { exact: true })).toBeVisible();
+  await page.keyboard.press("ArrowRight");
   await expect(themeTab).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("ArrowLeft");
+  await expect(settingsTab).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("ArrowLeft");
   await expect(boardTab).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: "방송 테마·배치" })).toBeVisible();
@@ -291,18 +316,19 @@ test("board sequence and resize keep stable references and can be undone", async
   await expect(
     config(page).locator(`[data-cell-id="${board.path[1]}"]`),
   ).toHaveAttribute("aria-label", "2번 술 한잔");
-  await config(page)
-    .getByRole("button", { name: "판 설정", exact: true })
-    .click();
+  await page.getByRole("tablist", { name: "보드 설정 세부 메뉴" })
+    .getByRole("tab", { name: "판 설정" }).click();
   await config(page).getByLabel("가로 (칸)", { exact: true }).fill("10");
-  expect(await config(page).locator("[data-cell-id]").count()).toBe(26);
+  await expect(config(page).locator("[data-cell-id]")).toHaveCount(0);
   await config(page)
     .getByRole("button", { name: "변경 내용 확인", exact: true })
     .click();
   await config(page)
     .getByRole("button", { name: "이 배치로 변경", exact: true })
     .click();
-  expect(await config(page).locator("[data-cell-id]").count()).toBe(28);
+  await page.getByRole("tablist", { name: "보드 설정 세부 메뉴" })
+    .getByRole("tab", { name: "칸 편집" }).click();
+  await expect(config(page).locator("[data-cell-id]")).toHaveCount(28);
   await config(page)
     .getByRole("button", { name: "초안 저장", exact: true })
     .click();

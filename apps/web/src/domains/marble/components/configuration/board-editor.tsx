@@ -24,7 +24,6 @@ import {
   RotateCcw,
   Route,
   Search,
-  Settings2,
   Shield,
   Sparkles,
   Trash2,
@@ -57,13 +56,14 @@ export function BoardEditor({
   value,
   items,
   change,
+  view,
 }: {
   value: BoardDefinition;
   items: readonly NamedItem[];
   change: (board: BoardDefinition) => void;
+  view: "cells" | "settings";
 }) {
   const [selectedId, setSelectedId] = useState(value.startCellId);
-  const [panel, setPanel] = useState<"cell" | "settings">("cell");
   const [cellTab, setCellTab] = useState<"action" | "appearance" | "pass">(
     "action",
   );
@@ -149,7 +149,6 @@ export function BoardEditor({
   const select = (id: string) => {
     stopPreview();
     setSelectedId(id);
-    setPanel("cell");
     revealInspector();
   };
   const play = () => {
@@ -190,14 +189,17 @@ export function BoardEditor({
   const unconfigured = value.cells.filter((c) =>
     [...c.onLand, ...c.onPass].some((e) => e.type === "unconfigured"),
   );
+  if (view === "settings") return (
+    <Card className="mx-auto max-w-3xl">
+      <CardContent className="space-y-5">
+        <BoardSettings value={value} change={edit} />
+      </CardContent>
+    </Card>
+  );
   return (
     <div className="min-w-0">
       <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(400px,480px)]">
         <div className="min-w-0 space-y-4" ref={boardRef}>
-          <Field label="게임판 이름" help="게임을 시작하거나 게임판을 변경할 때 이 이름으로 표시돼요.">
-            <Input maxLength={60} required placeholder="예: 금요일 방송판" value={value.name}
-              onChange={(event) => edit({ ...value, name: event.target.value })} />
-          </Field>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1" aria-label="편집 모드">
               <Button
@@ -238,15 +240,6 @@ export function BoardEditor({
                 onClick={redo}
               >
                 <Redo2 />
-              </Button>
-              <Button
-                variant={panel === "settings" ? "secondary" : "ghost"}
-                onClick={() => {
-                  setPanel(panel === "settings" ? "cell" : "settings");
-                  revealInspector();
-                }}
-              >
-                <Settings2 />판 설정
               </Button>
             </div>
           </div>
@@ -396,7 +389,7 @@ export function BoardEditor({
         <Card
           className="min-w-0 self-start xl:sticky xl:top-0"
           ref={inspectorRef}
-          aria-label={panel === "settings" ? "판 설정" : "선택한 칸 편집"}
+          aria-label="선택한 칸 편집"
         >
           <CardContent className="space-y-4">
             <div className="xl:hidden">
@@ -411,14 +404,6 @@ export function BoardEditor({
                 판으로 돌아가기
               </Button>
             </div>
-            {panel === "settings" ? (
-              <BoardSettings
-                value={value}
-                change={edit}
-                close={() => setPanel("cell")}
-              />
-            ) : (
-              <>
                 <header className="flex items-center gap-3">
                   <div className="flex size-10 shrink-0 items-center justify-center text-xl font-bold text-primary">
                     {index + 1}
@@ -707,8 +692,6 @@ export function BoardEditor({
                     </Button>
                   </Disclosure>
                 </div>
-              </>
-            )}
           </CardContent>
         </Card>
       </div>
