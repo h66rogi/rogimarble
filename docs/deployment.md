@@ -29,7 +29,9 @@ API와 웹은 한 호스트의 blue/green 슬롯으로 실행합니다. 호스�
 
 ## 확인
 
-`tools/ops/production-status.py`와 호스트 readiness, GitHub Actions의 SSM 결과를 함께 확인합니다. EC2 상태 검사만으로 앱, 데이터베이스, collector 연결 또는 백업의 정상 동작을 판단하지 않습니다. 새 릴리스 실패 시 이전 활성 릴리스의 상태와 데이터 호환성을 확인한 뒤 배포 도구의 복구 경로를 사용합니다.
+`tools/ops/production-status.py`와 호스트 readiness, GitHub Actions의 SSM 결과를 함께 확인합니다. 배포 영수증의 source SHA가 manifest와 일치하고, 활성 슬롯 unit은 `active`, 이전 슬롯 unit은 `inactive`인지 확인합니다. Caddy admin 설정에는 API와 웹의 blue·green upstream 네 개가 있어야 합니다. 첫 헬스 풀 전환 이후의 앱 릴리스에서는 Caddy 로그에 새 `/load` 요청이 없어야 하며, 외부 웹·API health 요청을 연속 확인해 전환 구간의 연결 오류를 감지합니다. 같은 source SHA의 배포 재실행은 전환을 건너뛰므로 실제 슬롯 전환 검증에는 새 릴리스가 필요합니다.
+
+EC2 상태 검사만으로 앱, 데이터베이스, collector 연결 또는 백업의 정상 동작을 판단하지 않습니다. 새 릴리스 실패 시 이전 활성 릴리스의 상태와 데이터 호환성을 확인한 뒤 배포 도구의 복구 경로를 사용합니다.
 
 Terraform 구성과 적용 순서는 [인프라 안내](../infrastructure/README.md)에 있습니다.
 
