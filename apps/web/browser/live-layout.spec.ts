@@ -277,8 +277,17 @@ test('home game management overlay copies the combined URL and saves the shared 
   const panel = page.getByRole('tabpanel', { name: '오버레이', exact: true });
   await expect(panel.getByRole('textbox', { name: '통합 오버레이 OBS 주소' }))
     .toHaveValue('http://127.0.0.1:3417/overlay#token=synthetic-overlay');
+  const address = panel.getByRole('textbox', { name: '통합 오버레이 OBS 주소' });
+  const copy = panel.getByRole('button', { name: '복사' });
+  await expect(address).toHaveCSS('filter', 'none');
+  const inputBounds = await address.boundingBox();
+  const buttonBounds = await copy.boundingBox();
+  expect(inputBounds).not.toBeNull();
+  expect(buttonBounds).not.toBeNull();
+  expect(buttonBounds!.x).toBeGreaterThanOrEqual(inputBounds!.x + inputBounds!.width);
+  expect(Math.abs(buttonBounds!.y - inputBounds!.y)).toBeLessThan(6);
   await expect(panel.getByText('레이아웃 편집', { exact: true })).toBeVisible();
-  await panel.getByRole('button', { name: '주소 복사' }).click();
+  await copy.click();
   await expect(panel.getByText('통합 오버레이 주소를 복사했습니다.')).toBeVisible();
   await widgetSwitch(panel, '후원 메뉴').click();
   await expect.poll(() => state.writes.at(-1)?.layout.widgets.some(widget => widget.id === 'menu')).toBe(true);

@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChannelOverlayTokenDto } from "@rogimarble/contracts";
 import { api } from "@/lib/api";
+import { ExternalLink } from "lucide-react";
 import { ConsoleNotice } from "@/shared/components/common/console-ui";
 import { Button } from "@/shared/components/ui/button";
-import { MaskedUrlInput } from "@/shared/components/ui/masked-url-input";
+import { Input } from "@/shared/components/ui/input";
 import { LiveLayoutEditor } from "./live-layout-editor";
 
 export function HomeOverlayPanel() {
@@ -51,14 +52,14 @@ export function HomeOverlayPanel() {
           <h3 className="text-sm font-semibold">통합 오버레이 주소</h3>
           <p className="text-sm text-muted-foreground">주소 하나로 전체 화면을 표시합니다. OBS 브라우저 소스에 1920 × 1080px로 추가하세요.</p>
         </div>
-        {url && <>
-          <MaskedUrlInput label="통합 오버레이 OBS 주소" value={url} />
-          <Button size="sm" variant="outline" onClick={() => {
+        {url && <div className="flex items-center gap-1.5">
+          <Input readOnly aria-label="통합 오버레이 OBS 주소" value={url} className="min-w-0 flex-1" />
+          <Button size="sm" variant="outline" className="shrink-0" onClick={() => {
             void navigator.clipboard.writeText(url)
               .then(() => setFeedback({ text: "통합 오버레이 주소를 복사했습니다.", variant: "success" }))
               .catch(() => setFeedback({ text: "주소를 선택해서 복사해 주세요.", variant: "warning" }));
-          }}>주소 복사</Button>
-        </>}
+          }}><ExternalLink className="size-3" aria-hidden="true" />복사</Button>
+        </div>}
         {token && !token.overlayUrlPath && <ConsoleNotice variant="warning">기존 주소를 다시 표시할 수 없습니다. 상단 오버레이 설정에서 주소를 교체해 주세요.</ConsoleNotice>}
         {!token && !feedback && <p className="text-sm text-muted-foreground">오버레이 주소를 불러오는 중입니다.</p>}
         {feedback && <ConsoleNotice variant={feedback.variant}>{feedback.text}</ConsoleNotice>}
