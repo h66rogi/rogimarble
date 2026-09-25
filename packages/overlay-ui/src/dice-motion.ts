@@ -1,6 +1,7 @@
 /** Visual variation only. The server result, never this seed, selects the upper face. */
 export const DICE_FLOOR_Y = -1.08;
 export const DICE_CORNER_RADIUS = .21;
+const ROLL_RADIUS = 1.08;
 
 /** The support height of a rounded 2-unit cube above a horizontal floor. */
 export function roundedDieSupportHeight(rotation: { x: number; y: number; z: number; w: number }) {
@@ -25,14 +26,37 @@ export function diceThrowMotion(commandId: string, index: number) {
   const side = index % 2 ? 1 : -1;
   return {
     delayMs: index % 2 ? 45 : 0,
-    durationMs: 1390 + Math.floor(next() * 170),
-    launchX: side * (1.8 + next() * .8),
-    launchY: .68 + next() * .38,
-    arcHeight: .28 + next() * .22,
-    driftX: (next() - .5) * .36,
-    bounceHeight: .2 + next() * .17,
-    spinX: side * (Math.PI * (4 + next() * 2)),
-    spinY: -side * (Math.PI * (5 + next() * 2)),
-    spinZ: (next() - .5) * Math.PI * 2.5,
+    durationMs: 1380 + Math.floor(next() * 130),
+    launchX: side * (2 + next() * .35),
+    launchY: .7 + next() * .24,
+    arcHeight: .16 + next() * .15,
+    bounceHeight: .1 + next() * .09,
+    airTurnRadians: -side * Math.PI * (.62 + next() * .2),
   };
+}
+
+/** A short hand throw, one low bounce, then a roll whose angle follows ground travel. */
+export function diceThrowPose(motion: ReturnType<typeof diceThrowMotion>, progress: number) {
+  const t = Math.max(0, Math.min(1, progress));
+  if (t < .34) {
+    const u = t / .34;
+    const eased = u * u * (3 - 2 * u);
+    const x = motion.launchX * (1 - .32 * eased);
+    return {
+      x,
+      lift: motion.launchY * (1 - u) + motion.arcHeight * Math.sin(Math.PI * u),
+      rollRadians: -motion.launchX * .68 / ROLL_RADIUS + motion.airTurnRadians * (1 - eased),
+    };
+  }
+  if (t < .48) {
+    const u = (t - .34) / .14;
+    const x = motion.launchX * (.68 - .08 * u);
+    return { x, lift: motion.bounceHeight * Math.sin(Math.PI * u), rollRadians: -x / ROLL_RADIUS };
+  }
+  if (t < .9) {
+    const u = (t - .48) / .42;
+    const x = motion.launchX * .6 * (1 - u) ** 1.5;
+    return { x, lift: 0, rollRadians: -x / ROLL_RADIUS };
+  }
+  return { x: 0, lift: 0, rollRadians: 0 };
 }

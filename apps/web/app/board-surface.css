@@ -70,10 +70,8 @@
 .marble-board .die i.is-pip { background: #74264c; box-shadow: inset 0 2px 2px rgba(0,0,0,.22); }
 .marble-board .die-number { place-items: center; color: #74264c; font-size: 38px; font-weight: 900; }
 .marble-board .dice-tray { --cube-size: 6.25cqw; --dice-edge: #cb779b; --dice-pip: #74264c; width: 100%; max-width: 100%; height: 15cqw; flex-wrap: wrap; }
-.marble-board .dice-tray::before { content: ''; position: absolute; z-index: 0; left: 9%; right: 9%; top: 65%; height: 21%; border: max(2px, .12cqw) solid var(--dice-edge); border-radius: 50%; background: #fff8fb; box-shadow: 0 .45cqw .7cqw rgba(55,30,48,.15), inset 0 -.22cqw .2cqw rgba(160,92,121,.1); transform: perspective(12cqw) rotateX(50deg); }
 .marble-board .thrown-die { position: relative; z-index: 1; display: block; flex: 0 0 var(--cube-size); width: var(--cube-size); height: var(--cube-size); perspective: 24cqw; }
 .marble-board .three-dice-canvas { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.marble-board .dice-tray.has-three::before,
 .marble-board .dice-tray.has-three .thrown-die { visibility: hidden; }
 .marble-board .thrown-die.face-up-1 { --settle-x: 0deg; --settle-y: 0deg; }
 .marble-board .thrown-die.face-up-2 { --settle-x: 0deg; --settle-y: -90deg; }
@@ -105,30 +103,30 @@
 .marble-board .thrown-die.is-right { --launch-x: 9cqw; --arc-x: 4cqw; --impact-x: 1.3cqw; --rebound-x: .8cqw; --roll-x: .3cqw; --shadow-launch-x: 4cqw; --shadow-arc-x: 2cqw; }
 .marble-board .thrown-die.is-left { --launch-x: -9cqw; --arc-x: -4cqw; --impact-x: -1.3cqw; --rebound-x: -.8cqw; --roll-x: -.3cqw; --shadow-launch-x: -4cqw; --shadow-arc-x: -2cqw; }
 @keyframes marble-die-throw {
-  0% { opacity: 0; transform: translate3d(var(--launch-x), -11cqw, 0) scale(.55); }
-  10% { opacity: 1; }
-  26% { transform: translate3d(var(--arc-x), -4cqw, 0) scale(1.06); }
-  42% { transform: translate3d(var(--impact-x), 0, 0) scale(1.02,.82); }
-  54% { transform: translate3d(var(--rebound-x), -1.6cqw, 0) scale(.98,1.04); }
-  68% { transform: translate3d(var(--roll-x), 0, 0) scale(1.02,.93); }
-  84% { transform: translate3d(0, -.22cqw, 0) scale(1); }
+  0% { opacity: 0; transform: translate3d(var(--launch-x), -6cqw, 0); }
+  8% { opacity: 1; }
+  22% { transform: translate3d(var(--arc-x), -4cqw, 0); }
+  36% { transform: translate3d(var(--impact-x), 0, 0) scale(1.02,.91); }
+  48% { transform: translate3d(var(--rebound-x), -1cqw, 0); }
+  70% { transform: translate3d(var(--roll-x), 0, 0); }
+  88% { transform: translate3d(0, 0, 0); }
   100% { opacity: 1; transform: translate3d(0,0,0) scale(1); }
 }
 @keyframes marble-die-tumble {
-  0% { transform: rotateX(calc(var(--settle-x) - 760deg)) rotateY(calc(var(--settle-y) + 680deg)) rotateZ(-28deg); }
-  26% { transform: rotateX(calc(var(--settle-x) - 540deg)) rotateY(calc(var(--settle-y) + 470deg)) rotateZ(17deg); }
-  42% { transform: rotateX(calc(var(--settle-x) - 310deg)) rotateY(calc(var(--settle-y) + 260deg)) rotateZ(-11deg); }
-  54% { transform: rotateX(calc(var(--settle-x) - 220deg)) rotateY(calc(var(--settle-y) + 180deg)) rotateZ(7deg); }
-  68% { transform: rotateX(calc(var(--settle-x) - 105deg)) rotateY(calc(var(--settle-y) + 80deg)) rotateZ(-3deg); }
-  84% { transform: rotateX(calc(var(--settle-x) + 16deg)) rotateY(calc(var(--settle-y) - 12deg)) rotateZ(1deg); }
+  0% { transform: rotateX(calc(var(--settle-x) - 220deg)) rotateY(calc(var(--settle-y) + 20deg)) rotateZ(-12deg); }
+  22% { transform: rotateX(calc(var(--settle-x) - 145deg)) rotateY(calc(var(--settle-y) + 14deg)) rotateZ(-8deg); }
+  36% { transform: rotateX(calc(var(--settle-x) - 85deg)) rotateY(calc(var(--settle-y) + 8deg)) rotateZ(-5deg); }
+  48% { transform: rotateX(calc(var(--settle-x) - 70deg)) rotateY(calc(var(--settle-y) + 6deg)) rotateZ(-3deg); }
+  70% { transform: rotateX(calc(var(--settle-x) - 25deg)) rotateY(calc(var(--settle-y) + 2deg)); }
+  88% { transform: rotateX(calc(var(--settle-x) - 5deg)) rotateY(var(--settle-y)); }
   100% { transform: rotateX(var(--settle-x)) rotateY(var(--settle-y)) rotateZ(0); }
 }
 @keyframes marble-die-shadow {
   0% { opacity: 0; transform: translateX(var(--shadow-launch-x)) scale(.35); }
-  26% { opacity: .12; transform: translateX(var(--shadow-arc-x)) scale(.55); }
-  42% { opacity: .8; transform: translateX(0) scale(1.25); }
-  54% { opacity: .26; transform: scale(.7); }
-  83% { opacity: .65; transform: scale(1.1); }
+  22% { opacity: .12; transform: translateX(var(--shadow-arc-x)) scale(.55); }
+  36% { opacity: .8; transform: translateX(0) scale(1.15); }
+  48% { opacity: .3; transform: scale(.8); }
+  70% { opacity: .55; transform: scale(1); }
   100% { opacity: .48; transform: scale(1); }
 }
 .marble-board[data-board-theme="lime-clover"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #a5c54a; --dice-pip: #789523; }

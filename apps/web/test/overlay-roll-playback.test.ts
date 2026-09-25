@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { OverlayPresentationCommandDto } from '@rogimarble/contracts';
 import { buildRollTimeline, buildTravelTimeline, DICE_THROW_DURATION_MS, rollPlayback } from '../src/integrated-overlay/roll-playback.ts';
-import { diceThrowMotion, roundedDieSupportHeight } from '../../../packages/overlay-ui/src/dice-motion.ts';
+import { diceThrowMotion, diceThrowPose, roundedDieSupportHeight } from '../../../packages/overlay-ui/src/dice-motion.ts';
 
 const command = (result: unknown, presentationEpoch = 4): OverlayPresentationCommandDto => ({ commandId:'command', sessionId:'session', sessionEpoch:1, presentationEpoch, type:'roll_dice', afterRevision:2, result:result as OverlayPresentationCommandDto['result'], createdAt:'2026-09-21T00:00:00.000Z' });
 
@@ -61,7 +61,24 @@ test('visual throw variation is stable per command and always settles before the
     const motion=diceThrowMotion(`command-${index}`,index);
     assert.ok(motion.durationMs+motion.delayMs<DICE_THROW_DURATION_MS);
     assert.ok(motion.launchY>0&&motion.bounceHeight>0);
+    assert.ok(Math.abs(diceThrowPose(motion,0).rollRadians)<2*Math.PI);
   }
+});
+
+test('a thrown die lands once, rolls toward its result, and rests on the ground',()=>{
+  const motion=diceThrowMotion('one-short-throw',0);
+  const airborne=diceThrowPose(motion,.2);
+  const impact=diceThrowPose(motion,.34);
+  const rebound=diceThrowPose(motion,.41);
+  const groundRoll=diceThrowPose(motion,.7);
+  const settled=diceThrowPose(motion,.9);
+  assert.ok(airborne.lift>0);
+  assert.ok(Math.abs(impact.lift)<1e-10);
+  assert.ok(rebound.lift>0);
+  assert.equal(groundRoll.lift,0);
+  assert.ok(Math.abs(impact.x)>Math.abs(groundRoll.x));
+  assert.ok(Math.abs(groundRoll.rollRadians)>0);
+  assert.deepEqual(settled,{x:0,lift:0,rollRadians:0});
 });
 
 test('rounded dice stay above the ground as their corners rotate toward it',()=>{

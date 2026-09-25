@@ -2,13 +2,13 @@
 
 import { useEffect, useRef } from 'react';
 import {
-  ACESFilmicToneMapping, AmbientLight, CircleGeometry, DirectionalLight, Euler, Group,
-  Mesh, MeshPhysicalMaterial, MeshStandardMaterial, OrthographicCamera, PCFShadowMap,
-  Quaternion, Scene, SRGBColorSpace, TorusGeometry,
+  ACESFilmicToneMapping, AmbientLight, CanvasTexture, CircleGeometry, DirectionalLight, DoubleSide, Euler, Group,
+  LinearFilter, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, OrthographicCamera,
+  PlaneGeometry, Quaternion, Scene, SRGBColorSpace, TorusGeometry, Vector3,
   WebGLRenderer,
 } from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { DICE_FLOOR_Y, diceThrowMotion, roundedDieSupportHeight } from './dice-motion';
+import { DICE_FLOOR_Y, diceThrowMotion, diceThrowPose, roundedDieSupportHeight } from './dice-motion';
 
 const pipLayouts: readonly (readonly [number, number][])[] = [
   [], [[0, 0]], [[-.47, .47], [.47, -.47]],
@@ -58,27 +58,17 @@ export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.55;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = PCFShadowMap;
+    renderer.toneMappingExposure = 1.25;
 
     const scene = new Scene();
     const camera = new OrthographicCamera(-2.9, 2.9, 2.9, -2.9, .1, 100);
     camera.position.set(0, 4.2, 8);
     camera.lookAt(0, .12, 0);
-    scene.add(new AmbientLight(0xffffff, 2.1));
-    const keyLight = new DirectionalLight(0xffffff, 3.3);
+    scene.add(new AmbientLight(0xffffff, 1.4));
+    const keyLight = new DirectionalLight(0xffffff, 2.6);
     keyLight.position.set(-2.5, 7, 5);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.set(256, 256);
-    keyLight.shadow.camera.left = -5;
-    keyLight.shadow.camera.right = 5;
-    keyLight.shadow.camera.top = 5;
-    keyLight.shadow.camera.bottom = -5;
-    keyLight.shadow.bias = -.0002;
-    keyLight.shadow.radius = 3;
     scene.add(keyLight);
-    const fillLight = new DirectionalLight(0xffd6e6, 1.15);
+    const fillLight = new DirectionalLight(0xffd6e6, .7);
     fillLight.position.set(4, 2, -2);
     scene.add(fillLight);
 
@@ -86,28 +76,32 @@ export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable
     const style = tray ? getComputedStyle(tray) : null;
     const pipColor = style?.getPropertyValue('--dice-pip').trim() || '#74264c';
     const edgeColor = style?.getPropertyValue('--dice-edge').trim() || '#cb779b';
-    const bodyMaterial = new MeshPhysicalMaterial({ color: 0xfff9fc, roughness: .26, metalness: 0, clearcoat: .55, clearcoatRoughness: .2 });
+    const bodyMaterial = new MeshPhysicalMaterial({ color: 0xfff7fb, roughness: .32, metalness: 0, clearcoat: .45, clearcoatRoughness: .23 });
     const pipMaterial = new MeshStandardMaterial({ color: pipColor, roughness: .72 });
     const rimMaterial = new MeshStandardMaterial({ color: edgeColor, roughness: .52 });
-    const floorBaseMaterial = new MeshStandardMaterial({ color: edgeColor, roughness: .8, transparent: true, opacity: .78 });
-    const floorTopMaterial = new MeshStandardMaterial({ color: 0xfffafc, roughness: .82 });
     const bodyGeometry = new RoundedBoxGeometry(2, 2, 2, 5, .21);
     const pipGeometry = new CircleGeometry(.16, 28);
     const rimGeometry = new TorusGeometry(.168, .026, 6, 28);
-    const floorBaseGeometry = new RoundedBoxGeometry(7.7, .16, 3.35, 4, .075);
-    const floorTopGeometry = new RoundedBoxGeometry(7.55, .06, 3.2, 4, .045);
-    const floorBase = new Mesh(floorBaseGeometry, floorBaseMaterial);
-    floorBase.position.y = DICE_FLOOR_Y - .11;
-    scene.add(floorBase);
-    const floorTop = new Mesh(floorTopGeometry, floorTopMaterial);
-    floorTop.position.y = DICE_FLOOR_Y - .03;
-    floorTop.receiveShadow = true;
-    scene.add(floorTop);
+    const shadowCanvas = document.createElement('canvas');
+    shadowCanvas.width = shadowCanvas.height = 128;
+    const shadowContext = shadowCanvas.getContext('2d');
+    if (shadowContext) {
+      const gradient = shadowContext.createRadialGradient(64, 64, 4, 64, 64, 64);
+      gradient.addColorStop(0, 'rgba(65, 31, 55, .5)');
+      gradient.addColorStop(.55, 'rgba(65, 31, 55, .22)');
+      gradient.addColorStop(1, 'rgba(65, 31, 55, 0)');
+      shadowContext.fillStyle = gradient;
+      shadowContext.fillRect(0, 0, 128, 128);
+    }
+    const shadowTexture = new CanvasTexture(shadowCanvas);
+    shadowTexture.minFilter = LinearFilter;
+    shadowTexture.magFilter = LinearFilter;
+    const shadowGeometry = new PlaneGeometry(3.2, 2.4);
+    const shadowMaterials: MeshBasicMaterial[] = [];
 
     const throws = dice.map((value, index) => {
       const die = new Group();
       const body = new Mesh(bodyGeometry, bodyMaterial);
-      body.castShadow = true;
       die.add(body);
       for (let face = 1; face <= 6; face++) {
         const side = new Group();
@@ -124,12 +118,19 @@ export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable
         die.add(side);
       }
       scene.add(die);
+      const shadowMaterial = new MeshBasicMaterial({ map: shadowTexture, transparent: true, opacity: .65, depthWrite: false, side: DoubleSide });
+      shadowMaterials.push(shadowMaterial);
+      const shadow = new Mesh(shadowGeometry, shadowMaterial);
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.y = DICE_FLOOR_Y + .003;
+      scene.add(shadow);
       const [finalX, finalY, finalZ] = faceToTop[value];
       const faceQuaternion = new Quaternion().setFromEuler(new Euler(finalX, finalY, finalZ));
       const yaw = new Quaternion().setFromEuler(new Euler(0, index === 0 ? .16 : -.16, 0));
-      return { die, finalQuaternion: yaw.multiply(faceQuaternion), motion: diceThrowMotion(rollKey, index), finalPosition: dice.length === 1 ? 0 : index === 0 ? -1.2 : 1.2, depth: index === 0 ? .12 : -.12 };
+      return { die, shadow, shadowMaterial, finalQuaternion: yaw.multiply(faceQuaternion), motion: diceThrowMotion(rollKey, index), finalPosition: dice.length === 1 ? 0 : index === 0 ? -1.2 : 1.2, depth: index === 0 ? .12 : -.12 };
     });
-    const spinQuaternion = new Quaternion();
+    const rollQuaternion = new Quaternion();
+    const rollAxis = new Vector3(0, 0, 1);
     const startedAt = performance.now();
     let settled = !animate;
     let reported = false;
@@ -137,33 +138,19 @@ export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable
     const draw = (now: number) => {
       let allSettled = true;
       let anyVisible = false;
-      for (const { die, finalQuaternion, motion, finalPosition, depth } of throws) {
+      for (const { die, shadow, shadowMaterial, finalQuaternion, motion, finalPosition, depth } of throws) {
         const t = animate ? clamp01((now - startedAt - motion.delayMs) / motion.durationMs) : 1;
         if (t < 1) allSettled = false;
         die.visible = t > 0 || !animate;
         anyVisible ||= die.visible;
-        const remaining = (1 - t) ** 2;
-        spinQuaternion.setFromEuler(new Euler(motion.spinX * remaining, motion.spinY * remaining, motion.spinZ * remaining));
-        die.quaternion.copy(finalQuaternion).multiply(spinQuaternion);
-        let x: number;
-        let lift: number;
-        if (t < .24) {
-          const u = t / .24;
-          x = finalPosition + motion.launchX * (1 - .34 * u);
-          lift = motion.launchY * (1 - u) ** 2 + motion.arcHeight * Math.sin(Math.PI * u);
-        } else if (t < .42) {
-          const u = (t - .24) / .18;
-          x = finalPosition + motion.launchX * (.66 - .3 * u);
-          lift = motion.bounceHeight * Math.sin(Math.PI * u);
-        } else if (t < .9) {
-          const u = (t - .42) / .48;
-          x = finalPosition + motion.launchX * .36 * (1 - u) ** 2 + motion.driftX * Math.sin(Math.PI * u) * (1 - u);
-          lift = .075 * Math.abs(Math.sin(4 * Math.PI * u)) * (1 - u);
-        } else {
-          x = finalPosition;
-          lift = 0;
-        }
-        die.position.set(x, DICE_FLOOR_Y + roundedDieSupportHeight(die.quaternion) + .035 + lift, depth);
+        const pose = diceThrowPose(motion, t);
+        rollQuaternion.setFromAxisAngle(rollAxis, pose.rollRadians);
+        die.quaternion.copy(rollQuaternion).multiply(finalQuaternion);
+        die.position.set(finalPosition + pose.x, DICE_FLOOR_Y + roundedDieSupportHeight(die.quaternion) + .012 + pose.lift, depth);
+        shadow.position.set(die.position.x, DICE_FLOOR_Y + .003, depth);
+        shadow.scale.setScalar(1 + pose.lift * .35);
+        shadowMaterial.opacity = .65 / (1 + pose.lift * 1.2);
+        shadow.visible = die.visible;
       }
       renderer.render(scene, camera);
       if (anyVisible && !reported) { reported = true; readyRef.current(); }
@@ -191,8 +178,9 @@ export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable
       observer.disconnect();
       canvas.removeEventListener('webglcontextlost', lost);
       renderer.setAnimationLoop(null);
-      bodyGeometry.dispose(); pipGeometry.dispose(); rimGeometry.dispose(); floorBaseGeometry.dispose(); floorTopGeometry.dispose();
-      bodyMaterial.dispose(); pipMaterial.dispose(); rimMaterial.dispose(); floorBaseMaterial.dispose(); floorTopMaterial.dispose();
+      bodyGeometry.dispose(); pipGeometry.dispose(); rimGeometry.dispose(); shadowGeometry.dispose(); shadowTexture.dispose();
+      bodyMaterial.dispose(); pipMaterial.dispose(); rimMaterial.dispose();
+      for (const material of shadowMaterials) material.dispose();
       renderer.dispose();
     };
     // A roll is a new keyed component. Phase changes keep the same WebGL scene alive.
