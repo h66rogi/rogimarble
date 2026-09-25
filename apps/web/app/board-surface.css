@@ -71,6 +71,9 @@
 .marble-board .die-number { place-items: center; color: #74264c; font-size: 38px; font-weight: 900; }
 .marble-board .dice-tray { --cube-size: 6.25cqw; --dice-edge: #cb779b; --dice-pip: #74264c; width: 100%; max-width: 100%; flex-wrap: wrap; }
 .marble-board .thrown-die { position: relative; display: block; flex: 0 0 var(--cube-size); width: var(--cube-size); height: var(--cube-size); perspective: 24cqw; }
+.marble-board .three-die-canvas { position: absolute; z-index: 1; top: -120%; left: -120%; width: 340%; height: 340%; pointer-events: none; }
+.marble-board .thrown-die.has-three .thrown-die-flight,
+.marble-board .thrown-die.has-three .thrown-die-shadow { visibility: hidden; }
 .marble-board .thrown-die.face-up-1 { --settle-x: 0deg; --settle-y: 0deg; }
 .marble-board .thrown-die.face-up-2 { --settle-x: 0deg; --settle-y: -90deg; }
 .marble-board .thrown-die.face-up-3 { --settle-x: -90deg; --settle-y: 0deg; }

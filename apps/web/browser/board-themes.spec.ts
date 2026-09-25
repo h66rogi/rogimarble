@@ -41,6 +41,9 @@ test("OBS updates a theme at the same game revision, keeps the camera space open
   state.latestCommand = { commandId: "synthetic-roll-one", sessionId: state.session.id, sessionEpoch: 1, presentationEpoch: 0, type: "roll_dice", afterRevision: 1, result: { dice: [3], distance: 3, direction: "forward", fromCellId: "cell-01", toCellId: "cell-04", path: ["cell-02", "cell-03", "cell-04"] } };
   await page.waitForFunction(() => document.querySelector(".dice-tray.is-throwing .dice-cube")?.getAnimations().some(animation => animation.playState === "running"), {}, { timeout: 7000 });
   await expect(page.locator(".dice-cube-face")).toHaveCount(6);
+  if (await page.evaluate(() => Boolean(document.createElement("canvas").getContext("webgl2")))) {
+    await expect(page.locator(".thrown-die.has-three")).toHaveCount(1);
+  }
   await page.waitForFunction(() => document.querySelector(".marble-board")?.getAttribute("data-presentation-phase") === "reveal", { }, { timeout: 7000 });
   await expect(page.locator(".thrown-die")).toHaveCount(1);
   await expect(page.locator(".dice-tray")).toHaveAttribute("aria-label", "주사위 3");

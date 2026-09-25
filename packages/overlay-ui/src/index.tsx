@@ -3,12 +3,13 @@
 import { DefaultPawn, LandingLottie } from '@rogimarble/animation';
 import type { BoardFontId, BoardThemeId, PawnStyleId } from '@rogimarble/contracts';
 import { getCellRect, type BoardDefinition, type BoardEffect } from '@rogimarble/game-core/board';
-import { type CSSProperties, type ReactNode } from 'react';
+import { type CSSProperties, type ReactNode, useState } from 'react';
+import { ThreeDieCanvas } from './dice-three';
 export { BOARD_FONT_FAMILIES, BOARD_FONTS, BOARD_THEMES, type BoardFontMetadata, type BoardThemeMetadata } from './themes';
 export { BroadcastPanel, resolveBroadcastPanel } from './broadcast-panel';
 
-export function Board({ board, tokenCellId, moving = false, dice, interactive = false, selectedCellId, selectedCellAction, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, pawnStyleId = 'star-medal', themeId = 'lime-clover', fontId = 'nanum-square-neo' }: {
-  board: BoardDefinition; tokenCellId: string; moving?: boolean; dice?: readonly number[]; interactive?: boolean; selectedCellId?: string; selectedCellAction?: ReactNode; onCellSelect?: (id: string) => void; fit?: boolean;
+export function Board({ board, tokenCellId, moving = false, dice, rollKey, interactive = false, selectedCellId, selectedCellAction, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, pawnStyleId = 'star-medal', themeId = 'lime-clover', fontId = 'nanum-square-neo' }: {
+  board: BoardDefinition; tokenCellId: string; moving?: boolean; dice?: readonly number[]; rollKey?: string | null; interactive?: boolean; selectedCellId?: string; selectedCellAction?: ReactNode; onCellSelect?: (id: string) => void; fit?: boolean;
   effectPhase?: 'idle' | 'anticipation' | 'reveal' | 'stepping' | 'landing'; trailCellIds?: readonly string[]; landingPulseKey?: string | number; reducedMotion?: boolean; pawnImageUrl?: string | null; pawnStyleId?: PawnStyleId;
   themeId?: BoardThemeId;
   fontId?: BoardFontId;
@@ -61,7 +62,7 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
       {interactive && selectedRect && actionSide && selectedCellAction && <div className="board-cell-action" data-side={actionSide} style={{ left: actionLeft, top: actionTop }}>{selectedCellAction}</div>}
       {displayBoard.layout.type === 'perimeter_grid' && (effectPhase !== 'idle' || (reducedMotion && Boolean(dice?.length))) && <div className="center-widget">
         <div className={`dice-tray ${effectPhase === 'anticipation' && !reducedMotion ? 'is-throwing' : ''} ${(dice?.length ?? 0) > 6 ? 'is-crowded' : (dice?.length ?? 0) > 3 ? 'is-many' : ''}`} aria-label={effectPhase === 'anticipation' ? `주사위 ${rollingDiceCount}개 굴리는 중` : dice?.length ? `주사위 ${dice.join(', ')}` : '주사위 대기 중'}>
-          {dice?.length ? dice.map((value, index) => <ThrownDie key={`${index}-${value}`} value={value} index={index} />) : <><span className="die die-number idle-die" aria-hidden="true">?</span><span className="dice-idle">주사위를 굴려 주세요</span></>}
+          {dice?.length ? dice.map((value, index) => <ThrownDie key={`${rollKey ?? 'preview'}-${index}-${value}`} value={value} index={index} rollKey={rollKey} useThree={!reducedMotion && dice.length <= 2} animate={effectPhase === 'anticipation'} />) : <><span className="die die-number idle-die" aria-hidden="true">?</span><span className="dice-idle">주사위를 굴려 주세요</span></>}
         </div>
         {effectPhase !== 'anticipation' && dice?.length ? <span className="dice-total">합계 {dice.reduce((sum, value) => sum + value, 0)}</span> : <span className="board-status">{effectPhase === 'anticipation' ? '결과를 기다리고 있어요' : '오늘도 즐겁게 출발!'}</span>}
         {effectPhase === 'landing' && <span className="landing-status">{tokenCell.label} 도착</span>}
@@ -160,14 +161,16 @@ function Pips({ value }: { value: number }) {
   return <>{Array.from({ length: 9 }, (_, index) => <i key={index} className={positions.includes(index) ? 'is-pip' : ''} />)}</>;
 }
 
-function ThrownDie({ value, index }: { value: number; index: number }) {
+function ThrownDie({ value, index, rollKey, useThree, animate }: { value: number; index: number; rollKey?: string | null; useThree: boolean; animate: boolean }) {
+  const [threeReady, setThreeReady] = useState(false);
   if (!Number.isInteger(value) || value < 1 || value > 6) return <span className="die die-number" aria-hidden="true">{value}</span>;
-  return <span className={`thrown-die face-up-${value} ${index % 2 ? 'is-right' : 'is-left'}`} aria-hidden="true">
+  return <span className={`thrown-die face-up-${value} ${index % 2 ? 'is-right' : 'is-left'} ${threeReady && useThree ? 'has-three' : ''}`} aria-hidden="true">
     <span className="thrown-die-shadow" />
     <span className="thrown-die-flight">
       <span className="dice-cube">
         {Array.from({ length: 6 }, (_, face) => <span key={face} className={`dice-cube-face face-${face + 1}`}><Pips value={face + 1} /></span>)}
       </span>
     </span>
+    {useThree && rollKey && <ThreeDieCanvas value={value} index={index} rollKey={rollKey} animate={animate} onReady={() => setThreeReady(true)} onUnavailable={() => setThreeReady(false)} />}
   </span>;
 }

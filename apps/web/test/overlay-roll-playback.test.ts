@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { OverlayPresentationCommandDto } from '@rogimarble/contracts';
 import { buildRollTimeline, buildTravelTimeline, DICE_THROW_DURATION_MS, rollPlayback } from '../src/integrated-overlay/roll-playback.ts';
+import { diceThrowMotion } from '../../../packages/overlay-ui/src/dice-motion.ts';
 
 const command = (result: unknown, presentationEpoch = 4): OverlayPresentationCommandDto => ({ commandId:'command', sessionId:'session', sessionEpoch:1, presentationEpoch, type:'roll_dice', afterRevision:2, result:result as OverlayPresentationCommandDto['result'], createdAt:'2026-09-21T00:00:00.000Z' });
 
@@ -49,4 +50,16 @@ test('orders anticipation follow-up, every server cell, landing and reduced-moti
   assert.deepEqual(buildRollTimeline(Array.from({length:26},(_,index)=>`cell-${index}`)),[
     {at:DICE_THROW_DURATION_MS,phase:'reveal'},{at:2730,phase:'landing'},{at:3290,phase:'idle'},
   ]);
+});
+
+test('visual throw variation is stable per command and always settles before the server result is revealed',()=>{
+  const first=diceThrowMotion('command-a',0);
+  assert.deepEqual(first,diceThrowMotion('command-a',0));
+  assert.notDeepEqual(first,diceThrowMotion('command-b',0));
+  assert.notDeepEqual(first,diceThrowMotion('command-a',1));
+  for(let index=0;index<10;index++){
+    const motion=diceThrowMotion(`command-${index}`,index);
+    assert.ok(motion.durationMs+motion.delayMs<DICE_THROW_DURATION_MS);
+    assert.ok(motion.launchY>0&&motion.bounceHeight>0);
+  }
 });

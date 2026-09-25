@@ -409,6 +409,7 @@ export function MarbleOperationsPanel({
           tokenCellId={presentation.cellId}
           moving={presentation.moving}
           dice={presentation.dice}
+          rollKey={presentation.rollKey}
           effectPhase={presentation.effectPhase}
           trailCellIds={presentation.trailCellIds}
           landingPulseKey={presentation.landingPulseKey}
