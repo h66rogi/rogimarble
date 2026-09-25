@@ -190,7 +190,7 @@ export function BoardEditor({
     [...c.onLand, ...c.onPass].some((e) => e.type === "unconfigured"),
   );
   if (view === "settings") return (
-    <Card className="mx-auto max-w-3xl">
+    <Card className="w-full min-w-0" data-testid="board-settings-card">
       <CardContent className="space-y-5">
         <BoardSettings value={value} change={edit} />
       </CardContent>

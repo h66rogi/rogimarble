@@ -148,6 +148,40 @@ async function fixture(
 const config = (page: Page) =>
   page.getByRole("region", { name: "게임판 설정", exact: true });
 
+test("board settings use the workspace width and group fields without horizontal overflow", async ({ page }) => {
+  const state = await fixture(page);
+  await page.getByRole("tablist", { name: "보드 설정 세부 메뉴" })
+    .getByRole("tab", { name: "판 설정" }).click();
+  const region = config(page);
+  const card = region.getByTestId("board-settings-card");
+  const note = region.getByRole("note");
+  const cardBox = await card.boundingBox();
+  const noteBox = await note.boundingBox();
+  expect(cardBox).not.toBeNull();
+  expect(noteBox).not.toBeNull();
+  expect(cardBox!.width).toBeGreaterThan(noteBox!.width * 0.95);
+
+  const basicGrid = region.getByLabel("게임판 이름", { exact: true }).locator("xpath=../..");
+  const columns = await basicGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+  const shapeBox = await region.getByRole("button", { name: "판 모양과 칸 수" }).boundingBox();
+  const canvasBox = await region.getByRole("button", { name: "화면 크기와 배경" }).boundingBox();
+  expect(shapeBox).not.toBeNull();
+  expect(canvasBox).not.toBeNull();
+  if (page.viewportSize()!.width >= 1280) {
+    expect(columns).toBe(2);
+    expect(Math.abs(shapeBox!.y - canvasBox!.y)).toBeLessThan(2);
+    expect(canvasBox!.x).toBeGreaterThan(shapeBox!.x);
+  } else {
+    expect(columns).toBe(1);
+    expect(canvasBox!.y).toBeGreaterThan(shapeBox!.y);
+  }
+  await region.getByRole("button", { name: "화면 크기와 배경" }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    await page.evaluate(() => document.documentElement.clientWidth),
+  );
+  expect(state.errors).toEqual([]);
+});
+
 test("home starts the one published board without a board picker", async ({ page }) => {
   const boards = [
     { id: "recent-legacy", boardId: "legacy", name: "과거 판", path: board.path, initialCellId: board.startCellId, previewOnly: false },

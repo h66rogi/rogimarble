@@ -29,15 +29,16 @@ export function ItemsEditor({
       value.map((item) => (item.id === id ? { ...item, ...patch } : item)),
     );
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="w-full min-w-0 space-y-5">
       <p className="text-xs leading-relaxed text-muted-foreground">
         후원으로 지급하거나 미션 방어에 쓸 아이템을 등록하세요. 게시한 뒤
         게임판과 후원 규칙에서 이름으로 선택할 수 있어요.
       </p>
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2">
       {value.map((item) => (
         <Card className="space-y-4" key={item.id}>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <Field label="아이템 이름">
                 <Input
                   value={item.label}
@@ -69,6 +70,7 @@ export function ItemsEditor({
           </CardContent>
         </Card>
       ))}
+      </div>
       {!value.length && (
         <p className="py-4 text-sm text-muted-foreground">
           아직 등록된 아이템이 없어요.
@@ -123,7 +125,7 @@ export function LayoutEditor({
       <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Card className="min-w-0">
           <CardContent>
-            <BoardThemePicker selected={value.boardThemeId ?? "lime-clover"} fontSelected={value.fontId ?? "nanum-square-neo"} changeFont={fontId => change({ ...value, fontId })} change={boardThemeId => change({ ...value, boardThemeId })} />
+            <BoardThemePicker selected={value.boardThemeId ?? "lime-clover"} fontSelected={value.fontId ?? "nanum-square-neo"} showPathArrows={value.showPathArrows ?? false} changeShowPathArrows={showPathArrows => change({ ...value, showPathArrows })} changeFont={fontId => change({ ...value, fontId })} change={boardThemeId => change({ ...value, boardThemeId })} />
           </CardContent>
         </Card>
         <div className="min-w-0 space-y-5">
@@ -134,7 +136,7 @@ export function LayoutEditor({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="aspect-video overflow-hidden">
-                <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "lime-clover"} fontId={value.fontId ?? "nanum-square-neo"} fit reducedMotion />
+                <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "lime-clover"} fontId={value.fontId ?? "nanum-square-neo"} showPathArrows={value.showPathArrows} fit reducedMotion />
               </div>
               {value.widgets.length > 0 && <Disclosure title={<>전체 오버레이 구성 보기</>}>
                 <OverlayLayoutPreview value={value} board={board} rules={rules} />

@@ -77,56 +77,64 @@ export function BoardSettings({
           <h3 className="text-lg font-semibold">판 설정</h3>
         </div>
       </header>
-      <div className="space-y-5">
-        <Field label="게임판 이름" help="게임을 시작할 때 표시되는 이름이에요.">
-          <Input maxLength={60} required placeholder="예: 금요일 방송판" value={value.name}
-            onChange={(event) => change({ ...value, name: event.target.value })} />
-        </Field>
+      <div className="space-y-6">
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold">시작과 주사위</h4>
-          <Options
-            label="출발하는 칸"
-            value={value.startCellId}
-            options={value.path.map(
-              (id, i) =>
-                [
-                  id,
-                  `${i + 1}. ${value.cells.find((c) => c.id === id)?.label}`,
-                ] as const,
-            )}
-            change={(startCellId) => change({ ...value, startCellId })}
-          />
-          <Options
-            label="새 게임의 진행 방향"
-            value={value.defaultDirection}
-            options={[
-              ["forward", "정방향 · 번호가 커지는 순서"],
-              ["reverse", "역방향 · 번호가 작아지는 순서"],
-            ]}
-            change={(defaultDirection) =>
-              change({ ...value, defaultDirection })
-            }
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <NumberField
-              label="주사위 개수"
-              value={value.dice.count}
-              max={10}
-              change={(count) =>
-                change({ ...value, dice: { ...value.dice, count } })
+          <h4 className="text-sm font-semibold">기본 설정</h4>
+          <div className="grid min-w-0 gap-5 md:grid-cols-2">
+            <Field label="게임판 이름" help="게임을 시작할 때 표시되는 이름이에요.">
+              <Input
+                maxLength={60}
+                required
+                placeholder="예: 금요일 방송판"
+                value={value.name}
+                onChange={(event) => change({ ...value, name: event.target.value })}
+              />
+            </Field>
+            <Options
+              label="출발하는 칸"
+              value={value.startCellId}
+              options={value.path.map(
+                (id, i) =>
+                  [
+                    id,
+                    `${i + 1}. ${value.cells.find((c) => c.id === id)?.label}`,
+                  ] as const,
+              )}
+              change={(startCellId) => change({ ...value, startCellId })}
+            />
+            <Options
+              label="새 게임의 진행 방향"
+              value={value.defaultDirection}
+              options={[
+                ["forward", "정방향 · 번호가 커지는 순서"],
+                ["reverse", "역방향 · 번호가 작아지는 순서"],
+              ]}
+              change={(defaultDirection) =>
+                change({ ...value, defaultDirection })
               }
             />
-            <NumberField
-              label="주사위 면 수"
-              min={2}
-              max={100}
-              value={value.dice.sides}
-              change={(sides) =>
-                change({ ...value, dice: { ...value.dice, sides } })
-              }
-            />
+            <div className="grid min-w-0 grid-cols-2 gap-3">
+              <NumberField
+                label="주사위 개수"
+                value={value.dice.count}
+                max={10}
+                change={(count) =>
+                  change({ ...value, dice: { ...value.dice, count } })
+                }
+              />
+              <NumberField
+                label="주사위 면 수"
+                min={2}
+                max={100}
+                value={value.dice.sides}
+                change={(sides) =>
+                  change({ ...value, dice: { ...value.dice, sides } })
+                }
+              />
+            </div>
           </div>
         </div>
+        <div className="grid min-w-0 items-start gap-6 xl:grid-cols-2">
         <Disclosure title={<>판 모양과 칸 수</>} defaultOpen>
           <p className="text-xs leading-relaxed text-muted-foreground">
             가로·세로를 바꾸면 외곽의 칸 수가 달라져요. 적용 전에 배치를
@@ -165,7 +173,7 @@ export function BoardSettings({
               <p className="mb-2 text-sm font-medium">
                 제외할 칸 {remove.length} / {removeCount}개 선택
               </p>
-              <div className="grid max-h-52 gap-3 overflow-auto p-1">
+              <div className="grid max-h-52 gap-3 overflow-auto p-1 sm:grid-cols-2">
                 {value.path.map((id, i) => (
                   <ConsoleCheck
                     key={id}
@@ -303,20 +311,20 @@ export function BoardSettings({
               }
             />
           </div>
-          <Field label="배경색">
-            <Input
-              type="color"
-              value={value.canvas.backgroundColor}
-              onChange={(e) =>
-                change({
-                  ...value,
-                  canvas: { ...value.canvas, backgroundColor: e.target.value },
-                })
-              }
-            />
-          </Field>
-          {value.layout.type === "perimeter_grid" && (
-            <>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="배경색">
+              <Input
+                type="color"
+                value={value.canvas.backgroundColor}
+                onChange={(e) =>
+                  change({
+                    ...value,
+                    canvas: { ...value.canvas, backgroundColor: e.target.value },
+                  })
+                }
+              />
+            </Field>
+            {value.layout.type === "perimeter_grid" && (
               <NumberField
                 label="칸 사이 간격 (px)"
                 min={0}
@@ -327,7 +335,10 @@ export function BoardSettings({
                     change({ ...value, layout: { ...value.layout, gap } });
                 }}
               />
-              <div className="grid grid-cols-2 gap-3">
+            )}
+          </div>
+          {value.layout.type === "perimeter_grid" && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {(["top", "right", "bottom", "left"] as const).map((side) => (
                   <NumberField
                     key={side}
@@ -350,10 +361,11 @@ export function BoardSettings({
                     }}
                   />
                 ))}
-              </div>
-            </>
+            </div>
           )}
         </Disclosure>
+        </div>
+        <div className="grid min-w-0 items-start gap-6 xl:grid-cols-2">
         <Disclosure
           title={
             <>
@@ -365,6 +377,7 @@ export function BoardSettings({
             칸에서 적립·청산할 수량을 만들어요. 현재 게임의 잔량은 운영 화면에서
             조절해요.
           </p>
+          <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
           {value.counters.map((counter) => {
             const update = (patch: Partial<typeof counter>) =>
               change({
@@ -434,6 +447,7 @@ export function BoardSettings({
               </Card>
             );
           })}
+          </div>
           <Button
             variant="outline"
             onClick={() =>
@@ -465,6 +479,7 @@ export function BoardSettings({
           <p className="text-xs leading-relaxed text-muted-foreground">
             판 위의 제목·주사위·미션 표시를 배치해요.
           </p>
+          <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
           {value.widgets.map((w) => (
             <Card className="space-y-3" key={w.id}>
               <CardContent className="space-y-4">
@@ -537,6 +552,7 @@ export function BoardSettings({
               </CardContent>
             </Card>
           ))}
+          </div>
           <Options
             label="추가할 내용"
             value={widgetType}
@@ -554,6 +570,7 @@ export function BoardSettings({
             표시 추가
           </Button>
         </Disclosure>
+        </div>
       </div>
     </>
   );
