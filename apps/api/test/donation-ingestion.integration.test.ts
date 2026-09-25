@@ -41,5 +41,39 @@ test('collector inbox atomically deduplicates, snapshots exact rules and execute
     const chat=await service.acceptChat(channel,{consumerId:consumer,collectorChannelId:collectorChannel,eventId:'chat-1',cursor:{streamGeneration:'s1',streamId:'2-0',gapBefore:false},userId:'donor',message:'!move 2',observedAt:new Date(new Date(task.created_at).getTime()+1000).toISOString(),payload:{fixture:true}});assert.equal(chat.matchedTaskId,task.id);assert.deepEqual(await service.chatCursor(channel,consumer),{streamGeneration:'s1',streamId:'2-0',gapBefore:false});
     await db.query(`UPDATE collector_dispatch_state SET next_movement_at=now()-interval '1 second' WHERE channel_id=$1`,[channel]);await db.query(`UPDATE collector_donation_inbox SET not_before=now()-interval '1 second' WHERE external_event_id='event-3'`);assert.equal((await service.drain(channel,1)).processed,1);
     assert.equal((await db.query(`SELECT disposition FROM collector_donation_inbox WHERE external_event_id='event-3'`)).rows[0].disposition,'executed');assert.equal((await db.query(`SELECT current_cell_id FROM game_sessions WHERE id=$1`,[session])).rows[0].current_cell_id,board.path[1]);
+
+    // Burst donations remain unrolled while the streamer must resolve travel or an island lock.
+    await db.query(`UPDATE channel_config_versions SET document=$2 WHERE id=$1`,[rulesVersion,{schemaVersion:1,multiRollEnabled:false,items:[],rules:[{id:'roll',label:'roll',amount:66,enabled:true,action:{type:'roll_dice',rollCount:1}}]}]);
+    const fourth={...event,eventId:'event-4',nativeBalloonCount:66,cursor:{...event.cursor,channelOffset:'4'}};
+    const fifth={...fourth,eventId:'event-5',cursor:{...event.cursor,channelOffset:'5'}};
+    await service.acceptDonation(channel,fourth);await service.acceptDonation(channel,fifth);
+    const sourceCommandId=(await db.query(`SELECT command_id FROM game_commands WHERE donation_inbox_id=(SELECT id FROM collector_donation_inbox WHERE external_event_id='event-2') LIMIT 1`)).rows[0].command_id;
+    const travelTaskId=randomUUID();
+    await db.query(`INSERT INTO session_effect_tasks(id,session_id,task_type,payload,source_command_id,source_effect_index) VALUES($1,$2,'choose_destination',$3,$4,99)`,[travelTaskId,session,{type:'choose_destination',selection:'operator',allowedCellIds:null,onArrival:'trigger',timing:'next_turn',excludeCurrentCell:true,selectedCellId:null,reservedTurnCommandId:null,cancelled:false},sourceCommandId]);
+    await db.query(`UPDATE collector_dispatch_state SET next_movement_at=now()-interval '1 second' WHERE channel_id=$1`,[channel]);
+    await service.drain(channel,50);
+    assert.equal(Number((await db.query(`SELECT count(*) count FROM game_commands WHERE donation_inbox_id IN (SELECT id FROM collector_donation_inbox WHERE external_event_id IN ('event-4','event-5'))`)).rows[0].count),0);
+    const {ApiService}=await import('../dist/apps/api/src/api.service.js');
+    const api=new ApiService();
+    let revision=Number((await db.query('SELECT revision FROM game_sessions WHERE id=$1',[session])).rows[0].revision);
+    await api.command({id:operator,role:'admin'},channel,session,{commandId:randomUUID(),sessionEpoch:1,expectedRevision:revision,type:'roll_dice',reason:'streamer starts the travel turn',payload:{}});
+    revision=Number((await db.query('SELECT revision FROM game_sessions WHERE id=$1',[session])).rows[0].revision);
+    await api.command({id:operator,role:'admin'},channel,session,{commandId:randomUUID(),sessionEpoch:1,expectedRevision:revision,type:'choose_destination',reason:'streamer selects travel destination',payload:{taskId:travelTaskId,cellId:board.path[2],expectedTaskRevision:1}});
+    await db.query(`UPDATE collector_dispatch_state SET next_movement_at=now()-interval '1 second' WHERE channel_id=$1`,[channel]);
+    await service.drain(channel,50);
+    assert.equal((await db.query(`SELECT disposition FROM collector_donation_inbox WHERE external_event_id='event-4'`)).rows[0].disposition,'executed');
+    assert.equal((await db.query(`SELECT disposition FROM collector_donation_inbox WHERE external_event_id='event-5'`)).rows[0].disposition,'pending');
+
+    await db.query(`INSERT INTO session_movement_locks(session_id,release_type,rolls_remaining,release_payload,source_command_id,source_effect_index) VALUES($1,'skip_rolls',1,$2,$3,100)`,[session,{type:'skip_rolls',count:1},sourceCommandId]);
+    await db.query(`UPDATE collector_dispatch_state SET next_movement_at=now()-interval '1 second' WHERE channel_id=$1`,[channel]);
+    await db.query(`UPDATE collector_donation_inbox SET not_before=now()-interval '1 second' WHERE external_event_id='event-5'`);
+    await service.drain(channel,50);
+    assert.equal((await db.query(`SELECT disposition FROM collector_donation_inbox WHERE external_event_id='event-5'`)).rows[0].disposition,'pending');
+    revision=Number((await db.query('SELECT revision FROM game_sessions WHERE id=$1',[session])).rows[0].revision);
+    await api.command({id:operator,role:'admin'},channel,session,{commandId:randomUUID(),sessionEpoch:1,expectedRevision:revision,type:'roll_dice',reason:'streamer rolls to leave island',payload:{}});
+    assert.equal(Number((await db.query('SELECT count(*) count FROM session_movement_locks WHERE session_id=$1',[session])).rows[0].count),0);
+    await db.query(`UPDATE collector_dispatch_state SET next_movement_at=now()-interval '1 second' WHERE channel_id=$1`,[channel]);
+    await service.drain(channel,50);
+    assert.equal((await db.query(`SELECT disposition FROM collector_donation_inbox WHERE external_event_id='event-5'`)).rows[0].disposition,'executed');
   }finally{await db.query('DELETE FROM channels WHERE id=$1',[channel]).catch(()=>{});await db.end();await closePool();}
 });

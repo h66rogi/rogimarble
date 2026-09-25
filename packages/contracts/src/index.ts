@@ -291,7 +291,7 @@ function validateBroadcastPanels(layout:Record<string,unknown>):void {
   }
 }
 
-export interface OverlayStateDto { readonly channelId:string; readonly session:GameSessionDto|null; readonly boardDefinition:unknown|null; readonly latestCommand?:OverlayPresentationCommandDto|null; readonly inventory:readonly InventoryItemDto[]; readonly missions:readonly MissionDto[]; readonly pawnAppearance:PawnAppearanceDto; readonly layout:unknown|null; readonly layoutVersion?:number; readonly layoutUpdatedAt?:string|null; readonly donationMenu?:readonly BroadcastDonationRule[]; readonly capabilities:{readonly arrivalEffects:boolean;readonly donations:boolean} }
+export interface OverlayStateDto { readonly channelId:string; readonly session:GameSessionDto|null; readonly boardDefinition:unknown|null; readonly latestCommand?:OverlayPresentationCommandDto|null; readonly presentationCommands?:readonly OverlayPresentationCommandDto[]; readonly inventory:readonly InventoryItemDto[]; readonly missions:readonly MissionDto[]; readonly pawnAppearance:PawnAppearanceDto; readonly layout:unknown|null; readonly layoutVersion?:number; readonly layoutUpdatedAt?:string|null; readonly donationMenu?:readonly BroadcastDonationRule[]; readonly capabilities:{readonly arrivalEffects:boolean;readonly donations:boolean} }
 
 export const operatorApi = {
   overlayLayoutLive: (channelId:string) => `${API_V1}/channels/${encodeURIComponent(channelId)}/overlay-layout/live`,

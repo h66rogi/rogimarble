@@ -86,7 +86,8 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status,
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-  const observedCommandIdRef = useRef<string | null>(null);
+  const observedRevisionRef = useRef<number | null>(null);
+  const observedCellIdRef = useRef<string | null>(null);
   const observedSessionRef = useRef<string | null>(null);
   const state = accepted?.state ?? null;
   const session = state?.session ?? null;
@@ -98,6 +99,7 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status,
     && state.latestCommand.presentationEpoch === session.presentationEpoch ? state.latestCommand : null;
   const playback = session ? rollPlayback(presentationCommand, board.path, session.currentCellId) : null;
   const presentation = useRollPresentation({sessionKey:session?`${session.id}:${session.sessionEpoch}`:null,presentationEpoch:session?.presentationEpoch??null,authoritativeCellId:session?.currentCellId??board.path[0],boardPath:board.path});
+  const visibleDice = presentation.effectPhase==='idle' ? (presentation.dice.length?presentation.dice:playback?.dice) : presentation.dice;
   const currentMission = state?.missions.find((mission) => mission.status === 'pending') ?? null;
 
   useEffect(() => {
@@ -114,14 +116,27 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status,
   }, []);
 
   useEffect(() => {
-    if (!session) { observedSessionRef.current=null;observedCommandIdRef.current=null;return; }
-    const command = state?.latestCommand ?? null;
+    if (!session) { observedSessionRef.current=null;observedRevisionRef.current=null;observedCellIdRef.current=null;return; }
     const sessionKey=`${session.id}:${session.sessionEpoch}`;
-    if(observedSessionRef.current!==sessionKey){observedSessionRef.current=sessionKey;observedCommandIdRef.current=command?.commandId??null;return;}
-    if(command?.commandId===observedCommandIdRef.current)return;
-    observedCommandIdRef.current = command?.commandId ?? null;
-    if(playback&&command) presentation.play({commandId:command.commandId,commandType:command.type as 'roll_dice'|'choose_destination'|'cancel_destination'|'resume',sessionKey,presentationEpoch:command.presentationEpoch,finalCellId:session.currentCellId,result:command.result});
-  },[session?.id,session?.sessionEpoch,state?.latestCommand?.commandId]);
+    const presentationKey=`${sessionKey}:${session.presentationEpoch}`;
+    const commands=(state?.presentationCommands??(state?.latestCommand?[state.latestCommand]:[]))
+      .filter(command=>command.sessionEpoch===session.sessionEpoch&&command.presentationEpoch===session.presentationEpoch);
+    if(observedSessionRef.current!==presentationKey){observedSessionRef.current=presentationKey;observedRevisionRef.current=commands.at(-1)?.afterRevision??session.revision;observedCellIdRef.current=session.currentCellId;return;}
+    const unseen=commands.filter(command=>command.afterRevision>(observedRevisionRef.current??-1));
+    for(const command of unseen){
+      const fromCellId=command.result&&'fromCellId' in command.result?command.result.fromCellId:null;
+      const finalCellId=command.result&&'toCellId' in command.result?command.result.toCellId:null;
+      if(typeof fromCellId!=='string'||fromCellId!==observedCellIdRef.current||typeof finalCellId!=='string'||!rollPlayback(command,board.path,finalCellId)){
+        observedRevisionRef.current=commands.at(-1)?.afterRevision??session.revision;
+        observedCellIdRef.current=session.currentCellId;
+        presentation.cancel();
+        return;
+      }
+      observedRevisionRef.current=command.afterRevision;
+      observedCellIdRef.current=finalCellId;
+      presentation.play({commandId:command.commandId,commandType:command.type as 'roll_dice'|'choose_destination'|'cancel_destination'|'resume',sessionKey,presentationEpoch:command.presentationEpoch,finalCellId,result:command.result});
+    }
+  },[session?.id,session?.sessionEpoch,session?.presentationEpoch,session?.revision,state?.presentationCommands,state?.latestCommand,board.path,presentation.play,presentation.cancel]);
 
   const missingLiveBoard = status !== 'preview' && !!state && !state.boardDefinition;
   const waitingForSession = status !== 'preview' && !!state && !state.session;
@@ -151,9 +166,9 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status,
         const themeId = style?.themeId ?? totalLayout.boardThemeId;
         const fontId = style?.fontId ?? totalLayout.fontId;
         return <div key={widget.id} data-overlay-widget={widget.id} data-overlay-version="1" className="absolute" style={{ left, top, width, height, zIndex: widget.z ?? 1 }}>
-          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} themeId={themeId} fontId={fontId} showPathArrows={totalLayout.showPathArrows} direction={session?.direction} tokenCellId={tokenCellId} moving={presentation.moving} dice={presentation.dice.length?presentation.dice:playback?.dice} rollKey={presentation.rollKey} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} pawnImageUrl={state?.pawnAppearance?.image ? apiAssetUrl(state.pawnAppearance.image.url) : null} pawnStyleId={state?.pawnAppearance?.styleId ?? 'star-medal'} /></div>}
+          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} themeId={themeId} fontId={fontId} showPathArrows={totalLayout.showPathArrows} direction={session?.direction} tokenCellId={tokenCellId} moving={presentation.moving} dice={visibleDice} rollKey={presentation.rollKey} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} pawnImageUrl={state?.pawnAppearance?.image ? apiAssetUrl(state.pawnAppearance.image.url) : null} pawnStyleId={state?.pawnAppearance?.styleId ?? 'star-medal'} /></div>}
           {(widget.id === 'menu' || widget.id === 'dice_price') && <BroadcastPanel kind={widget.id} layout={{ ...totalLayout, boardThemeId: themeId, fontId }} rules={state?.donationMenu ?? []} />}
-          {widget.id === 'dice' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="이번 주사위" value={presentation.effectPhase==='anticipation'?'굴리는 중…':(presentation.dice.length?presentation.dice:playback?.dice)?.join(' + ')||'대기 중'} />}
+          {widget.id === 'dice' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="이번 주사위" value={presentation.effectPhase==='anticipation'?'굴리는 중…':visibleDice?.join(' + ')||'대기 중'} />}
           {widget.id === 'current_mission' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="현재 미션" value={currentMission ? `${currentMission.message} × ${currentMission.quantity}` : '진행 중인 미션 없음'} />}
           {widget.id === 'inventory' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="보유 아이템" value={state?.inventory.length ? state.inventory.map((item) => `${item.name} ${item.quantity}`).join(' · ') : '없음'} align="left" />}
           {widget.id === 'direction' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="이동 방향" value={session?.direction === 'reverse' ? '역방향' : '정방향'} />}
