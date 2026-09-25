@@ -481,7 +481,7 @@ export function EffectFields({ value, board, items, change }: Props) {
       return (
         <Field
           label="나중에 정할 내용"
-          help="초안으로 저장할 수 있어요. 게시 전에 동작을 정해주세요."
+          help="게임판을 저장하려면 이 칸의 동작을 정해주세요."
         >
           <Input
             value={value.question}
