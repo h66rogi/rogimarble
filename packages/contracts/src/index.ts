@@ -102,7 +102,7 @@ export type SessionCommandRequest =
       readonly expectedMissionRevision: number;
       readonly expectedInventoryRevision: number;
     }>
-  | CommandBase<'choose_destination', { readonly taskId: string; readonly cellId: string; readonly expectedTaskRevision: number }>
+  | CommandBase<'choose_destination', { readonly taskId: string; readonly cellId: string; readonly expectedTaskRevision: number; readonly moveNow?: true }>
   | CommandBase<'cancel_destination', { readonly taskId: string; readonly expectedTaskRevision: number }>
   | CommandBase<'adjust_counter', { readonly counterId: string; readonly quantity: number; readonly expectedCounterRevision: number }>
   | CommandBase<'clear_movement_lock', Record<string, never>>

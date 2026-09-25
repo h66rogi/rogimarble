@@ -27,7 +27,7 @@ const session = {
   direction: "forward",
 };
 
-async function mockApi(page: Page) {
+async function mockApi(page: Page, unlocked = false) {
   // Everything is synthetic and intercepted in-browser; never connect to a collector or real game.
   await page.route("**/v1/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -68,7 +68,7 @@ async function mockApi(page: Page) {
           id: "donor-travel-task", type: "donation_destination", status: "pending", revision: 1,
           payload: { selectedCellId: null, selection: "donor_chat" },
         }],
-        movementLock: { releaseType: "skip_rolls", rollsRemaining: 2, release: { type: "skip_rolls", count: 3 }, createdAt: "2026-01-01T00:00:00Z" },
+        movementLock: unlocked ? null : { releaseType: "skip_rolls", rollsRemaining: 2, release: { type: "skip_rolls", count: 3 }, createdAt: "2026-01-01T00:00:00Z" },
         missions: [{ id: "mission-1", message: "일회성 미션", quantity: 1, status: "pending",
           revision: 0, shield: null, createdAt: "2026-01-01T00:00:00Z", durationSeconds: null }],
         pawnAppearance: { revision: 0, image: null },
@@ -468,11 +468,9 @@ test("home separates current actions from four tabs that own all remaining contr
   await expect(actions.getByText("일회성 미션")).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "완료", exact: true })).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "면제", exact: true })).toHaveCount(0);
-  await actions.getByRole("group", { name: "이동할 칸 선택" }).getByRole("button").first().click();
-  await actions.getByRole("button", { name: "목적지 저장" }).click();
-  await expect.poll(() => submitted.at(-1)).toMatchObject({
-    type: "choose_destination", payload: { taskId: "travel-task", cellId: board.path[1] },
-  });
+  await actions.getByRole("group", { name: "이동할 칸 선택" }).getByRole("button", { name: /^2번 / }).click();
+  await expect(actions.getByText(`2번 ${board.cells[1].label}`)).toBeVisible();
+  await expect(actions.getByRole("button", { name: "이동", exact: true })).toBeDisabled();
   await actions.getByRole("button", { name: "3회 남김" }).click();
   await expect.poll(() => submitted.at(-1)).toMatchObject({
     type: "set_movement_lock_remaining", payload: { rollsRemaining: 3 },
@@ -520,6 +518,31 @@ test("home separates current actions from four tabs that own all remaining contr
   expect(layout.actionBackground).not.toBe(layout.tabsBackground);
   expect(layout.actionTopBorder).toBeLessThanOrEqual(1);
   expect(layout.tabsOwnRemainingArea).toBe(true);
+});
+
+test("world travel moves to the selected board cell in one command", async ({ page }) => {
+  await mockApi(page, true);
+  const submitted: Array<{ type: string; payload: Record<string, unknown> }> = [];
+  await page.route("**/v1/channels/**/sessions/**/commands", async (route) => {
+    const command = route.request().postDataJSON();
+    submitted.push(command);
+    await route.fulfill({ json: {
+      commandId: command.commandId, sessionId: session.id, sessionEpoch: session.sessionEpoch,
+      presentationEpoch: session.presentationEpoch, type: command.type, status: "completed",
+      operatorId: "test-operator", beforeRevision: 1, afterRevision: 2,
+      result: { travelStatus: "moved", fromCellId: board.path[0], toCellId: board.path[2], dice: [], path: [board.path[2]] },
+      rejectionCode: null, createdAt: "2026-01-01T00:02:00Z",
+    } });
+  });
+  await page.goto("/");
+  const actions = page.getByRole("region", { name: "현재 할 수 있는 액션" });
+  const choices = actions.getByRole("group", { name: "이동할 칸 선택" });
+  await choices.getByRole("button", { name: /^3번 / }).click();
+  await expect(actions.getByText(`3번 ${board.cells[2].label}`)).toBeVisible();
+  await actions.getByRole("button", { name: "이동", exact: true }).click();
+  await expect.poll(() => submitted.at(-1)).toMatchObject({
+    type: "choose_destination", payload: { taskId: "travel-task", cellId: board.path[2], moveNow: true },
+  });
 });
 
 test("the last game remains available in history after it ends", async ({ page }) => {

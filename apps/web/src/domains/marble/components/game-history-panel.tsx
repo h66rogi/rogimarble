@@ -27,7 +27,10 @@ function detail(entry: SessionHistoryEntryDto, board: BoardDefinition) {
     return `주사위 ${dice.join(" + ")}${cellLabel(result.toCellId) ? ` · ${cellLabel(result.toCellId)} 도착` : ""}`;
   }
   if (entry.type === "set_position") return `${cellLabel(result.fromCellId) ?? "이전 칸"} → ${cellLabel(result.toCellId) ?? "새 칸"}`;
-  if (entry.type === "choose_destination" && cellLabel(result.cellId)) return `${cellLabel(result.cellId)} 선택`;
+  if (entry.type === "choose_destination") {
+    if (result.travelStatus === "moved") return `${cellLabel(result.fromCellId) ?? "이전 칸"} → ${cellLabel(result.toCellId) ?? "목적지"}`;
+    if (cellLabel(result.cellId)) return `${cellLabel(result.cellId)} 선택`;
+  }
   if (entry.type === "set_movement_lock_remaining" && typeof result.rollsRemaining === "number") return `남은 휴식 ${result.rollsRemaining}회`;
   if (entry.type === "adjust_counter" && typeof result.quantity === "number") return `적립 총량 ${result.quantity}`;
   if (entry.type === "adjust_inventory" && result.inventory && typeof result.inventory === "object") {
@@ -138,7 +141,9 @@ export function GameHistoryPanel({
           const effects = effectDetails(entry, board);
           return <li key={entry.commandId} className="space-y-1 py-3 first:pt-0">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <strong className="text-sm">{labels[entry.type] ?? entry.type}</strong>
+              <strong className="text-sm">{entry.type === "choose_destination" &&
+                entry.result && typeof entry.result === "object" && "travelStatus" in entry.result &&
+                entry.result.travelStatus === "moved" ? "세계여행 이동" : labels[entry.type] ?? entry.type}</strong>
               <Badge variant="secondary">{entry.source === "donation" ? "후원 자동 처리" : "운영자 조작"}</Badge>
             </div>
             {summary && <p className="text-sm">{summary}</p>}

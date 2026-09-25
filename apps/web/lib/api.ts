@@ -121,7 +121,7 @@ export const api = {
       : command.type === 'clear_roll_modifier' ? { ...base, type: 'clear_roll_modifier', payload: { modifierId: command.modifierId } }
       : command.type === 'cancel_destination' ? { ...base, type: 'cancel_destination', payload: { taskId: command.taskId, expectedTaskRevision: command.expectedTaskRevision } }
       : command.type === 'choose_destination'
-      ? { ...base, type: 'choose_destination', payload: { taskId: command.taskId, cellId: command.cellId, expectedTaskRevision: command.expectedTaskRevision } }
+      ? { ...base, type: 'choose_destination', payload: { taskId: command.taskId, cellId: command.cellId, expectedTaskRevision: command.expectedTaskRevision, ...(command.moveNow ? { moveNow: true as const } : {}) } }
       : command.type === 'roll'
       ? { ...base, type: 'roll_dice', payload: {} }
       : command.type === 'set_direction'

@@ -5,7 +5,7 @@ import type { CreateSessionRequest, GameSessionDto, InventoryItemDto, InventoryL
 import type { BoardDefinition } from '../../../packages/game-core/src/board-definition.ts';
 import { transaction, pool } from '../../../packages/database/src/index.ts';
 import type pg from 'pg';
-import { decideTravel, reserveTravelTurn, type TravelReservation } from './travel-turn.ts';
+import { decideTravel, moveTravelNow, reserveTravelTurn, type TravelReservation } from './travel-turn.ts';
 import { isBoardSupportedForLive, unsupportedBoardEffects } from './board-support.ts';
 import { pawnAppearance } from './pawn-assets.ts';
 import { effectiveOverlayLayout } from './overlay-layout.ts';
@@ -133,6 +133,7 @@ export class ApiService {
             await client.query(`UPDATE session_effect_tasks SET status='cancelled',revision=revision+1,resolved_at=now() WHERE id=$1`,[donationTask.id]);
             result={taskId:donationTask.id,status:'destination_cancelled'};
           }else{
+            if(body.payload.moveNow)throw new UnprocessableEntityException('Immediate movement is only available for board travel');
             const payload={...donationTask.payload};
             if(!['operator','both'].includes(payload.selection))throw new ForbiddenException('This request accepts donor chat only');
             if(payload.selectedCellId||Date.parse(payload.expiresAt)<=Date.now())throw new ConflictException('Destination already selected or expired');
@@ -153,7 +154,11 @@ export class ApiService {
           reservation.selectedCellId=body.payload.cellId;
         } else reservation.cancelled=true;
         const lockedMovement=await client.query('SELECT 1 FROM session_movement_locks WHERE session_id=$1',[sessionId]);
-        const decision=decideTravel(reservation,session.status==='paused'||Boolean(lockedMovement.rowCount));
+        if(body.type==='choose_destination'&&body.payload.moveNow&&lockedMovement.rowCount)
+          throw new ConflictException('이동 제한을 먼저 해제해 주세요.');
+        const decision=body.type==='choose_destination'&&body.payload.moveNow
+          ? moveTravelNow(reservation,body.commandId)
+          : decideTravel(reservation,session.status==='paused'||Boolean(lockedMovement.rowCount));
         result=await applyTravelDecision(client,session,task,decision,body.commandId,operator.id,afterCommands);
         }
       }
@@ -291,7 +296,7 @@ function validateCommand(v:unknown):asserts v is SessionCommandRequest{
     if(!exactObject(v.payload,['boardVersionId'])||!isUuid(v.payload.boardVersionId))throw new UnprocessableEntityException('Invalid board version command');
   }else if(v.type==='choose_destination'||v.type==='cancel_destination'){
     const keys=v.type==='choose_destination'?['taskId','cellId','expectedTaskRevision']:['taskId','expectedTaskRevision'];
-    if(!exactObject(v.payload,keys)||!isUuid(v.payload.taskId)||!Number.isSafeInteger(v.payload.expectedTaskRevision)||Number(v.payload.expectedTaskRevision)<0||(v.type==='choose_destination'&&(typeof v.payload.cellId!=='string'||!v.payload.cellId||v.payload.cellId.length>128)))throw new UnprocessableEntityException('Invalid travel command');
+    if(!(exactObject(v.payload,keys)||(v.type==='choose_destination'&&exactObject(v.payload,[...keys,'moveNow'])))||!isUuid(v.payload.taskId)||!Number.isSafeInteger(v.payload.expectedTaskRevision)||Number(v.payload.expectedTaskRevision)<0||(v.type==='choose_destination'&&(typeof v.payload.cellId!=='string'||!v.payload.cellId||v.payload.cellId.length>128||(v.payload.moveNow!==undefined&&v.payload.moveNow!==true))))throw new UnprocessableEntityException('Invalid travel command');
   }else if(v.type==='set_direction'){
     if(!exactObject(v.payload,['direction'])||(v.payload.direction!=='forward'&&v.payload.direction!=='reverse'))throw new UnprocessableEntityException('Invalid direction command');
   }else if(v.type==='set_position'){

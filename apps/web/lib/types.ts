@@ -32,7 +32,7 @@ export type OperatorCommand =
   | { type: 'set_movement_lock_remaining'; rollsRemaining: number; expectedRevision: number; reason: string }
   | { type: 'clear_roll_modifier'; modifierId: string; expectedRevision: number; reason: string }
   | { type: 'cancel_destination'; taskId: string; expectedTaskRevision: number; expectedRevision: number; reason: string }
-  | { type: 'choose_destination'; taskId: string; cellId: string; expectedTaskRevision: number; expectedRevision: number; reason: string }
+  | { type: 'choose_destination'; taskId: string; cellId: string; expectedTaskRevision: number; moveNow?: true; expectedRevision: number; reason: string }
   | { type: 'roll'; expectedRevision: number; reason: string }
   | { type: 'set_direction'; direction: Direction; expectedRevision: number; reason: string }
   | { type: 'correct_position'; cellId: string; pauseAutomaticMovement: true; triggerArrivalEffects?: boolean; expectedRevision: number; reason: string }

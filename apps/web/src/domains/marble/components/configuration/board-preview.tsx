@@ -344,6 +344,52 @@ export function ResizePreview({
   );
 }
 
+/** The same perimeter coordinates used by the live board, scaled to the operator sidebar. */
+export function TravelDestinationBoard({ board, currentCellId, selectedCellId, candidates, disabled, onSelect }: {
+  board: BoardDefinition;
+  currentCellId: string;
+  selectedCellId: string;
+  candidates: readonly string[];
+  disabled: boolean;
+  onSelect: (cellId: string) => void;
+}) {
+  const selected = board.cells.find((cell) => cell.id === selectedCellId);
+  const current = board.cells.find((cell) => cell.id === currentCellId);
+  if (board.layout.type !== "perimeter_grid") return <div role="group" aria-label="이동할 칸 선택" className="space-y-2">
+    <Board board={board} tokenCellId={currentCellId} interactive selectedCellId={selectedCellId}
+      onCellSelect={(id) => { if (!disabled && candidates.includes(id)) onSelect(id); }} fit />
+    <p aria-live="polite" className="text-xs text-muted-foreground">현재 {current?.label ?? currentCellId} · 선택 {selected?.label ?? "없음"}</p>
+  </div>;
+  return <div role="group" aria-label="이동할 칸 선택" className="space-y-2">
+    <div className="overflow-x-auto rounded-lg border bg-muted/20 p-2">
+      <div className="grid min-w-max gap-1" style={{ gridTemplateColumns: `repeat(${board.layout.columns}, minmax(38px, 1fr))` }}>
+        {board.path.map((id, index) => {
+          const cell = board.cells.find((item) => item.id === id);
+          if (!cell || cell.position.type !== "grid") return null;
+          const available = candidates.includes(id);
+          const isCurrent = id === currentCellId;
+          const isSelected = id === selectedCellId;
+          return <BoardCellButton key={id} layout="grid" selected={isSelected} type="button"
+            style={{ gridRow: cell.position.row + 1, gridColumn: cell.position.column + 1 }}
+            title={`${index + 1}번 · ${cell.label}${isCurrent ? " · 현재 위치" : ""}`}
+            aria-label={`${index + 1}번 ${cell.label}${isCurrent ? " 현재 위치" : ""}`}
+            disabled={disabled || !available}
+            onClick={() => onSelect(id)}>
+            <span className="text-xs opacity-70">{index + 1}번{isCurrent ? " · 현위치" : ""}</span>
+            <span className="w-full truncate text-xs">{cell.label}</span>
+          </BoardCellButton>;
+        })}
+        <div className="flex flex-col items-center justify-center px-2 text-center" style={{ gridColumn: `2 / ${board.layout.columns}`, gridRow: `2 / ${board.layout.rows}` }}>
+          <span className="text-xs text-muted-foreground">현재 위치</span>
+          <strong className="text-xs">{current ? `${board.path.indexOf(current.id) + 1}번 ${current.label}` : currentCellId}</strong>
+          <span className="mt-1 text-xs text-muted-foreground">선택한 목적지</span>
+          <strong aria-live="polite" className="text-xs">{selected ? `${board.path.indexOf(selected.id) + 1}번 ${selected.label}` : "칸을 선택하세요"}</strong>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
 const overlayWidgetLabels = {
   board: "게임판",
   dice: "주사위",

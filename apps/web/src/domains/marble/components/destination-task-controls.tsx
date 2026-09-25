@@ -6,6 +6,7 @@ import type { BoardDefinition } from "@rogimarble/game-core/board";
 import type { OperatorCommand, OperatorSnapshot } from "../../../../lib/types";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
+import { TravelDestinationBoard } from "./configuration/board-preview";
 
 function taskPayload(task: SessionEffectTaskDto): Record<string, unknown> {
   return task.payload && typeof task.payload === "object"
@@ -48,6 +49,7 @@ export function DestinationTaskControls({
   const candidates = board.path.filter((id) => allowed.includes(id) &&
     (!payload.excludeCurrentCell || id !== state.token.cellId));
   const canOperate = Boolean(state.capabilities?.manualRoll);
+  const isTravel = task.type === "choose_destination";
   const canChoose = canOperate && (task.type === "choose_destination" ||
     task.type === "donation_destination" && payload.selection !== "donor_chat" && !stored);
   const showChoices = canChoose && (placement === "actions" || editing);
@@ -62,9 +64,11 @@ export function DestinationTaskControls({
     {!stored && task.type === "donation_destination" && payload.selection === "donor_chat"
       ? <p className="text-sm text-muted-foreground">후원자의 채팅 선택을 기다리고 있습니다.</p>
       : showChoices
-        ? <p className="text-sm text-muted-foreground">이동할 칸을 선택한 뒤 목적지를 저장하세요.</p>
+        ? <p className="text-sm text-muted-foreground">판에서 이동할 칸을 선택하세요. 번호와 현재 위치를 확인할 수 있습니다.</p>
         : !stored && <p className="text-sm text-muted-foreground">목적지 선택 대기 중입니다.</p>}
-    {showChoices && <div role="group" aria-label="이동할 칸 선택" className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto">
+    {showChoices && isTravel && <TravelDestinationBoard board={board} currentCellId={state.token.cellId}
+      selectedCellId={selected} candidates={candidates} disabled={disabled} onSelect={setSelectedCell} />}
+    {showChoices && !isTravel && <div role="group" aria-label="이동할 칸 선택" className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto">
       {candidates.map((id) => <Button key={id} size="sm" variant={selected === id ? "default" : "outline"}
         aria-pressed={selected === id} disabled={disabled}
         onClick={() => setSelectedCell(id)}>
@@ -74,16 +78,19 @@ export function DestinationTaskControls({
     <div className="flex flex-wrap gap-2">
       {placement === "effects" && stored && canChoose && !editing &&
         <Button size="sm" variant="outline" disabled={disabled} onClick={() => setEditing(true)}>목적지 변경</Button>}
-      {showChoices && <Button size="sm" disabled={disabled || !candidates.includes(selected) || selected === stored}
+      {(showChoices || isTravel && stored && placement === "effects") && <Button size="sm"
+        disabled={disabled || !candidates.includes(selected) || (!isTravel && selected === stored) || (isTravel && Boolean(state.movementLock))}
         onClick={() => void send({ type: "choose_destination", taskId: task.id, cellId: selected,
-          expectedTaskRevision: task.revision, expectedRevision: state.revision, reason }).then((ok) => {
+          expectedTaskRevision: task.revision, ...(isTravel ? { moveNow: true as const } : {}),
+          expectedRevision: state.revision, reason }).then((ok) => {
             if (ok) setEditing(false);
           })}>
-        {stored ? "변경 저장" : "목적지 저장"}
+        {isTravel ? "이동" : stored ? "변경 저장" : "목적지 저장"}
       </Button>}
       {canOperate && <Button size="sm" variant="outline" disabled={disabled}
         onClick={() => void send({ type: "cancel_destination", taskId: task.id,
           expectedTaskRevision: task.revision, expectedRevision: state.revision, reason })}>예약 취소</Button>}
     </div>
+    {isTravel && state.movementLock && <p className="text-xs text-muted-foreground">이동 제한을 해제한 뒤 이동할 수 있습니다.</p>}
   </div>;
 }

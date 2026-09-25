@@ -12,7 +12,7 @@ export type TravelDecision =
   | { type: 'return_turn'; reservation: TravelReservation; turnCommandId: string }
   | { type: 'cancel'; reservation: TravelReservation };
 
-/** A reservation consumes one normal turn; selecting a destination never invents one. */
+/** A preselection waits for a normal turn unless the operator explicitly requests immediate travel. */
 export function decideTravel(reservation: TravelReservation, paused: boolean): TravelDecision {
   if (reservation.cancelled) {
     if (!reservation.reservedTurnCommandId) return { type: 'cancel', reservation };
@@ -26,4 +26,11 @@ export function reserveTravelTurn(reservation: TravelReservation, commandId: str
   if (reservation.reservedTurnCommandId) throw new Error('A turn is already waiting for its destination');
   // An explicit one-step roll is allowed while paused, just like ordinary manual rolls.
   return decideTravel({ ...reservation, reservedTurnCommandId: commandId }, false);
+}
+
+/** An explicit move consumes this command's turn, or the turn already reserved for the trip. */
+export function moveTravelNow(reservation: TravelReservation, commandId: string): TravelDecision {
+  return reservation.reservedTurnCommandId
+    ? decideTravel(reservation, false)
+    : reserveTravelTurn(reservation, commandId);
 }
