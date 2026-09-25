@@ -10,9 +10,9 @@
 
 ## 앱 슬롯 전환
 
-API와 웹은 한 호스트의 blue/green 슬롯으로 실행합니다. 호스트는 데이터베이스·Redis·Caddy와 활성 앱 슬롯을 유지하면서 비활성 슬롯에 후보 이미지를 기동합니다. 후보의 healthcheck를 통과하면 Caddy upstream을 새 슬롯으로 reload하고, 외부 HTTPS smoke 검사와 30초 연결 정리 시간을 거친 뒤 이전 슬롯을 중지합니다. 기존 실시간 연결은 Caddy가 최대 15초 유지한 뒤 클라이언트가 새 슬롯에 재연결합니다. 앱 슬롯의 systemd unit은 `deploy/systemd/rogimarble-slot@.service`에 있습니다.
+API와 웹은 한 호스트의 blue/green 슬롯으로 실행합니다. 호스트는 데이터베이스·Redis·Caddy와 활성 앱 슬롯을 유지하면서 비활성 슬롯에 후보 이미지를 기동합니다. Caddy는 양쪽 슬롯의 readiness를 확인하고 정상 슬롯에 요청을 보내며, 연결 실패 시 재시도합니다. 첫 전환에서만 Caddy 설정을 이 풀 방식으로 옮기고 이후 앱 릴리스에서는 Caddy를 reload하지 않습니다. 후보의 healthcheck와 외부 HTTPS smoke 검사 뒤 30초 동안 기존 요청을 정리하고 이전 슬롯을 중지합니다. 앱 슬롯의 systemd unit은 `deploy/systemd/rogimarble-slot@.service`에 있습니다.
 
-마이그레이션은 슬롯 전환 전에 한 번 실행합니다. 이전 앱과 새 앱이 같은 스키마를 사용할 수 있도록 expand/contract 방식으로 작성합니다. 전환에 실패하면 Caddy를 이전 upstream으로 돌리고 후보 슬롯을 중지합니다. DB down migration이나 데이터 볼륨 삭제는 자동 복구 절차에 포함하지 않습니다. Caddy·PostgreSQL·Redis 이미지 또는 호스트 런타임 설정을 바꾸는 작업은 별도의 점검 배포로 다룹니다.
+마이그레이션은 슬롯 전환 전에 한 번 실행합니다. 이전 앱과 새 앱이 같은 스키마를 사용할 수 있도록 expand/contract 방식으로 작성합니다. 전환에 실패하면 이전 슬롯을 유지하거나 다시 시작하고 후보 슬롯을 중지합니다. DB down migration이나 데이터 볼륨 삭제는 자동 복구 절차에 포함하지 않습니다. Caddy·PostgreSQL·Redis 이미지 또는 호스트 런타임 설정을 바꾸는 작업은 별도의 점검 배포로 다룹니다.
 
 슬롯 전환 중 WebSocket 클라이언트는 재연결될 수 있습니다. 운영 콘솔과 OBS는 재연결 뒤 서버 상태를 다시 읽습니다. 이 구성은 단일 호스트의 앱 교체를 위한 것으로, 호스트 장애 대응은 별도의 인프라 복구 절차를 따릅니다.
 

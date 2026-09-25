@@ -367,17 +367,29 @@ def restore_collector_link(link:Path,previous_target:str|None)->None:
     temporary.symlink_to(previous_target)
     temporary.replace(link)
 
-def reload_edge(slot: str, manifest: dict[str, Any], runner: Runner, app_root: Path, env_file: Path) -> None:
+def ensure_edge_pool(runner: Runner, app_root: Path, env_file: Path) -> None:
     compose = ["docker", "compose", "--env-file", str(env_file), "-f", str(app_root / COMPOSE_PATH)]
     edge_id = _checked_output(runner.run(compose + ["ps", "-q", "edge"], check=False), "edge lookup").strip()
     if not edge_id:
         raise ReleaseError("edge container is missing")
+    current = _checked_output(runner.run(["docker", "exec", edge_id, "wget", "-qO-", "http://127.0.0.1:2019/config/"], check=False), "edge config lookup")
+    required = {"api-blue:4000", "api-green:4000", "web-blue:3000", "web-green:3000"}
+    try:
+        config_json = json.loads(current)
+    except json.JSONDecodeError as exc:
+        raise ReleaseError("edge returned invalid configuration") from exc
+    def dials(value: Any) -> set[str]:
+        if isinstance(value, dict):
+            return ({value["dial"]} if isinstance(value.get("dial"), str) else set()).union(
+                *(dials(child) for child in value.values()))
+        if isinstance(value, list):
+            return set().union(*(dials(child) for child in value))
+        return set()
+    if required.issubset(dials(config_json)):
+        return
     config = (app_root / "deploy/Caddyfile.production").read_text(encoding="utf-8")
-    for key, value in (("API_UPSTREAM", f"api-{slot}:4000"), ("WEB_UPSTREAM", f"web-{slot}:3000")):
-        placeholder = "{$" + key + "}"
-        if placeholder not in config:
-            raise ReleaseError(f"Caddy template is missing {placeholder}")
-        config = config.replace(placeholder, value)
+    if not all(upstream in config for upstream in required):
+        raise ReleaseError("Caddy template is missing blue/green upstreams")
     runner.run(["docker", "exec", "-i", edge_id, "caddy", "reload",
                 "--config", "-", "--adapter", "caddyfile"], input=config)
 
@@ -441,7 +453,6 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
         capacity_check()
         collector_link=run_root/"collector-client"
         previous_collector_target=os.readlink(collector_link) if collector_link.is_symlink() else None
-        route_switched = False
         activated = False
         candidate_started = False
         old_stopped = False
@@ -486,17 +497,17 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
             if runner.run(["systemctl", "is-active", "--quiet", f"rogimarble-slot@{next_slot}.service"], check=False).returncode != 0:
                 raise ReleaseError("candidate slot supervisor did not stay active")
             if old_slot:
-                route_switched = True
-                reload_edge(next_slot, manifest, runner, app_root, active_env_file)
+                ensure_edge_pool(runner, app_root, active_env_file)
             smoke(manifest, runner, sleep)
             active_compose = ["docker", "compose", "--env-file", str(run_root / "release.env"), "-f", str(app_root / COMPOSE_PATH)]
             wait_for_services(active_compose, runner, CORE_SERVICES | set(slot_services), sleep)
             if old_slot:
-                # Let requests accepted by the previous Caddy config finish before stopping it.
+                # Let in-flight requests on the old slot finish before stopping it.
                 sleep(30)
                 runner.run(["systemctl", "stop", f"rogimarble-slot@{old_slot}.service"])
                 old_stopped = True
                 runner.run(["systemctl", "disable", f"rogimarble-slot@{old_slot}.service"])
+                smoke(manifest, runner, sleep)
             reclaim_old_app_images(manifest, runner)
             deployed = config_root / "deployed-release.json"
             receipt={"status":"deployed","deployedAt":time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime()),"releaseId":manifest["releaseId"],"sourceSha":manifest["sourceSha"],"images":manifest["images"],"slot":next_slot}
@@ -508,11 +519,6 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
             if old_stopped:
                 runner.run(["systemctl", "enable", f"rogimarble-slot@{old_slot}.service"])
                 runner.run(["systemctl", "start", f"rogimarble-slot@{old_slot}.service"])
-            if old_slot and route_switched:
-                try:
-                    reload_edge(old_slot, old_manifest, runner, app_root, active_env_file)
-                except Exception as exc:
-                    raise ReleaseError(f"route rollback failed; old slot must be restored manually: {exc}") from exc
             if old_slot and activated:
                 if old_root is not None and active_link is not None:
                     temporary=active_link.with_name(f".{active_link.name}.rollback.{os.getpid()}")

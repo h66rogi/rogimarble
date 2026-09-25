@@ -21,6 +21,7 @@ class FakeRunner:
         self.fail_migrate = fail_migrate
         self.commands: list[list[str]] = []
         self.active_units = {"rogimarble-app.service"}
+        self.edge_pool = False
 
     def run(self, argv: list[str], *, check: bool = True, input: str | None = None) -> subprocess.CompletedProcess[str]:
         self.commands.append(argv)
@@ -35,6 +36,11 @@ class FakeRunner:
             if not env_path.is_file():
                 raise subprocess.CalledProcessError(1,argv,"",f"missing env file: {env_path}")
             return subprocess.CompletedProcess(argv, 0, "edge-id\n", "")
+        if argv[:4] == ["docker", "exec", "edge-id", "wget"]:
+            names = ("api-blue:4000", "api-green:4000", "web-blue:3000", "web-green:3000") if self.edge_pool else ("api-green:4000", "web-green:3000")
+            return subprocess.CompletedProcess(argv, 0, json.dumps({"upstreams": [{"dial": name} for name in names]}), "")
+        if argv[:4] == ["docker", "exec", "-i", "edge-id"]:
+            self.edge_pool = True
         if argv[-3:] == ["ps", "--format", "json"]:
             rows=[{"Service":name,"State":"running","Health":"healthy"} for name in ("postgres","redis","edge","api-blue","web-blue","api-green","web-green")]
             return subprocess.CompletedProcess(argv,0,json.dumps(rows),"")
@@ -58,7 +64,7 @@ class ReleaseTest(unittest.TestCase):
         for relative in runtime_paths:
             target=app/relative;target.parent.mkdir(parents=True,exist_ok=True)
             if relative=="tools/ops/prepare-collector-client.py":target.write_bytes((Path(__file__).parent/"prepare-collector-client.py").read_bytes())
-            elif relative=="deploy/Caddyfile.production":target.write_text("reverse_proxy {$API_UPSTREAM}\nreverse_proxy {$WEB_UPSTREAM}\n",encoding="utf-8")
+            elif relative=="deploy/Caddyfile.production":target.write_text("reverse_proxy api-blue:4000 api-green:4000\nreverse_proxy web-blue:3000 web-green:3000\n",encoding="utf-8")
             else:target.write_text(relative+"\n",encoding="utf-8")
         migration = app / "packages/database/migrations/001_test.sql"; migration.write_text("SELECT 1;\n", encoding="utf-8")
         for name in ("postgres", "redis", "caddy-data", "caddy-config"):
@@ -191,7 +197,7 @@ class ReleaseTest(unittest.TestCase):
         (run/"lib/supervise.sh").write_text("tampered\n")
         with self.assertRaisesRegex(ReleaseError,"installed runtime file checksum"):verify_installed_runtime(json.loads(manifest_path.read_text()),run/"lib",run/"units")
 
-    def test_online_release_switches_route_before_stopping_old_slot(self):
+    def test_online_release_installs_pool_once_and_drains_before_stopping_old_slot(self):
         temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
         runner=FakeRunner(uuid)
         options=dict(app_root=app,config_root=config,run_root=run,data_root=data,
@@ -206,12 +212,16 @@ class ReleaseTest(unittest.TestCase):
         stop=commands.index(["systemctl","stop","rogimarble-slot@green.service"])
         self.assertLess(route,drain)
         self.assertLess(drain,stop)
+        self.assertTrue(runner.edge_pool)
         self.assertFalse(any(command in (["systemctl","restart","rogimarble-app.service"],
                                          ["systemctl","stop","rogimarble-app.service"]) for command in commands))
         self.assertEqual((config/"active-slot").read_text().strip(),"blue")
         self.assertEqual(json.loads((config/"deployed-release.json").read_text())["slot"],"blue")
+        runner.commands.clear()
+        deploy(manifest_path,runner,**options)
+        self.assertFalse(any(command[:4]==["docker","exec","-i","edge-id"] for command in runner.commands))
 
-    def test_failed_online_smoke_restores_old_route_and_receipt(self):
+    def test_failed_online_smoke_keeps_old_slot_and_receipt(self):
         temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
         options=dict(app_root=app,config_root=config,run_root=run,data_root=data,
                      lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None,capacity_check=lambda:None)
@@ -233,9 +243,9 @@ class ReleaseTest(unittest.TestCase):
         failed=FailingSmokeRunner(uuid)
         with self.assertRaisesRegex(ReleaseError,"smoke check failed"):
             deploy(manifest_path,failed,**options)
-        self.assertEqual(len(failed.route_inputs),2)
+        self.assertEqual(len(failed.route_inputs),1)
         self.assertIn("api-blue:4000",failed.route_inputs[0])
-        self.assertIn("api-green:4000",failed.route_inputs[1])
+        self.assertIn("api-green:4000",failed.route_inputs[0])
         self.assertEqual((config/"active-slot").read_text().strip(),"green")
         self.assertEqual((config/"deployed-release.json").read_bytes(),receipt)
         self.assertIn("rogimarble-slot@green.service",failed.active_units)
