@@ -465,10 +465,6 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
             runner.run(compose + ["up", "-d", "--no-deps", "--no-build", "--wait", *slot_services])
             candidate_started = True
             wait_for_services(compose, runner, set(slot_services), sleep)
-            if old_slot:
-                route_switched = True
-                reload_edge(next_slot, manifest, runner, app_root, env_file)
-                smoke(manifest, runner, sleep)
             (run_root / f"release-{next_slot}.env").write_bytes(env_file.read_bytes())
             (run_root / f"release-{next_slot}.env").chmod(0o600)
             activated = True
@@ -488,6 +484,9 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
             runner.run(["systemctl", "enable", f"rogimarble-slot@{next_slot}.service"])
             if runner.run(["systemctl", "is-active", "--quiet", f"rogimarble-slot@{next_slot}.service"], check=False).returncode != 0:
                 raise ReleaseError("candidate slot supervisor did not stay active")
+            if old_slot:
+                route_switched = True
+                reload_edge(next_slot, manifest, runner, app_root, env_file)
             smoke(manifest, runner, sleep)
             active_compose = ["docker", "compose", "--env-file", str(run_root / "release.env"), "-f", str(app_root / COMPOSE_PATH)]
             wait_for_services(active_compose, runner, CORE_SERVICES | set(slot_services), sleep)
