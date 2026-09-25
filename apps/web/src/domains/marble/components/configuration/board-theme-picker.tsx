@@ -3,12 +3,16 @@
 import { BOARD_FONTS, BOARD_THEMES } from "@rogimarble/overlay-ui";
 import type { BoardFontId, BoardThemeId } from "@rogimarble/contracts";
 import { Button } from "@/shared/components/ui/button";
+import { Label } from "@/shared/components/ui/label";
+import { Switch } from "@/shared/components/ui/switch";
 
-export function BoardThemePicker({ selected, change, fontSelected, changeFont }: {
+export function BoardThemePicker({ selected, change, fontSelected, changeFont, showPathArrows, changeShowPathArrows }: {
   selected: BoardThemeId;
   change: (theme: BoardThemeId) => void;
   fontSelected: BoardFontId;
   changeFont: (font: BoardFontId) => void;
+  showPathArrows: boolean;
+  changeShowPathArrows: (show: boolean) => void;
 }) {
   return <section className="space-y-5" aria-label="기본 방송 스타일">
     <div className="space-y-1">
@@ -20,6 +24,13 @@ export function BoardThemePicker({ selected, change, fontSelected, changeFont }:
         <span className="font-semibold">{theme.name}</span>
         <span className="text-xs font-normal opacity-75">{theme.description}</span>
       </Button>)}
+    </div>
+    <div className="flex items-center justify-between gap-3 border-t pt-5">
+      <div className="space-y-1">
+        <Label htmlFor="board-path-arrows">진행 방향 화살표</Label>
+        <p className="text-sm text-muted-foreground">게임판 칸 사이에 현재 이동 방향을 표시해요.</p>
+      </div>
+      <Switch id="board-path-arrows" checked={showPathArrows} onCheckedChange={changeShowPathArrows} />
     </div>
     <div className="space-y-3 border-t pt-5">
       <div className="space-y-1">

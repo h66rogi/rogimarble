@@ -29,6 +29,11 @@ test('individual widget styles accept known themes and fonts and reject unknown 
   for(const widgetStyles of [{board:{themeId:'missing'}},{menu:{fontId:'missing'}},{unknown:{themeId:'pink-bunny'}},{board:{themeId:'pink-bunny',css:'position:fixed'}}])
     assert.throws(()=>validateOverlayLayout({...layout,widgetStyles}));
 });
+test('board path arrows are an optional boolean display setting',()=>{
+  assert.doesNotThrow(()=>validateOverlayLayout({...layout,showPathArrows:true}));
+  assert.doesNotThrow(()=>validateOverlayLayout({...layout,showPathArrows:false}));
+  assert.throws(()=>validateOverlayLayout({...layout,showPathArrows:'yes'}));
+});
 test('chatbox display options have hidden badge and visible nickname defaults and validate only on chatbox',()=>{
   assert.deepEqual(DEFAULT_CHATBOX_STYLE,{showPlatformBadge:false,showNickname:true,fontScale:1});
   assert.doesNotThrow(()=>validateOverlayLayout({...layout,widgetStyles:{chatbox:{themeId:'pink-bunny',showPlatformBadge:true,showNickname:false,fontScale:1.2}}}));

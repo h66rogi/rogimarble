@@ -125,7 +125,7 @@ export function LayoutEditor({
       <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Card className="min-w-0">
           <CardContent>
-            <BoardThemePicker selected={value.boardThemeId ?? "lime-clover"} fontSelected={value.fontId ?? "nanum-square-neo"} changeFont={fontId => change({ ...value, fontId })} change={boardThemeId => change({ ...value, boardThemeId })} />
+            <BoardThemePicker selected={value.boardThemeId ?? "lime-clover"} fontSelected={value.fontId ?? "nanum-square-neo"} showPathArrows={value.showPathArrows ?? false} changeShowPathArrows={showPathArrows => change({ ...value, showPathArrows })} changeFont={fontId => change({ ...value, fontId })} change={boardThemeId => change({ ...value, boardThemeId })} />
           </CardContent>
         </Card>
         <div className="min-w-0 space-y-5">
@@ -136,7 +136,7 @@ export function LayoutEditor({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="aspect-video overflow-hidden">
-                <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "lime-clover"} fontId={value.fontId ?? "nanum-square-neo"} fit reducedMotion />
+                <Board board={board} tokenCellId={board.startCellId} themeId={value.boardThemeId ?? "lime-clover"} fontId={value.fontId ?? "nanum-square-neo"} showPathArrows={value.showPathArrows} fit reducedMotion />
               </div>
               {value.widgets.length > 0 && <Disclosure title={<>전체 오버레이 구성 보기</>}>
                 <OverlayLayoutPreview value={value} board={board} rules={rules} />

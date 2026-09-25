@@ -13,7 +13,7 @@ import { RogimarbleChatbox } from '@/integrated-overlay/domains/overlay/componen
 
 type WidgetId = OverlayWidgetId;
 type LayoutWidget = { id: WidgetId; enabled: boolean; x: number; y: number; w: number; h: number; z: number };
-type TotalLayout = Pick<OverlayLayoutDto, 'fontId' | 'widgetStyles' | 'menu' | 'dicePrice'> & { boardThemeId: BoardThemeId; version: number; aspect: string; width: number; height: number; background: string; widgets: readonly LayoutWidget[] };
+type TotalLayout = Pick<OverlayLayoutDto, 'fontId' | 'showPathArrows' | 'widgetStyles' | 'menu' | 'dicePrice'> & { boardThemeId: BoardThemeId; version: number; aspect: string; width: number; height: number; background: string; widgets: readonly LayoutWidget[] };
 
 const DEFAULT_TOTAL_OVERLAY_LAYOUT: TotalLayout = {
   boardThemeId: 'lime-clover',
@@ -49,7 +49,7 @@ function mergeLayout(layout?: Record<string, unknown> | null): TotalLayout {
   return {
     ...DEFAULT_TOTAL_OVERLAY_LAYOUT,
     boardThemeId: parsed.boardThemeId ?? 'lime-clover',
-    fontId: parsed.fontId, widgetStyles: parsed.widgetStyles, menu: parsed.menu, dicePrice: parsed.dicePrice,
+    fontId: parsed.fontId, showPathArrows: parsed.showPathArrows, widgetStyles: parsed.widgetStyles, menu: parsed.menu, dicePrice: parsed.dicePrice,
     version: parsed.schemaVersion,
     aspect: parsed.aspectRatio,
     width: parsed.width,
@@ -151,7 +151,7 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status,
         const themeId = style?.themeId ?? totalLayout.boardThemeId;
         const fontId = style?.fontId ?? totalLayout.fontId;
         return <div key={widget.id} data-overlay-widget={widget.id} data-overlay-version="1" className="absolute" style={{ left, top, width, height, zIndex: widget.z ?? 1 }}>
-          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} themeId={themeId} fontId={fontId} tokenCellId={tokenCellId} moving={presentation.moving} dice={presentation.dice.length?presentation.dice:playback?.dice} rollKey={presentation.rollKey} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} pawnImageUrl={state?.pawnAppearance?.image ? apiAssetUrl(state.pawnAppearance.image.url) : null} pawnStyleId={state?.pawnAppearance?.styleId ?? 'star-medal'} /></div>}
+          {widget.id === 'board' && <div className="h-full w-full"><Board key={correctionKey} board={board} themeId={themeId} fontId={fontId} showPathArrows={totalLayout.showPathArrows} direction={session?.direction} tokenCellId={tokenCellId} moving={presentation.moving} dice={presentation.dice.length?presentation.dice:playback?.dice} rollKey={presentation.rollKey} fit effectPhase={presentation.effectPhase} trailCellIds={presentation.trailCellIds} landingPulseKey={presentation.landingPulseKey} reducedMotion={presentation.reducedMotion} pawnImageUrl={state?.pawnAppearance?.image ? apiAssetUrl(state.pawnAppearance.image.url) : null} pawnStyleId={state?.pawnAppearance?.styleId ?? 'star-medal'} /></div>}
           {(widget.id === 'menu' || widget.id === 'dice_price') && <BroadcastPanel kind={widget.id} layout={{ ...totalLayout, boardThemeId: themeId, fontId }} rules={state?.donationMenu ?? []} />}
           {widget.id === 'dice' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="이번 주사위" value={presentation.effectPhase==='anticipation'?'굴리는 중…':(presentation.dice.length?presentation.dice:playback?.dice)?.join(' + ')||'대기 중'} />}
           {widget.id === 'current_mission' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="현재 미션" value={currentMission ? `${currentMission.message} × ${currentMission.quantity}` : '진행 중인 미션 없음'} />}

@@ -370,7 +370,7 @@ export function OverlayWidgetPreview({ id, value, board, rules = [] }: {
   const fontId = value.widgetStyles?.[id]?.fontId ?? value.fontId;
   if (id === "board" && board) {
     return <div className="h-full w-full">
-      <Board board={board} tokenCellId={board.startCellId} themeId={themeId} fontId={fontId} fit reducedMotion />
+      <Board board={board} tokenCellId={board.startCellId} themeId={themeId} fontId={fontId} showPathArrows={value.showPathArrows} fit reducedMotion />
     </div>;
   }
   if (id === "menu" || id === "dice_price") {

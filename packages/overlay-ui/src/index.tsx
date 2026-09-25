@@ -2,17 +2,20 @@
 
 import { DefaultPawn, LandingLottie } from '@rogimarble/animation';
 import type { BoardFontId, BoardThemeId, PawnStyleId } from '@rogimarble/contracts';
-import { getCellRect, type BoardDefinition, type BoardEffect } from '@rogimarble/game-core/board';
+import { getCellRect, type BoardDefinition, type BoardEffect, type Direction } from '@rogimarble/game-core/board';
 import { type CSSProperties, type ReactNode, useState } from 'react';
+import { boardPathArrows } from './board-path-arrows';
 import { ThreeDiceCanvas } from './dice-three';
 export { BOARD_FONT_FAMILIES, BOARD_FONTS, BOARD_THEMES, type BoardFontMetadata, type BoardThemeMetadata } from './themes';
 export { BroadcastPanel, resolveBroadcastPanel } from './broadcast-panel';
 
-export function Board({ board, tokenCellId, moving = false, dice, rollKey, interactive = false, selectedCellId, selectedCellAction, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, pawnStyleId = 'star-medal', themeId = 'lime-clover', fontId = 'nanum-square-neo' }: {
+export function Board({ board, tokenCellId, moving = false, dice, rollKey, interactive = false, selectedCellId, selectedCellAction, onCellSelect, fit = false, effectPhase = 'idle', trailCellIds = [], landingPulseKey, reducedMotion = false, pawnImageUrl, pawnStyleId = 'star-medal', themeId = 'lime-clover', fontId = 'nanum-square-neo', showPathArrows = false, direction }: {
   board: BoardDefinition; tokenCellId: string; moving?: boolean; dice?: readonly number[]; rollKey?: string | null; interactive?: boolean; selectedCellId?: string; selectedCellAction?: ReactNode; onCellSelect?: (id: string) => void; fit?: boolean;
   effectPhase?: 'idle' | 'anticipation' | 'reveal' | 'stepping' | 'landing'; trailCellIds?: readonly string[]; landingPulseKey?: string | number; reducedMotion?: boolean; pawnImageUrl?: string | null; pawnStyleId?: PawnStyleId;
   themeId?: BoardThemeId;
   fontId?: BoardFontId;
+  showPathArrows?: boolean;
+  direction?: Direction;
 }) {
   const displayBoard = board;
   const tokenCell = displayBoard.cells.find(c => c.id === tokenCellId) ?? displayBoard.cells[0];
@@ -58,6 +61,13 @@ export function Board({ board, tokenCellId, moving = false, dice, rollKey, inter
             <foreignObject x={r.x + 10} y={r.y + 8} width={r.width - 20} height={r.height - 22}><div className="cell-content" style={{ color: cell.appearance.textColor }}><span className="cell-number">{displayBoard.path.indexOf(cell.id) + 1}</span><span className="cell-icon" aria-hidden="true"><ArtworkIcon assetId={cell.appearance.artwork?.type === 'image' ? cell.appearance.artwork.assetId : null} fallback={cell.onLand[0]} isStart={cell.id === displayBoard.startCellId} /></span><span className="cell-label" data-long={cell.label.length > 8 || undefined}>{cell.label}</span></div></foreignObject>
           </g>;
         })}
+        {showPathArrows && <g className="board-path-arrows" aria-hidden="true">
+          {boardPathArrows(displayBoard, direction ?? displayBoard.defaultDirection).map(arrow =>
+            <g key={arrow.fromCellId} transform={`translate(${arrow.x} ${arrow.y}) rotate(${arrow.angle})`}>
+              <path className="board-path-arrow-halo" d="M-5-6L2 0l-7 6" />
+              <path className="board-path-arrow-mark" d="M-5-6L2 0l-7 6" />
+            </g>)}
+        </g>}
       </svg>
       {interactive && selectedRect && actionSide && selectedCellAction && <div className="board-cell-action" data-side={actionSide} style={{ left: actionLeft, top: actionTop }}>{selectedCellAction}</div>}
       {displayBoard.layout.type === 'perimeter_grid' && (effectPhase !== 'idle' || (reducedMotion && Boolean(dice?.length))) && <div className="center-widget">

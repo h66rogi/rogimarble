@@ -20,6 +20,16 @@
 .marble-board.is-fitted { height: 100%; container-type: size; display: grid; place-items: center; }
 .marble-board.is-fitted .board-stage { width: min(100cqw, calc(100cqh * var(--board-aspect))); }
 .marble-board .board-svg { display: block; width: 100%; height: 100%; }
+.marble-board .board-path-arrows { pointer-events: none; --path-arrow-color: #58730b; }
+.marble-board .board-path-arrow-halo,
+.marble-board .board-path-arrow-mark { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.marble-board .board-path-arrow-halo { stroke: #fff; stroke-width: 8; }
+.marble-board .board-path-arrow-mark { stroke: var(--path-arrow-color); stroke-width: 4; }
+.marble-board[data-board-theme="pink-bunny"] .board-path-arrows { --path-arrow-color: #a93d6e; }
+.marble-board[data-board-theme="sky-soda"] .board-path-arrows { --path-arrow-color: #176d93; }
+.marble-board[data-board-theme="lavender-dream"] .board-path-arrows { --path-arrow-color: #5e3d91; }
+.marble-board[data-board-theme="midnight-pop"] .board-path-arrows { --path-arrow-color: #b83572; }
+.marble-board[data-board-theme="peach-sorbet"] .board-path-arrows { --path-arrow-color: #a94a3d; }
 .marble-board .board-cell-action { position: absolute; z-index: 20; width: 9rem; --board-action-half-width: 4.5rem; --board-action-half-height: 1.125rem; --board-action-gap: 8px; }
 .marble-board .board-cell-action[data-side="below"] { transform: translate(-50%, 8px); }
 .marble-board .board-cell-action[data-side="above"] { transform: translate(-50%, calc(-100% - 8px)); }
