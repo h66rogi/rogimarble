@@ -31,6 +31,9 @@ class FakeRunner:
         if argv[:2] == ["systemctl", "stop"]:
             self.active_units.discard(argv[-1])
         if argv[-3:] == ["ps", "-q", "edge"]:
+            env_path=Path(argv[argv.index("--env-file")+1])
+            if not env_path.is_file():
+                raise subprocess.CalledProcessError(1,argv,"",f"missing env file: {env_path}")
             return subprocess.CompletedProcess(argv, 0, "edge-id\n", "")
         if argv[-3:] == ["ps", "--format", "json"]:
             rows=[{"Service":name,"State":"running","Health":"healthy"} for name in ("postgres","redis","edge","api-blue","web-blue","api-green","web-green")]

@@ -445,6 +445,7 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
         activated = False
         candidate_started = False
         old_stopped = False
+        active_env_file = run_root / "release.env"
         compose = ["docker", "compose", "--env-file", str(env_file), "-f", str(app_root / COMPOSE_PATH)]
         slot_services = [f"api-{next_slot}", f"web-{next_slot}"]
         try:
@@ -486,7 +487,7 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
                 raise ReleaseError("candidate slot supervisor did not stay active")
             if old_slot:
                 route_switched = True
-                reload_edge(next_slot, manifest, runner, app_root, env_file)
+                reload_edge(next_slot, manifest, runner, app_root, active_env_file)
             smoke(manifest, runner, sleep)
             active_compose = ["docker", "compose", "--env-file", str(run_root / "release.env"), "-f", str(app_root / COMPOSE_PATH)]
             wait_for_services(active_compose, runner, CORE_SERVICES | set(slot_services), sleep)
@@ -507,7 +508,7 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
                 runner.run(["systemctl", "start", f"rogimarble-slot@{old_slot}.service"])
             if old_slot and route_switched:
                 try:
-                    reload_edge(old_slot, old_manifest, runner, app_root, env_file)
+                    reload_edge(old_slot, old_manifest, runner, app_root, active_env_file)
                 except Exception as exc:
                     raise ReleaseError(f"route rollback failed; old slot must be restored manually: {exc}") from exc
             if old_slot and activated:
