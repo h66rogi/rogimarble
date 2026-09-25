@@ -132,9 +132,7 @@ export const api = {
             ? { ...base, type: command.type, payload: {} }
             : command.type === 'adjust_inventory'
               ? { ...base, type: 'adjust_inventory', payload: { itemId: command.itemId, mode: command.mode, quantity: command.quantity, expectedInventoryRevision: command.expectedInventoryRevision } }
-              : command.type === 'create_mission'
-                ? { ...base, type: 'create_mission', payload: { message: command.message, quantity: command.quantity, shield: command.shield } }
-                : command.type === 'complete_mission' || command.type === 'waive_mission'
+              : command.type === 'complete_mission' || command.type === 'waive_mission'
                   ? { ...base, type: command.type, payload: { missionId: command.missionId, expectedMissionRevision: command.expectedMissionRevision } }
                   : { ...base, type: 'use_shield', payload: { missionId: command.missionId, expectedMissionRevision: command.expectedMissionRevision, expectedInventoryRevision: command.expectedInventoryRevision } };
     const pending = { kind: 'session-command', commandId: base.commandId, sessionId, path: operatorApi.commands(channelId(), sessionId), body: JSON.stringify(body), createdAt: Date.now() } satisfies PendingIntent;

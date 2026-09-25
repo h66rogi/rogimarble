@@ -40,7 +40,6 @@ export type OperatorCommand =
   | { type: 'resume'; expectedRevision: number; reason: string }
   | { type: 'end_session'; expectedRevision: number; reason: string }
   | { type: 'adjust_inventory'; itemId: string; mode: 'delta' | 'set'; quantity: number; expectedInventoryRevision: number; expectedRevision: number; reason: string }
-  | { type: 'create_mission'; message: string; quantity: number; shield: { itemId: string; quantity: number } | null; expectedRevision: number; reason: string }
   | { type: 'complete_mission'; missionId: string; expectedMissionRevision: number; expectedRevision: number; reason: string }
   | { type: 'waive_mission'; missionId: string; expectedMissionRevision: number; expectedRevision: number; reason: string }
   | { type: 'use_shield'; missionId: string; expectedMissionRevision: number; expectedInventoryRevision: number; expectedRevision: number; reason: string };

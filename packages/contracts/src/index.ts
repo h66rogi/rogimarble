@@ -93,11 +93,6 @@ export type SessionCommandRequest =
       readonly quantity: number;
       readonly expectedInventoryRevision: number;
     }>
-  | CommandBase<'create_mission', {
-      readonly message: string;
-      readonly quantity?: number;
-      readonly shield: { readonly itemId: string; readonly quantity: number } | null;
-    }>
   | CommandBase<'complete_mission' | 'waive_mission', {
       readonly missionId: string;
       readonly expectedMissionRevision: number;

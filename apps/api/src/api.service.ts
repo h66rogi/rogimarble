@@ -206,11 +206,6 @@ export class ApiService {
         const inventory:InventoryItemDto={itemId:body.payload.itemId,name:definition.rows[0].name,quantity:changed.quantity,revision:Number(changed.revision),updatedAt:changed.updated_at.toISOString()};result={inventory};
         afterCommands.push(()=>client.query(`INSERT INTO inventory_ledger(id,command_id,session_id,item_id,before_quantity,delta,after_quantity,before_revision,after_revision,operator_id,reason)
           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,[randomUUID(),body.commandId,sessionId,body.payload.itemId,current.quantity,next-current.quantity,next,current.revision,changed.revision,operator.id,body.reason]).then(()=>undefined));
-      }else if(body.type==='create_mission'){
-        if(body.payload.shield){const item=await client.query('SELECT 1 FROM item_definitions WHERE channel_id=$1 AND item_id=$2 AND active=true',[channelId,body.payload.shield.itemId]);if(!item.rowCount)throw new UnprocessableEntityException('Unknown shield item');}
-        const missionId=randomUUID(),createdAt=new Date(),quantity=body.payload.quantity??1;const mission:MissionDto={id:missionId,message:body.payload.message,quantity,status:'pending',shield:body.payload.shield,revision:0,createdAt:createdAt.toISOString(),resolvedAt:null};result={mission};
-        afterCommands.push(()=>client.query(`INSERT INTO missions(id,session_id,message,quantity,status,shield_item_id,shield_quantity,created_by_command_id,created_at)
-          VALUES($1,$2,$3,$4,'pending',$5,$6,$7,$8)`,[missionId,sessionId,body.payload.message,quantity,body.payload.shield?.itemId??null,body.payload.shield?.quantity??null,body.commandId,createdAt]).then(()=>undefined));
       }else{
         const mission=(await client.query<any>('SELECT * FROM missions WHERE id=$1 AND session_id=$2 FOR UPDATE',[body.payload.missionId,sessionId])).rows[0];
         if(!mission)throw new NotFoundException('Mission not found');if(mission.status!=='pending'||Number(mission.revision)!==body.payload.expectedMissionRevision)throw new ConflictException('Mission already resolved or revision changed');
@@ -307,10 +302,6 @@ function validateCommand(v:unknown):asserts v is SessionCommandRequest{
     if(!exactObject(v.payload,['itemId','mode','quantity','expectedInventoryRevision'])||typeof v.payload.itemId!=='string'||v.payload.itemId.length<1||v.payload.itemId.length>64||
       (v.payload.mode!=='delta'&&v.payload.mode!=='set')||!Number.isSafeInteger(v.payload.quantity)||Math.abs(Number(v.payload.quantity))>100000||
       (v.payload.mode==='set'&&Number(v.payload.quantity)<0)||!Number.isSafeInteger(v.payload.expectedInventoryRevision)||Number(v.payload.expectedInventoryRevision)<0)throw new UnprocessableEntityException('Invalid inventory command');
-  }else if(v.type==='create_mission'){
-    if(!(exactObject(v.payload,['message','shield'])||exactObject(v.payload,['message','quantity','shield']))||typeof v.payload.message!=='string'||!v.payload.message.trim()||v.payload.message.length>500||
-      (v.payload.quantity!==undefined&&(!Number.isSafeInteger(v.payload.quantity)||Number(v.payload.quantity)<1||Number(v.payload.quantity)>100000)))throw new UnprocessableEntityException('Invalid mission');
-    if(v.payload.shield!==null&&(!exactObject(v.payload.shield,['itemId','quantity'])||typeof v.payload.shield.itemId!=='string'||!v.payload.shield.itemId||!Number.isSafeInteger(v.payload.shield.quantity)||Number(v.payload.shield.quantity)<1||Number(v.payload.shield.quantity)>100000))throw new UnprocessableEntityException('Invalid shield policy');
   }else if(v.type==='complete_mission'||v.type==='waive_mission'){
     if(!exactObject(v.payload,['missionId','expectedMissionRevision'])||!isUuid(v.payload.missionId)||!Number.isSafeInteger(v.payload.expectedMissionRevision)||Number(v.payload.expectedMissionRevision)<0)throw new UnprocessableEntityException('Invalid mission resolution');
   }else if(v.type==='use_shield'){

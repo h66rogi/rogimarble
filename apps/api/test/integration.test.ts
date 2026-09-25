@@ -17,6 +17,7 @@ let api:ChildProcess|undefined;
 let apiOutput='';
 let creationRequest:any;
 let creationAck:any;
+let seededEffectIndex=900;
 
 function command(program:string,args:string[],options:{env?:NodeJS.ProcessEnv;allowFailure?:boolean}={}):string{
   const result=spawnSync(program,args,{cwd:root,env:{...process.env,...options.env},encoding:'utf8',timeout:120_000});
@@ -59,6 +60,17 @@ function client(auth:{csrf:string;cookie:string}){
   const patch=(path:string,body:unknown,csrf:string|null=auth.csrf)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'PATCH',headers:{origin:'https://console.example',cookie:auth.cookie,'content-type':'application/json',...(csrf?{'x-csrf-token':csrf}:{})},body:JSON.stringify(body)});
   const del=(path:string)=>fetch(`http://127.0.0.1:${apiPort}${path}`,{method:'DELETE',headers:{origin:'https://console.example',cookie:auth.cookie,'x-csrf-token':auth.csrf}});
   return {get,post,put,patch,del};
+}
+
+async function seedEffectMission(sessionId:string,message:string,quantity=1,shieldItemId:string|null=null){
+  const db=new pg.Client({connectionString:databaseUrl});await db.connect();
+  try{
+    const source=await db.query<{command_id:string}>("SELECT command_id FROM game_commands WHERE session_id=$1 AND type='create_session'",[sessionId]);
+    const missionId=randomUUID();
+    await db.query(`INSERT INTO missions(id,session_id,message,quantity,status,shield_item_id,shield_quantity,created_by_command_id,source_effect_index)
+      VALUES($1,$2,$3,$4,'pending',$5,$6,$7,$8)`,[missionId,sessionId,message,quantity,shieldItemId,shieldItemId?1:null,source.rows[0].command_id,seededEffectIndex++]);
+    return missionId;
+  }finally{await db.end();}
 }
 
 test.before(async()=>{
@@ -269,35 +281,36 @@ test('inventory and shield policy are data-driven, atomic and concurrency safe',
   const http=client(await login());let state=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
   const path=`/v1/channels/test-channel/sessions/${state.session.id}/commands`,send=(body:any)=>http.post(path,{commandId:randomUUID(),sessionEpoch:1,reason:'integration test',...body});
   assert.equal((await send({expectedRevision:4,type:'resume',payload:{}})).status,201);
-  let created=await send({expectedRevision:5,type:'create_mission',payload:{message:'data driven shield mission',quantity:3,shield:{itemId:'drink-shield',quantity:1}}});assert.equal(created.status,201);
-  const mission=(await created.json() as any).result.mission;assert.equal(mission.quantity,3);
-  const insufficient=await send({expectedRevision:6,type:'use_shield',payload:{missionId:mission.id,expectedMissionRevision:0,expectedInventoryRevision:0}});assert.equal(insufficient.status,422);
-  assert.equal((await send({expectedRevision:6,type:'adjust_inventory',payload:{itemId:'drink-shield',mode:'delta',quantity:1,expectedInventoryRevision:0}})).status,201);
-  const shieldBody={sessionEpoch:1,expectedRevision:7,type:'use_shield',reason:'concurrent defense',payload:{missionId:mission.id,expectedMissionRevision:0,expectedInventoryRevision:1}};
+  const missionId=await seedEffectMission(state.session.id,'data driven shield mission',3,'drink-shield');
+  const mission=(await (await http.get(`/v1/channels/test-channel/sessions/${state.session.id}/missions`)).json() as any[]).find((item:any)=>item.id===missionId);assert.equal(mission.quantity,3);
+  const insufficient=await send({expectedRevision:5,type:'use_shield',payload:{missionId,expectedMissionRevision:0,expectedInventoryRevision:0}});assert.equal(insufficient.status,422);
+  assert.equal((await send({expectedRevision:5,type:'adjust_inventory',payload:{itemId:'drink-shield',mode:'delta',quantity:1,expectedInventoryRevision:0}})).status,201);
+  const shieldBody={sessionEpoch:1,expectedRevision:6,type:'use_shield',reason:'concurrent defense',payload:{missionId,expectedMissionRevision:0,expectedInventoryRevision:1}};
   const defenses=await Promise.all([http.post(path,{...shieldBody,commandId:randomUUID()}),http.post(path,{...shieldBody,commandId:randomUUID()})]);
   assert.deepEqual(defenses.map(r=>r.status).sort(),[201,409]);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.inventory[0].quantity,0);assert.equal(state.inventory[0].revision,2);assert.equal(state.missions[0].status,'shielded');
 });
 
-test('legacy mission commands remain consistent and unresolved notices do not block ending a session',async()=>{
+test('effect missions remain resolvable and unresolved notices do not block ending a session',async()=>{
   const http=client(await login());let state=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;
   const oldSessionId=state.session.id;
   let path=`/v1/channels/test-channel/sessions/${state.session.id}/commands`;
   const send=(expectedRevision:number,type:string,payload:unknown)=>http.post(path,{commandId:randomUUID(),sessionEpoch:1,expectedRevision,type,reason:'integration test',payload});
-  let response=await send(8,'create_mission',{message:'complete me',quantity:1,shield:null});assert.equal(response.status,201);const completeId=(await response.json() as any).result.mission.id;
-  assert.equal((await send(9,'complete_mission',{missionId:completeId,expectedMissionRevision:0})).status,201);
-  response=await send(10,'create_mission',{message:'waive me',shield:null});assert.equal(response.status,201);const waiveId=(await response.json() as any).result.mission.id;
-  assert.equal((await send(11,'waive_mission',{missionId:waiveId,expectedMissionRevision:0})).status,201);
-  assert.equal((await send(12,'pause',{})).status,201);assert.equal((await send(13,'end_session',{})).status,201);
-  assert.equal((await send(14,'adjust_inventory',{itemId:'drink-shield',mode:'delta',quantity:1,expectedInventoryRevision:2})).status,409);
+  const rejected=await send(7,'create_mission',{message:'manual mission',shield:null});assert.equal(rejected.status,422);
+  const completeId=await seedEffectMission(oldSessionId,'complete me');
+  assert.equal((await send(7,'complete_mission',{missionId:completeId,expectedMissionRevision:0})).status,201);
+  const waiveId=await seedEffectMission(oldSessionId,'waive me');
+  assert.equal((await send(8,'waive_mission',{missionId:waiveId,expectedMissionRevision:0})).status,201);
+  assert.equal((await send(9,'pause',{})).status,201);assert.equal((await send(10,'end_session',{})).status,201);
+  assert.equal((await send(11,'adjust_inventory',{itemId:'drink-shield',mode:'delta',quantity:1,expectedInventoryRevision:2})).status,409);
   const ledger=await http.get(`/v1/channels/test-channel/sessions/${oldSessionId}/inventory-ledger`);assert.equal(ledger.status,200);assert.equal((await ledger.json() as any[]).length,2);
   const history=await http.get(`/v1/channels/test-channel/sessions/${oldSessionId}/missions`);assert.equal(history.status,200);assert.equal((await history.json() as any[]).length,3);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session,null);assert.equal(state.lastEndedSession.id,oldSessionId);assert.ok(state.lastEndedSession.boardDefinition);
   const boards=await (await http.get('/v1/channels/test-channel/board-versions/runnable')).json() as any[];
-  response=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId:boards.find((board:any)=>board.previewOnly)!.id,initialCellId:boards.find((board:any)=>board.previewOnly)!.initialCellId,direction:'forward'});assert.equal(response.status,201);
+  let response=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId:boards.find((board:any)=>board.previewOnly)!.id,initialCellId:boards.find((board:any)=>board.previewOnly)!.initialCellId,direction:'forward'});assert.equal(response.status,201);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session.status,'running');assert.equal(state.session.previewOnly,true);assert.equal(state.inventory[0].quantity,0);assert.deepEqual(state.missions,[]);
   const nextSessionId=state.session.id;
-  response=await http.post(`/v1/channels/test-channel/sessions/${nextSessionId}/commands`,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'create_mission',reason:'untracked mission notice',payload:{message:'notice only',quantity:1,shield:null}});assert.equal(response.status,201);
+  await seedEffectMission(nextSessionId,'notice only');
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.missions.at(-1).status,'pending');
   response=await http.post(`/v1/channels/test-channel/sessions/${nextSessionId}/commands`,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'end_session',reason:'finish without mission check',payload:{}});assert.equal(response.status,201);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.session,null);assert.equal(state.lastEndedSession.id,nextSessionId);

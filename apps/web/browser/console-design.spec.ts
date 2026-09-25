@@ -481,6 +481,7 @@ test("home separates current actions from three tabs that own all remaining cont
   await expect(details.getByRole("tab", { name: "적립/보상" })).toHaveAttribute("aria-selected", "true");
   await expect(details.getByText("사용 가능 2개")).toBeVisible();
   await expect(details.getByText("총 5 잔")).toBeVisible();
+  await expect(details.getByRole("textbox", { name: "수량 조정 사유" })).toHaveCount(0);
   await details.getByRole("tab", { name: "게임 조작" }).click();
   const operations = details.getByRole("tabpanel", { name: "게임 조작" });
   await expect(operations.getByRole("button", { name: "게임 재개" })).toBeVisible();
@@ -488,7 +489,8 @@ test("home separates current actions from three tabs that own all remaining cont
   await expect(effects.getByText("세계여행 목적지")).toBeVisible();
   await expect(effects.getByText("후원 목적지")).toBeVisible();
   await expect(effects.getByRole("button", { name: "목적지 변경" })).toBeVisible();
-  await operations.getByRole("region", { name: "수동 미션" }).getByRole("textbox", { name: "미션 문구" }).fill("방송 중 새 미션");
+  await expect(operations.getByRole("textbox", { name: "작업 사유" })).toHaveCount(0);
+  await expect(operations.getByRole("region", { name: "수동 미션" })).toHaveCount(0);
   await expect(operations.getByRole("button", { name: "세션 종료" })).toBeVisible();
   await details.getByRole("tab", { name: "게임 기록" }).click();
   await expect(details.getByText("게임 시작")).toBeVisible();
@@ -496,7 +498,6 @@ test("home separates current actions from three tabs that own all remaining cont
   await expect(details.getByText("지난 칸의 미션", { exact: false })).toBeVisible();
   await expect(actions.getByText("지난 칸의 미션")).toHaveCount(0);
   await details.getByRole("tab", { name: "게임 조작" }).click();
-  await expect(operations.getByRole("textbox", { name: "미션 문구" })).toHaveValue("방송 중 새 미션");
   const layout = await actions.evaluate((element) => {
     const tabs = document.querySelector('[aria-label="게임 관리 탭"]')!;
     const actionRect = element.getBoundingClientRect();

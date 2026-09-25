@@ -39,7 +39,7 @@ export function MarbleOperationsPanel({
   const [boards, setBoards] = useState<readonly RunnableBoardVersionDto[]>([]);
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
   const boardInteraction = useRef<HTMLDivElement | null>(null);
-  const [reason, setReason] = useState("방송 운영 조작");
+  const reason = "방송 운영 조작";
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const sequence = useRef(0);
@@ -144,7 +144,7 @@ export function MarbleOperationsPanel({
 
   const base = useMemo(
     () => ({ expectedRevision: state?.revision ?? 0, reason }),
-    [reason, state?.revision],
+    [state?.revision],
   );
   let liveBoard = board;
   let boardError = "";
@@ -375,12 +375,11 @@ export function MarbleOperationsPanel({
         <div id={`${tabId}-panel-rewards`} role="tabpanel" aria-labelledby={`${tabId}-tab-rewards`}
           hidden={activeDetailsTab !== "rewards"} className="border-t px-4 pb-5 pt-4">
           <AccumulationRewardsPanel
-            state={state} disabled={locked} reason={reason} onReasonChange={setReason} send={send} />
+            state={state} disabled={locked} reason={reason} send={send} />
         </div>
         <div id={`${tabId}-panel-operations`} role="tabpanel" aria-labelledby={`${tabId}-tab-operations`}
           hidden={activeDetailsTab !== "operations"} className="border-t px-4 pb-5 pt-4">
-          <GameOperationsPanel state={state} board={liveBoard} disabled={locked} reason={reason}
-            onReasonChange={setReason} send={send} />
+          <GameOperationsPanel state={state} board={liveBoard} disabled={locked} reason={reason} send={send} />
         </div>
         <div id={`${tabId}-panel-history`} role="tabpanel" aria-labelledby={`${tabId}-tab-history`}
           hidden={activeDetailsTab !== "history"} className="border-t px-4 pb-5 pt-4">
