@@ -28,6 +28,7 @@ import { startBoardOptions } from "./start-board-options";
 import { AccumulationRewardsPanel } from "./accumulation-rewards-panel";
 import { GameOperationsPanel } from "./game-operations-panel";
 import { GameHistoryPanel } from "./game-history-panel";
+import { HomeOverlayPanel } from "./home-overlay-panel";
 
 const board = boardPreset as unknown as BoardDefinition;
 
@@ -55,7 +56,8 @@ export function MarbleOperationsPanel({
   const [pending, setPending] = useState(() => api.pending());
   const [controlsRoot, setControlsRoot] = useState<HTMLElement | null>(null);
   const tabId = useId();
-  const [activeDetailsTab, setActiveDetailsTab] = useState<"rewards" | "operations" | "history">("rewards");
+  const [activeDetailsTab, setActiveDetailsTab] = useState<"rewards" | "operations" | "history" | "overlay">("rewards");
+  const [overlayVisited, setOverlayVisited] = useState(false);
 
   useEffect(() => {
     const next = document.getElementById("marble-controls-root");
@@ -366,11 +368,15 @@ export function MarbleOperationsPanel({
             idPrefix={tabId}
             ariaLabel="게임 관리 메뉴"
             activeTab={activeDetailsTab}
-            onTabChange={setActiveDetailsTab}
+            onTabChange={(tab) => {
+              setActiveDetailsTab(tab);
+              if (tab === "overlay") setOverlayVisited(true);
+            }}
             tabs={[
               { id: "rewards", label: "적립/보상" },
               { id: "operations", label: "게임 조작" },
               { id: "history", label: "게임 기록" },
+              { id: "overlay", label: "오버레이" },
             ]}
           />
         </div>
@@ -391,6 +397,10 @@ export function MarbleOperationsPanel({
             board={historyBoard}
             active={activeDetailsTab === "history"}
           />
+        </div>
+        <div id={`${tabId}-panel-overlay`} role="tabpanel" aria-labelledby={`${tabId}-tab-overlay`}
+          hidden={activeDetailsTab !== "overlay"} className="border-t px-4 pb-5 pt-4">
+          {overlayVisited && <HomeOverlayPanel />}
         </div>
       </section>
     </div>

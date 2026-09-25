@@ -241,7 +241,10 @@ export function MarbleDataPanel({
                             setBusy(true);
                             setMessage("");
                             void api.rotateOverlayToken(overlayToken.id)
-                              .then(setOverlayToken)
+                              .then((next) => {
+                                setOverlayToken(next);
+                                window.dispatchEvent(new Event("rogimarble:overlay-token-changed"));
+                              })
                               .catch(async (error) => { await load(); setMessage(error.message); })
                               .finally(() => setBusy(false));
                           }}>주소 교체</AlertDialogAction>

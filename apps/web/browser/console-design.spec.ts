@@ -446,7 +446,7 @@ test("configuration remains mounted when leaving its top-level tab", async ({
   ).toBe(true);
 });
 
-test("home separates current actions from three tabs that own all remaining controls", async ({ page }) => {
+test("home separates current actions from four tabs that own all remaining controls", async ({ page }) => {
   const submitted: Array<{ type: string; payload: Record<string, unknown> }> = [];
   await page.route("**/v1/channels/**/sessions/**/commands", async (route) => {
     const command = route.request().postDataJSON();
@@ -478,6 +478,7 @@ test("home separates current actions from three tabs that own all remaining cont
     type: "set_movement_lock_remaining", payload: { rollsRemaining: 3 },
   });
   const details = page.getByRole("region", { name: "게임 관리 탭" });
+  await expect(details.getByRole("tablist", { name: "게임 관리 메뉴" }).getByRole("tab")).toHaveCount(4);
   await expect(details.getByRole("tab", { name: "적립/보상" })).toHaveAttribute("aria-selected", "true");
   await expect(details.getByText("사용 가능 2개")).toBeVisible();
   await expect(details.getByText("총 5 잔")).toBeVisible();

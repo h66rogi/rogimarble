@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import type { OverlayLayoutDto } from '@rogimarble/contracts';
 
@@ -53,6 +53,7 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
     if (path.endsWith('/auth/session')) data = { csrfToken: 'synthetic-csrf', operator: { id: 'synthetic', username: '테스트', role } };
     else if (path.endsWith('/auth/config')) data = { mode: 'token', localLoginEnabled: false };
     else if (path.endsWith('/operator-state')) data = { session: null, boardDefinition: board, inventory: [], missions: [], pawnAppearance: { revision: 0, image: null }, capabilities: {} };
+    else if (path.endsWith('/config/board')) data = { draft: null, published: { id: 'board', revision: 1, status: 'published', document: board }, effectiveDocument: board };
     else if (path.endsWith('/config/rules')) data = { draft: null, published: { id: 'rules', revision: 1, status: 'published', document: rules }, effectiveDocument: rules };
     else if (path.endsWith('/collector')) data = { enabled: false, transport: 'disconnected', counts: {} };
     else if (path.endsWith('/overlay-token')) data = currentToken;
@@ -79,7 +80,7 @@ async function fixture(page: Page, role: 'operator' | 'viewer' = 'operator') {
   };
 }
 
-function widgetSwitch(page: Page, label: string) {
+function widgetSwitch(page: Page | Locator, label: string) {
   const priorityCard = page.getByText('위젯 우선순위', { exact: true }).locator('xpath=ancestor::*[@data-slot="card"][1]');
   return priorityCard.getByText(label, { exact: true }).locator('..').getByRole('switch');
 }
@@ -264,6 +265,34 @@ test('overlay tab keeps one channel URL after reload and rotates it on request',
   await page.getByRole('alertdialog').getByRole('button', { name: '주소 교체' }).click();
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveValue('http://127.0.0.1:3417/overlay/menu#token=rotated-overlay');
   await expect(page.getByRole('textbox', { name: '후원 메뉴 OBS 주소' })).toHaveCSS('filter', 'blur(6px)');
+});
+
+test('home game management overlay copies the combined URL and saves the shared live layout', async ({ page, context }) => {
+  const state = await fixture(page);
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.getByRole('tablist', { name: '운영 콘솔 메뉴' }).getByRole('tab', { name: '홈' }).click();
+  const gameTabs = page.getByRole('tablist', { name: '게임 관리 메뉴' });
+  await expect(gameTabs.getByRole('tab')).toHaveCount(4);
+  await gameTabs.getByRole('tab', { name: '오버레이' }).click();
+  const panel = page.getByRole('tabpanel', { name: '오버레이', exact: true });
+  await expect(panel.getByRole('textbox', { name: '통합 오버레이 OBS 주소' }))
+    .toHaveValue('http://127.0.0.1:3417/overlay#token=synthetic-overlay');
+  await expect(panel.getByText('레이아웃 편집', { exact: true })).toBeVisible();
+  await panel.getByRole('button', { name: '주소 복사' }).click();
+  await expect(panel.getByText('통합 오버레이 주소를 복사했습니다.')).toBeVisible();
+  await widgetSwitch(panel, '후원 메뉴').click();
+  await expect.poll(() => state.writes.at(-1)?.layout.widgets.some(widget => widget.id === 'menu')).toBe(true);
+  await gameTabs.getByRole('tab', { name: '게임 기록' }).click();
+  await expect(panel.getByText('레이아웃 편집', { exact: true })).toBeHidden();
+  await gameTabs.getByRole('tab', { name: '오버레이' }).click();
+  await expect(panel.getByText('레이아웃 편집', { exact: true })).toBeVisible();
+  await page.getByRole('tablist', { name: '운영 콘솔 메뉴' }).getByRole('tab', { name: '오버레이 설정', exact: true }).click();
+  await page.getByRole('tablist', { name: '오버레이 세부 메뉴' }).getByRole('tab', { name: '오버레이 주소' }).click();
+  await page.getByRole('button', { name: '주소 교체' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: '주소 교체' }).click();
+  await page.getByRole('tablist', { name: '운영 콘솔 메뉴' }).getByRole('tab', { name: '홈' }).click();
+  await expect(panel.getByRole('textbox', { name: '통합 오버레이 OBS 주소' }))
+    .toHaveValue('http://127.0.0.1:3417/overlay#token=rotated-overlay');
 });
 
 test('overlay sections use the same workspace width as board settings', async ({ page }) => {
