@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
-import { upgradeLegacyOverlayLayout, validateOverlayLayout, type OverlayLayoutDto, type OverlayLayoutSnapshotDto } from '../../../packages/contracts/src/index.ts';
+import { DEFAULT_MARBLE_OVERLAY_LAYOUT, upgradeLegacyOverlayLayout, validateOverlayLayout, type OverlayLayoutDto, type OverlayLayoutSnapshotDto } from '../../../packages/contracts/src/index.ts';
 import { pool, transaction } from '../../../packages/database/src/index.ts';
 import type { PoolClient } from 'pg';
 import { OverlayRealtimeService } from './overlay-realtime.ts';
 
-export const DEFAULT_LIVE_OVERLAY_LAYOUT:OverlayLayoutDto={schemaVersion:1,boardThemeId:'lime-clover',fontId:'nanum-square-neo',width:1920,height:1080,aspectRatio:'16:9',background:'transparent',widgets:[{id:'board',bounds:{x:0,y:0,width:1,height:1},z:1}]};
+export const DEFAULT_LIVE_OVERLAY_LAYOUT: OverlayLayoutDto = DEFAULT_MARBLE_OVERLAY_LAYOUT;
 
 type Operator={id:string;role:'admin'|'operator'|'viewer'};
 const date=(value:Date|string|null)=>value?new Date(value).toISOString():null;

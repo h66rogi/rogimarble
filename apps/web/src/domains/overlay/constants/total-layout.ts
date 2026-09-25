@@ -1,3 +1,5 @@
+import { DEFAULT_MARBLE_OVERLAY_LAYOUT, type OverlayWidgetId } from "@rogimarble/contracts";
+
 export type TotalOverlayWidgetId =
   | "queue"
   | "now-playing"
@@ -170,17 +172,32 @@ export const DEFAULT_SYNC_TOTAL_OVERLAY_LAYOUT: TotalOverlayLayout = {
   ],
 };
 
-export const DEFAULT_MARBLE_TOTAL_OVERLAY_LAYOUT: TotalOverlayLayout = {
-  version: 1,
-  aspect: "16:9",
-  widgets: [
-    { id: "board", enabled: true, x: 0, y: 0, w: 1, h: 1, z: 1 },
-    { id: "direction", enabled: true, x: 0.3, y: 0.28, w: 0.14, h: 0.07, z: 3 },
-    { id: "inventory", enabled: true, x: 0.56, y: 0.28, w: 0.14, h: 0.07, z: 3 },
-    { id: "current_mission", enabled: true, x: 0.32, y: 0.68, w: 0.36, h: 0.075, z: 3 },
-    { id: "dice", enabled: false, x: 0.43, y: 0.44, w: 0.14, h: 0.12, z: 4 },
-    { id: "menu", enabled: false, x: 0.13, y: 0.32, w: 0.22, h: 0.35, z: 5 },
-    { id: "dice_price", enabled: false, x: 0.13, y: 0.24, w: 0.22, h: 0.065, z: 5 },
-    { id: "chatbox", enabled: false, x: 0.78, y: 0.38, w: 0.2, h: 0.5, z: 4 },
-  ],
-};
+const marbleFallbackWidgets = [
+  { id: "board", enabled: false, x: 0, y: 0, w: 1, h: 1, z: 0 },
+  { id: "direction", enabled: false, x: 0.3, y: 0.28, w: 0.14, h: 0.07, z: 3 },
+  { id: "inventory", enabled: false, x: 0.56, y: 0.28, w: 0.14, h: 0.07, z: 3 },
+  { id: "current_mission", enabled: false, x: 0.32, y: 0.68, w: 0.36, h: 0.075, z: 3 },
+  { id: "dice", enabled: false, x: 0.43, y: 0.44, w: 0.14, h: 0.12, z: 4 },
+  { id: "menu", enabled: false, x: 0.13, y: 0.32, w: 0.22, h: 0.35, z: 5 },
+  { id: "dice_price", enabled: false, x: 0.13, y: 0.24, w: 0.22, h: 0.065, z: 5 },
+  { id: "chatbox", enabled: false, x: 0.78, y: 0.38, w: 0.2, h: 0.5, z: 4 },
+] as const satisfies readonly (TotalOverlayLayoutWidget & { id: OverlayWidgetId })[];
+
+export const DEFAULT_MARBLE_TOTAL_OVERLAY_LAYOUT = {
+  version: DEFAULT_MARBLE_OVERLAY_LAYOUT.schemaVersion,
+  aspect: DEFAULT_MARBLE_OVERLAY_LAYOUT.aspectRatio,
+  widgets: marbleFallbackWidgets.map((fallback) => {
+    const saved = DEFAULT_MARBLE_OVERLAY_LAYOUT.widgets.find((widget) => widget.id === fallback.id);
+    return saved
+      ? {
+          ...fallback,
+          enabled: true,
+          x: saved.bounds.x,
+          y: saved.bounds.y,
+          w: saved.bounds.width,
+          h: saved.bounds.height,
+          z: saved.z,
+        }
+      : fallback;
+  }),
+} satisfies TotalOverlayLayout;

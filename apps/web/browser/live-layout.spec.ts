@@ -1,6 +1,6 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import type { OverlayLayoutDto } from '@rogimarble/contracts';
+import { DEFAULT_MARBLE_OVERLAY_LAYOUT, type OverlayLayoutDto } from '@rogimarble/contracts';
 
 const board = JSON.parse(readFileSync(new URL('../../../presets/streamer-board.json', import.meta.url), 'utf8'));
 const rules = JSON.parse(readFileSync(new URL('../../../presets/streamer-initial.json', import.meta.url), 'utf8'));
@@ -84,6 +84,17 @@ function widgetSwitch(page: Page | Locator, label: string) {
   const priorityCard = page.getByText('위젯 우선순위', { exact: true }).locator('xpath=ancestor::*[@data-slot="card"][1]');
   return priorityCard.getByText(label, { exact: true }).locator('..').getByRole('switch');
 }
+
+test('restoring the default layout applies the published arrangement', async ({ page }) => {
+  const state = await fixture(page);
+  await page.getByRole('button', { name: '기본 레이아웃 복원' }).click();
+  await expect.poll(() => state.writes.length).toBe(1);
+  expect(state.writes[0].layout.widgets).toEqual(DEFAULT_MARBLE_OVERLAY_LAYOUT.widgets);
+  await expect(widgetSwitch(page, '후원 메뉴')).toBeChecked();
+  await expect(widgetSwitch(page, '채팅창')).toBeChecked();
+  await expect(widgetSwitch(page, '이동 방향')).not.toBeChecked();
+  await expect(widgetSwitch(page, '현재 미션')).not.toBeChecked();
+});
 
 test('board preview fills its actual OBS widget bounds instead of a square', async ({ page }) => {
   await fixture(page);

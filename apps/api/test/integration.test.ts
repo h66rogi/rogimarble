@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import pg from 'pg';
 import { io } from 'socket.io-client';
+import { DEFAULT_MARBLE_OVERLAY_LAYOUT } from '../../../packages/contracts/src/index.ts';
 
 const root=new URL('../../../',import.meta.url).pathname;
 const container=`rogimarble-api-test-${randomUUID()}`;
@@ -127,6 +128,7 @@ test('live overlay layout persists, uses CAS, scopes channels, and revoked OBS t
   const auth=await login(),http=client(auth),path='/v1/channels/test-channel/overlay-layout/live';
   let response=await http.get(path);assert.equal(response.status,200);const initial=await response.json() as any;
   assert.equal(initial.layoutVersion,0);assert.equal(initial.layout.width,1920);assert.equal(initial.layout.fontId,'nanum-square-neo');
+  assert.deepEqual(initial.layout,DEFAULT_MARBLE_OVERLAY_LAYOUT);
   const changed={...initial.layout,background:'#112233',widgets:[{id:'board',bounds:{x:.1,y:.1,width:.8,height:.8},z:1}]};
   response=await http.put(path,{layout:changed,expectedVersion:0});assert.equal(response.status,200);const saved=await response.json() as any;assert.equal(saved.layoutVersion,1);
   assert.equal((await http.put(path,{layout:initial.layout,expectedVersion:0})).status,409);

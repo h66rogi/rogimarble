@@ -3,36 +3,30 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Board, BroadcastPanel, BOARD_FONT_FAMILIES } from '@rogimarble/overlay-ui';
 import type { BoardDefinition } from '@rogimarble/game-core/board';
-import { upgradeLegacyOverlayLayout, validateOverlayLayout, resolveBoardFontId, type BoardFontId, type BoardThemeId, type OverlayLayoutDto, type OverlayStateDto, type OverlayWidgetId } from '@rogimarble/contracts';
+import { DEFAULT_MARBLE_OVERLAY_LAYOUT, upgradeLegacyOverlayLayout, validateOverlayLayout, resolveBoardFontId, type BoardFontId, type BoardThemeId, type OverlayLayoutDto, type OverlayStateDto, type OverlayWidgetId } from '@rogimarble/contracts';
 import { CanvasSizeNotice } from '@/integrated-overlay/domains/overlay/components/shared/CanvasSizeNotice';
 import { rollPlayback } from '@/integrated-overlay/roll-playback';
 import { useRollPresentation } from '@/lib/use-roll-presentation';
 import { apiAssetUrl } from '@/lib/api';
 import { OVERLAY_PARTS } from '@/domains/marble/overlay-parts';
 import { RogimarbleChatbox } from '@/integrated-overlay/domains/overlay/components/RogimarbleChatbox';
+import { DEFAULT_MARBLE_TOTAL_OVERLAY_LAYOUT } from '@/domains/overlay/constants/total-layout';
 
 type WidgetId = OverlayWidgetId;
 type LayoutWidget = { id: WidgetId; enabled: boolean; x: number; y: number; w: number; h: number; z: number };
 type TotalLayout = Pick<OverlayLayoutDto, 'fontId' | 'showPathArrows' | 'widgetStyles' | 'menu' | 'dicePrice'> & { boardThemeId: BoardThemeId; version: number; aspect: string; width: number; height: number; background: string; widgets: readonly LayoutWidget[] };
 
 const DEFAULT_TOTAL_OVERLAY_LAYOUT: TotalLayout = {
-  boardThemeId: 'lime-clover',
-  version: 1,
-  aspect: '16:9',
-  width: 1920,
-  height: 1080,
-  background: 'transparent',
-  widgets: [
-    { id: 'menu', enabled: false, x: 0.13, y: 0.32, w: 0.22, h: 0.35, z: 4 },
-    { id: 'dice_price', enabled: false, x: 0.13, y: 0.24, w: 0.22, h: 0.065, z: 4 },
-    { id: 'board', enabled: true, x: 0, y: 0, w: 1, h: 1, z: 1 },
-    // The board already owns the authoritative dice/Lottie presentation.
-    { id: 'dice', enabled: false, x: 0.41, y: 0.39, w: 0.18, h: 0.12, z: 3 },
-    { id: 'current_mission', enabled: true, x: 0.39, y: 0.69, w: 0.22, h: 0.095, z: 3 },
-    { id: 'inventory', enabled: true, x: 0.51, y: 0.255, w: 0.16, h: 0.075, z: 3 },
-    { id: 'direction', enabled: true, x: 0.33, y: 0.255, w: 0.16, h: 0.075, z: 3 },
-    { id: 'chatbox', enabled: false, x: 0.78, y: 0.38, w: 0.2, h: 0.5, z: 4 },
-  ],
+  boardThemeId: DEFAULT_MARBLE_OVERLAY_LAYOUT.boardThemeId,
+  fontId: DEFAULT_MARBLE_OVERLAY_LAYOUT.fontId,
+  showPathArrows: DEFAULT_MARBLE_OVERLAY_LAYOUT.showPathArrows,
+  widgetStyles: DEFAULT_MARBLE_OVERLAY_LAYOUT.widgetStyles,
+  version: DEFAULT_MARBLE_OVERLAY_LAYOUT.schemaVersion,
+  aspect: DEFAULT_MARBLE_OVERLAY_LAYOUT.aspectRatio,
+  width: DEFAULT_MARBLE_OVERLAY_LAYOUT.width,
+  height: DEFAULT_MARBLE_OVERLAY_LAYOUT.height,
+  background: DEFAULT_MARBLE_OVERLAY_LAYOUT.background,
+  widgets: DEFAULT_MARBLE_TOTAL_OVERLAY_LAYOUT.widgets,
 };
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));

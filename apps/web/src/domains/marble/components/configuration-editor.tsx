@@ -6,7 +6,7 @@ import { Disclosure } from "./configuration/editor-fields";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, CheckCircle2, CircleAlert, Clock3, Download, Loader2, Save } from "lucide-react";
-import { upgradeLegacyOverlayLayout } from "@rogimarble/contracts";
+import { DEFAULT_MARBLE_OVERLAY_LAYOUT, upgradeLegacyOverlayLayout } from "@rogimarble/contracts";
 import type {
   ChannelConfigKind,
   ChannelConfigVersionDto,
@@ -37,14 +37,7 @@ import { RulesEditor } from "./configuration/rules-editor";
 import { ItemsEditor, LayoutEditor } from "./configuration/resource-editors";
 import type { NamedItem } from "./configuration/editor-model";
 
-const blankLayout: OverlayLayoutDto = {
-  schemaVersion: 1,
-  width: 1920,
-  height: 1080,
-  aspectRatio: "16:9",
-  background: "transparent",
-  widgets: [{ id: "board", bounds: { x: 0, y: 0, width: 1, height: 1 }, z: 0 }],
-};
+const blankLayout: OverlayLayoutDto = DEFAULT_MARBLE_OVERLAY_LAYOUT;
 const blank: Record<ChannelConfigKind, unknown> = {
   rules: { schemaVersion: 1, multiRollEnabled: false, items: [], rules: [] },
   items: [],
