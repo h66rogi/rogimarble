@@ -53,26 +53,35 @@ test('orders anticipation follow-up, every server cell, landing and reduced-moti
 });
 
 test('visual throw variation is stable per command and always settles before the server result is revealed',()=>{
-  const first=diceThrowMotion('command-a',0);
-  assert.deepEqual(first,diceThrowMotion('command-a',0));
-  assert.notDeepEqual(first,diceThrowMotion('command-b',0));
-  assert.notDeepEqual(first,diceThrowMotion('command-a',1));
-  for(let index=0;index<10;index++){
-    const motion=diceThrowMotion(`command-${index}`,index);
+  const first=diceThrowMotion('command-a',0,1);
+  assert.deepEqual(first,diceThrowMotion('command-a',0,1));
+  assert.notDeepEqual(first,diceThrowMotion('command-b',0,1));
+  const singleSides=new Set<number>();
+  const impactTimes=new Set<number>();
+  for(let index=0;index<64;index++){
+    const key=`command-${index}`;
+    const motion=diceThrowMotion(key,0,1);
+    const pair=[diceThrowMotion(key,0,2),diceThrowMotion(key,1,2)];
     assert.ok(motion.durationMs+motion.delayMs<DICE_THROW_DURATION_MS);
     assert.ok(motion.launchY>0&&motion.bounceHeight>0);
-    assert.ok(Math.abs(motion.launchX)>=5);
+    assert.ok(Math.abs(motion.launchX)>=4.9);
+    assert.ok(pair[0].launchX<0&&pair[1].launchX>0);
+    assert.ok(pair.every(die=>die.durationMs+die.delayMs<DICE_THROW_DURATION_MS));
     assert.ok(Math.abs(diceThrowPose(motion,0).rollRadians)<2*Math.PI);
+    singleSides.add(Math.sign(motion.launchX));
+    impactTimes.add(motion.impactAt);
   }
+  assert.deepEqual([...singleSides].sort(),[-1,1]);
+  assert.ok(impactTimes.size>50);
 });
 
 test('a thrown die lands once, rolls toward its result, and rests on the ground',()=>{
-  const motion=diceThrowMotion('one-short-throw',0);
-  const airborne=diceThrowPose(motion,.23);
-  const impact=diceThrowPose(motion,.46);
-  const rebound=diceThrowPose(motion,.52);
-  const groundRoll=diceThrowPose(motion,.75);
-  const settled=diceThrowPose(motion,.93);
+  const motion=diceThrowMotion('one-short-throw',0,1);
+  const airborne=diceThrowPose(motion,motion.impactAt/2);
+  const impact=diceThrowPose(motion,motion.impactAt);
+  const rebound=diceThrowPose(motion,(motion.impactAt+motion.bounceEndAt)/2);
+  const groundRoll=diceThrowPose(motion,(motion.bounceEndAt+motion.rollEndAt)/2);
+  const settled=diceThrowPose(motion,motion.rollEndAt);
   assert.ok(airborne.lift>0);
   assert.ok(Math.abs(airborne.x)>Math.abs(impact.x));
   assert.ok(Math.abs(impact.lift)<1e-10);
@@ -80,7 +89,14 @@ test('a thrown die lands once, rolls toward its result, and rests on the ground'
   assert.equal(groundRoll.lift,0);
   assert.ok(Math.abs(impact.x)>Math.abs(groundRoll.x));
   assert.ok(Math.abs(groundRoll.rollRadians)>0);
-  assert.deepEqual(settled,{x:0,lift:0,rollRadians:0});
+  assert.deepEqual(settled,{x:0,z:0,lift:0,rollRadians:0});
+  for(const time of [motion.impactAt,motion.bounceEndAt,motion.rollEndAt]){
+    const before=diceThrowPose(motion,time-1e-6);
+    const after=diceThrowPose(motion,time);
+    assert.ok(Math.abs(before.x-after.x)<1e-4);
+    assert.ok(Math.abs(before.z-after.z)<1e-4);
+    assert.ok(Math.abs(before.rollRadians-after.rollRadians)<1e-4);
+  }
 });
 
 test('rounded dice stay above the ground as their corners rotate toward it',()=>{

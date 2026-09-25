@@ -12,7 +12,7 @@ export function roundedDieSupportHeight(rotation: { x: number; y: number; z: num
   return (1 - DICE_CORNER_RADIUS) * (Math.abs(rowX) + Math.abs(rowY) + Math.abs(rowZ)) + DICE_CORNER_RADIUS;
 }
 
-export function diceThrowMotion(commandId: string, index: number) {
+export function diceThrowMotion(commandId: string, index: number, diceCount = 2) {
   let state = 2166136261;
   for (const character of `${commandId}:${index}`) {
     state = Math.imul(state ^ character.charCodeAt(0), 16777619) >>> 0;
@@ -23,39 +23,59 @@ export function diceThrowMotion(commandId: string, index: number) {
     value ^= value + Math.imul(value ^ value >>> 7, 61 | value);
     return ((value ^ value >>> 14) >>> 0) / 4294967296;
   };
-  const side = index % 2 ? 1 : -1;
+  const side = diceCount === 1 ? next() < .5 ? -1 : 1 : index % 2 ? 1 : -1;
+  const impactAt = .43 + next() * .07;
+  const bounceEndAt = impactAt + .10 + next() * .04;
   return {
-    delayMs: index % 2 ? 45 : 0,
-    durationMs: 1470 + Math.floor(next() * 100),
-    launchX: side * (5 + next() * .6),
+    delayMs: diceCount > 1 && index % 2 ? 35 + Math.floor(next() * 25) : 0,
+    durationMs: 1440 + Math.floor(next() * 120),
+    launchX: side * (4.9 + next() * .6),
+    launchZ: (next() < .5 ? -1 : 1) * (.38 + next() * .38),
+    curveZ: (next() - .5) * .5,
+    restZ: (next() - .5) * .32,
+    finalYaw: (next() - .5) * .44,
     launchY: 1 + next() * .24,
     arcHeight: .72 + next() * .22,
     bounceHeight: .14 + next() * .08,
-    airTurnRadians: -side * Math.PI * (.45 + next() * .1),
+    airTurnRadians: Math.PI * (.4 + next() * .18),
+    impactAt,
+    bounceEndAt,
+    rollEndAt: .9 + next() * .05,
+    impactTravel: .52 + next() * .05,
+    bounceTravel: .055 + next() * .035,
+    rollEasePower: 1.2 + next() * .35,
   };
 }
 
 /** A short hand throw, one low bounce, then a roll whose angle follows ground travel. */
 export function diceThrowPose(motion: ReturnType<typeof diceThrowMotion>, progress: number) {
   const t = Math.max(0, Math.min(1, progress));
-  if (t < .46) {
-    const u = t / .46;
-    const x = motion.launchX * (1 - .54 * u);
+  const groundAngle = (x: number, z: number) => Math.hypot(x, z) / ROLL_RADIUS;
+  if (t < motion.impactAt) {
+    const u = t / motion.impactAt;
+    const remaining = 1 - motion.impactTravel * u;
+    const impactX = motion.launchX * (1 - motion.impactTravel);
+    const impactZ = motion.launchZ * (1 - motion.impactTravel);
     return {
-      x,
+      x: motion.launchX * remaining,
+      z: motion.launchZ * remaining + motion.curveZ * Math.sin(Math.PI * u),
       lift: motion.launchY * (1 - u) + motion.arcHeight * Math.sin(Math.PI * u),
-      rollRadians: -motion.launchX * .46 / ROLL_RADIUS + motion.airTurnRadians * (1 - u),
+      rollRadians: groundAngle(impactX, impactZ) + motion.airTurnRadians * (1 - u),
     };
   }
-  if (t < .58) {
-    const u = (t - .46) / .12;
-    const x = motion.launchX * (.46 - .06 * u);
-    return { x, lift: motion.bounceHeight * Math.sin(Math.PI * u), rollRadians: -x / ROLL_RADIUS };
+  if (t < motion.bounceEndAt) {
+    const u = (t - motion.impactAt) / (motion.bounceEndAt - motion.impactAt);
+    const remaining = 1 - motion.impactTravel - motion.bounceTravel * u;
+    const x = motion.launchX * remaining;
+    const z = motion.launchZ * remaining;
+    return { x, z, lift: motion.bounceHeight * Math.sin(Math.PI * u), rollRadians: groundAngle(x, z) };
   }
-  if (t < .93) {
-    const u = (t - .58) / .35;
-    const x = motion.launchX * .4 * (1 - u) ** 1.3;
-    return { x, lift: 0, rollRadians: -x / ROLL_RADIUS };
+  if (t < motion.rollEndAt) {
+    const u = (t - motion.bounceEndAt) / (motion.rollEndAt - motion.bounceEndAt);
+    const remaining = (1 - motion.impactTravel - motion.bounceTravel) * (1 - u) ** motion.rollEasePower;
+    const x = motion.launchX * remaining;
+    const z = motion.launchZ * remaining;
+    return { x, z, lift: 0, rollRadians: groundAngle(x, z) };
   }
-  return { x: 0, lift: 0, rollRadians: 0 };
+  return { x: 0, z: 0, lift: 0, rollRadians: 0 };
 }

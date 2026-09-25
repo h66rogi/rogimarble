@@ -101,6 +101,7 @@ export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable
     const shadowMaterials: MeshBasicMaterial[] = [];
 
     const throws = dice.map((value, index) => {
+      const motion = diceThrowMotion(rollKey, index, dice.length);
       const die = new Group();
       die.scale.setScalar(DIE_VISUAL_SCALE);
       const body = new Mesh(bodyGeometry, bodyMaterial);
@@ -128,11 +129,11 @@ export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable
       scene.add(shadow);
       const [finalX, finalY, finalZ] = faceToTop[value];
       const faceQuaternion = new Quaternion().setFromEuler(new Euler(finalX, finalY, finalZ));
-      const yaw = new Quaternion().setFromEuler(new Euler(0, index === 0 ? .16 : -.16, 0));
-      return { die, shadow, shadowMaterial, finalQuaternion: yaw.multiply(faceQuaternion), motion: diceThrowMotion(rollKey, index), finalPosition: dice.length === 1 ? 0 : index === 0 ? -1.45 : 1.45, depth: index === 0 ? .12 : -.12 };
+      const yaw = new Quaternion().setFromEuler(new Euler(0, motion.finalYaw, 0));
+      const rollAxis = new Vector3(motion.launchZ, 0, -motion.launchX).normalize();
+      return { die, shadow, shadowMaterial, finalQuaternion: yaw.multiply(faceQuaternion), motion, rollAxis, finalPosition: dice.length === 1 ? 0 : index === 0 ? -1.45 : 1.45, depth: (dice.length === 1 ? 0 : index === 0 ? .12 : -.12) + motion.restZ };
     });
     const rollQuaternion = new Quaternion();
-    const rollAxis = new Vector3(0, 0, 1);
     const startedAt = performance.now();
     let settled = !animate;
     let reported = false;
@@ -140,7 +141,7 @@ export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable
     const draw = (now: number) => {
       let allSettled = true;
       let anyVisible = false;
-      for (const { die, shadow, shadowMaterial, finalQuaternion, motion, finalPosition, depth } of throws) {
+      for (const { die, shadow, shadowMaterial, finalQuaternion, motion, rollAxis, finalPosition, depth } of throws) {
         const t = animate ? clamp01((now - startedAt - motion.delayMs) / motion.durationMs) : 1;
         if (t < 1) allSettled = false;
         die.visible = t > 0 || !animate;
@@ -148,8 +149,8 @@ export function ThreeDiceCanvas({ dice, rollKey, animate, onReady, onUnavailable
         const pose = diceThrowPose(motion, t);
         rollQuaternion.setFromAxisAngle(rollAxis, pose.rollRadians);
         die.quaternion.copy(rollQuaternion).multiply(finalQuaternion);
-        die.position.set(finalPosition + pose.x, DICE_FLOOR_Y + DIE_VISUAL_SCALE * roundedDieSupportHeight(die.quaternion) + .012 + pose.lift, depth);
-        shadow.position.set(die.position.x, DICE_FLOOR_Y + .003, depth);
+        die.position.set(finalPosition + pose.x, DICE_FLOOR_Y + DIE_VISUAL_SCALE * roundedDieSupportHeight(die.quaternion) + .012 + pose.lift, depth + pose.z);
+        shadow.position.set(die.position.x, DICE_FLOOR_Y + .003, die.position.z);
         shadow.scale.setScalar(1 + pose.lift * .35);
         shadowMaterial.opacity = .65 / (1 + pose.lift * 1.2);
         shadow.visible = die.visible;

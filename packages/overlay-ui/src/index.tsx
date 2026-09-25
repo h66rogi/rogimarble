@@ -5,6 +5,7 @@ import type { BoardFontId, BoardThemeId, PawnStyleId } from '@rogimarble/contrac
 import { getCellRect, type BoardDefinition, type BoardEffect, type Direction } from '@rogimarble/game-core/board';
 import { type CSSProperties, type ReactNode, useState } from 'react';
 import { boardPathArrows } from './board-path-arrows';
+import { diceThrowMotion } from './dice-motion';
 import { ThreeDiceCanvas } from './dice-three';
 export { BOARD_FONT_FAMILIES, BOARD_FONTS, BOARD_THEMES, type BoardFontMetadata, type BoardThemeMetadata } from './themes';
 export { BroadcastPanel, resolveBroadcastPanel } from './broadcast-panel';
@@ -176,14 +177,15 @@ function DiceTray({ dice, rollKey, rollingDiceCount, effectPhase, reducedMotion 
   const [readyKey, setReadyKey] = useState<string | null>(null);
   const useThree = !reducedMotion && Boolean(rollKey) && Boolean(dice?.length) && (dice?.length ?? 0) <= 2 && Boolean(dice?.every(value => Number.isInteger(value) && value >= 1 && value <= 6));
   return <div className={`dice-tray ${effectPhase === 'anticipation' && !reducedMotion ? 'is-throwing' : ''} ${(dice?.length ?? 0) > 6 ? 'is-crowded' : (dice?.length ?? 0) > 3 ? 'is-many' : ''} ${useThree && readyKey === rollKey ? 'has-three' : ''}`} aria-label={effectPhase === 'anticipation' ? `주사위 ${rollingDiceCount}개 굴리는 중` : dice?.length ? `주사위 ${dice.join(', ')}` : '주사위 대기 중'}>
-    {dice?.length ? dice.map((value, index) => <ThrownDie key={`${rollKey ?? 'preview'}-${index}-${value}`} value={value} index={index} />) : <><span className="die die-number idle-die" aria-hidden="true">?</span><span className="dice-idle">주사위를 굴려 주세요</span></>}
+    {dice?.length ? dice.map((value, index) => <ThrownDie key={`${rollKey ?? 'preview'}-${index}-${value}`} value={value} index={index} rollKey={rollKey} diceCount={dice.length} />) : <><span className="die die-number idle-die" aria-hidden="true">?</span><span className="dice-idle">주사위를 굴려 주세요</span></>}
     {useThree && rollKey && dice && <ThreeDiceCanvas key={rollKey} dice={dice} rollKey={rollKey} animate={effectPhase === 'anticipation'} onReady={() => setReadyKey(rollKey)} onUnavailable={() => setReadyKey(null)} />}
   </div>;
 }
 
-function ThrownDie({ value, index }: { value: number; index: number }) {
+function ThrownDie({ value, index, rollKey, diceCount }: { value: number; index: number; rollKey?: string | null; diceCount: number }) {
   if (!Number.isInteger(value) || value < 1 || value > 6) return <span className="die die-number" aria-hidden="true">{value}</span>;
-  return <span className={`thrown-die face-up-${value} ${index % 2 ? 'is-right' : 'is-left'}`} aria-hidden="true">
+  const fromRight = rollKey ? diceThrowMotion(rollKey, index, diceCount).launchX > 0 : index % 2 === 1;
+  return <span className={`thrown-die face-up-${value} ${fromRight ? 'is-right' : 'is-left'}`} aria-hidden="true">
     <span className="thrown-die-shadow" />
     <span className="thrown-die-flight">
       <span className="dice-cube">
