@@ -194,6 +194,10 @@ export function BoardEditor({
     <div className="min-w-0">
       <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(400px,480px)]">
         <div className="min-w-0 space-y-4" ref={boardRef}>
+          <Field label="게임판 이름" help="게임을 시작하거나 게임판을 변경할 때 이 이름으로 표시돼요.">
+            <Input maxLength={60} required placeholder="예: 금요일 방송판" value={value.name}
+              onChange={(event) => edit({ ...value, name: event.target.value })} />
+          </Field>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1" aria-label="편집 모드">
               <Button

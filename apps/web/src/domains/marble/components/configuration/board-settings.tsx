@@ -88,12 +88,6 @@ export function BoardSettings({
         </Button>
       </header>
       <div className="space-y-5 xl:max-h-[calc(100vh-310px)] xl:overflow-y-auto">
-        <Field label="게임판 이름">
-          <Input
-            value={value.name}
-            onChange={(e) => change({ ...value, name: e.target.value })}
-          />
-        </Field>
         <div className="space-y-4">
           <h4 className="text-sm font-semibold">시작과 주사위</h4>
           <Options

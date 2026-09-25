@@ -24,6 +24,7 @@ import {
 import { PillTabs } from "@/shared/components/ui/pill-tabs";
 import { useRollPresentation } from "../../../../lib/use-roll-presentation";
 import { CurrentActionsSection } from "./current-actions-section";
+import { startBoardOptions } from "./start-board-options";
 import { AccumulationRewardsPanel } from "./accumulation-rewards-panel";
 import { GameOperationsPanel } from "./game-operations-panel";
 import { GameHistoryPanel } from "./game-history-panel";
@@ -110,12 +111,13 @@ export function MarbleOperationsPanel({
 
   const refresh = async () => {
     const requestSequence = ++sequence.current;
-    const [snapshot, runnable] = await Promise.all([
+    const [snapshot, runnable, boardConfig] = await Promise.all([
       api.snapshot(),
       api.runnableBoards(),
+      api.config("board").catch(() => null),
     ]);
     applySnapshot(snapshot, requestSequence);
-    setBoards(runnable);
+    setBoards(startBoardOptions(runnable, boardConfig?.published?.id ?? null));
   };
 
   useEffect(() => {

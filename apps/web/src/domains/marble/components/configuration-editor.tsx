@@ -5,7 +5,7 @@ import { Card } from "@/shared/components/ui/card";
 import { Disclosure } from "./configuration/editor-fields";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, CheckCircle2, CircleAlert, Clock3, Download, Loader2, Save } from "lucide-react";
+import { Check, CheckCircle2, CircleAlert, Clock3, CopyPlus, Download, Loader2, Save } from "lucide-react";
 import { upgradeLegacyOverlayLayout } from "@rogimarble/contracts";
 import type {
   ChannelConfigKind,
@@ -251,16 +251,24 @@ export function ConfigurationEditor({
                   : "방송 화면의 기본 스타일과 패널 내용을 편집하세요."}
           </p>
         </div>
-        {(kind === "rules" || kind === "board" || kind === "items") && (
-          <Button
-            variant="outline"
-            disabled={!ready || busy}
-            onClick={() => setPresetReview(true)}
-          >
-            <Download />
-            기본 구성 가져오기
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {kind === "board" && published && !version && !dirty && shape && (
+            <Button variant="outline" disabled={!ready || busy}
+              onClick={() => setDocument({ ...(document as BoardDefinition), id: `board-${crypto.randomUUID()}`, name: "" })}>
+              <CopyPlus />새 게임판 만들기
+            </Button>
+          )}
+          {(kind === "rules" || kind === "board" || kind === "items") && (
+            <Button
+              variant="outline"
+              disabled={!ready || busy}
+              onClick={() => setPresetReview(true)}
+            >
+              <Download />
+              기본 구성 가져오기
+            </Button>
+          )}
+        </div>
       </header>
       <Alert variant="warning" role="note">
         <Clock3 aria-hidden="true" />
