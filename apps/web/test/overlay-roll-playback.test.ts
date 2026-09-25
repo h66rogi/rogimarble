@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { OverlayPresentationCommandDto } from '@rogimarble/contracts';
-import { buildRollTimeline, buildTravelTimeline, rollPlayback } from '../src/integrated-overlay/roll-playback.ts';
+import { buildRollTimeline, buildTravelTimeline, DICE_THROW_DURATION_MS, rollPlayback } from '../src/integrated-overlay/roll-playback.ts';
 
 const command = (result: unknown, presentationEpoch = 4): OverlayPresentationCommandDto => ({ commandId:'command', sessionId:'session', sessionEpoch:1, presentationEpoch, type:'roll_dice', afterRevision:2, result:result as OverlayPresentationCommandDto['result'], createdAt:'2026-09-21T00:00:00.000Z' });
 
@@ -41,12 +41,12 @@ test('uses a brief no-dice travel landing without roll anticipation',()=>{
 
 test('orders anticipation follow-up, every server cell, landing and reduced-motion fallback',()=>{
   assert.deepEqual(buildRollTimeline(['a','b','c']),[
-    {at:420,phase:'reveal'},{at:840,phase:'stepping'},
-    {at:1440,phase:'cell',cellId:'b'},{at:2040,phase:'cell',cellId:'c'},
-    {at:2640,phase:'landing'},{at:3200,phase:'idle'},
+    {at:DICE_THROW_DURATION_MS,phase:'reveal'},{at:2170,phase:'stepping'},
+    {at:2770,phase:'cell',cellId:'b'},{at:3370,phase:'cell',cellId:'c'},
+    {at:3970,phase:'landing'},{at:4530,phase:'idle'},
   ]);
   assert.deepEqual(buildRollTimeline(['a','b'],true),[]);
   assert.deepEqual(buildRollTimeline(Array.from({length:26},(_,index)=>`cell-${index}`)),[
-    {at:420,phase:'reveal'},{at:1400,phase:'landing'},{at:1960,phase:'idle'},
+    {at:DICE_THROW_DURATION_MS,phase:'reveal'},{at:2730,phase:'landing'},{at:3290,phase:'idle'},
   ]);
 });

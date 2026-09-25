@@ -1,6 +1,6 @@
 'use client';
 
-import { DefaultPawn, DiceLottie, LandingLottie } from '@rogimarble/animation';
+import { DefaultPawn, LandingLottie } from '@rogimarble/animation';
 import type { BoardFontId, BoardThemeId, PawnStyleId } from '@rogimarble/contracts';
 import { getCellRect, type BoardDefinition, type BoardEffect } from '@rogimarble/game-core/board';
 import { type CSSProperties, type ReactNode } from 'react';
@@ -59,10 +59,9 @@ export function Board({ board, tokenCellId, moving = false, dice, interactive = 
         })}
       </svg>
       {interactive && selectedRect && actionSide && selectedCellAction && <div className="board-cell-action" data-side={actionSide} style={{ left: actionLeft, top: actionTop }}>{selectedCellAction}</div>}
-      {displayBoard.layout.type === 'perimeter_grid' && effectPhase !== 'idle' && <div className="center-widget">
-        <div className="dice-tray" aria-label={effectPhase === 'anticipation' ? `주사위 ${rollingDiceCount}개 굴리는 중` : dice?.length ? `주사위 ${dice.join(', ')}` : '주사위 대기 중'}>
-          <DiceLottie active={effectPhase === 'anticipation'} reducedMotion={reducedMotion} count={rollingDiceCount} />
-          {effectPhase === 'anticipation' ? <span className="dice-idle dice-rolling-label">주사위 굴리는 중</span> : dice?.length ? dice.map((value, index) => <Die key={`${index}-${value}`} value={value} />) : <><span className="die die-number idle-die" aria-hidden="true">?</span><span className="dice-idle">주사위를 굴려 주세요</span></>}
+      {displayBoard.layout.type === 'perimeter_grid' && (effectPhase !== 'idle' || (reducedMotion && Boolean(dice?.length))) && <div className="center-widget">
+        <div className={`dice-tray ${effectPhase === 'anticipation' && !reducedMotion ? 'is-throwing' : ''} ${(dice?.length ?? 0) > 6 ? 'is-crowded' : (dice?.length ?? 0) > 3 ? 'is-many' : ''}`} aria-label={effectPhase === 'anticipation' ? `주사위 ${rollingDiceCount}개 굴리는 중` : dice?.length ? `주사위 ${dice.join(', ')}` : '주사위 대기 중'}>
+          {dice?.length ? dice.map((value, index) => <ThrownDie key={`${index}-${value}`} value={value} index={index} />) : <><span className="die die-number idle-die" aria-hidden="true">?</span><span className="dice-idle">주사위를 굴려 주세요</span></>}
         </div>
         {effectPhase !== 'anticipation' && dice?.length ? <span className="dice-total">합계 {dice.reduce((sum, value) => sum + value, 0)}</span> : <span className="board-status">{effectPhase === 'anticipation' ? '결과를 기다리고 있어요' : '오늘도 즐겁게 출발!'}</span>}
         {effectPhase === 'landing' && <span className="landing-status">{tokenCell.label} 도착</span>}
@@ -156,8 +155,19 @@ function EffectIcon({ effect, isStart = false }: { effect: BoardEffect | undefin
   return <svg {...common}>{body}</svg>;
 }
 
-function Die({ value }: { value: number }) {
-  if (!Number.isInteger(value) || value < 1 || value > 6) return <span className="die die-number" aria-hidden="true">{value}</span>;
+function Pips({ value }: { value: number }) {
   const positions = value === 1 ? [4] : value === 2 ? [0, 8] : value === 3 ? [0, 4, 8] : value === 4 ? [0, 2, 6, 8] : value === 5 ? [0, 2, 4, 6, 8] : [0, 2, 3, 5, 6, 8];
-  return <span className="die" aria-hidden="true">{Array.from({ length: 9 }, (_, index) => <i key={index} className={positions.includes(index) ? 'is-pip' : ''} />)}</span>;
+  return <>{Array.from({ length: 9 }, (_, index) => <i key={index} className={positions.includes(index) ? 'is-pip' : ''} />)}</>;
+}
+
+function ThrownDie({ value, index }: { value: number; index: number }) {
+  if (!Number.isInteger(value) || value < 1 || value > 6) return <span className="die die-number" aria-hidden="true">{value}</span>;
+  return <span className={`thrown-die face-up-${value} ${index % 2 ? 'is-right' : 'is-left'}`} aria-hidden="true">
+    <span className="thrown-die-shadow" />
+    <span className="thrown-die-flight">
+      <span className="dice-cube">
+        {Array.from({ length: 6 }, (_, face) => <span key={face} className={`dice-cube-face face-${face + 1}`}><Pips value={face + 1} /></span>)}
+      </span>
+    </span>
+  </span>;
 }

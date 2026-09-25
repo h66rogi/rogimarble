@@ -411,7 +411,7 @@ export function inspectProject(): { files: string[]; violations: Violation[] } {
     if (
       selector.startsWith("@media") ||
       selector.startsWith("@keyframes marble-") ||
-      /^(from|to)$/.test(selector)
+      /^(?:from|to|\d{1,3}%)$/.test(selector)
     )
       continue;
     if (

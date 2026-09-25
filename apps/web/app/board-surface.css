@@ -69,8 +69,78 @@
 .marble-board .die i { display: block; border-radius: 50%; }
 .marble-board .die i.is-pip { background: #74264c; box-shadow: inset 0 2px 2px rgba(0,0,0,.22); }
 .marble-board .die-number { place-items: center; color: #74264c; font-size: 38px; font-weight: 900; }
-.marble-board .dice-lottie { position: absolute; inset: -30px -72px; width: auto; height: auto; pointer-events: none; }
-.marble-board .dice-rolling-label { visibility: hidden; }
+.marble-board .dice-tray { --cube-size: 6.25cqw; --dice-edge: #cb779b; --dice-pip: #74264c; width: 100%; max-width: 100%; flex-wrap: wrap; }
+.marble-board .thrown-die { position: relative; display: block; flex: 0 0 var(--cube-size); width: var(--cube-size); height: var(--cube-size); perspective: 24cqw; }
+.marble-board .thrown-die.face-up-1 { --settle-x: 0deg; --settle-y: 0deg; }
+.marble-board .thrown-die.face-up-2 { --settle-x: 0deg; --settle-y: -90deg; }
+.marble-board .thrown-die.face-up-3 { --settle-x: -90deg; --settle-y: 0deg; }
+.marble-board .thrown-die.face-up-4 { --settle-x: 90deg; --settle-y: 0deg; }
+.marble-board .thrown-die.face-up-5 { --settle-x: 0deg; --settle-y: 90deg; }
+.marble-board .thrown-die.face-up-6 { --settle-x: 0deg; --settle-y: 180deg; }
+.marble-board .thrown-die-flight { position: absolute; inset: 0; display: block; transform-style: preserve-3d; }
+.marble-board .dice-cube { position: absolute; inset: 0; display: block; transform-style: preserve-3d; transform: rotateX(var(--settle-x)) rotateY(var(--settle-y)); }
+.marble-board .dice-cube-face { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 13%; border: max(2px, .12cqw) solid var(--dice-edge); border-radius: 17%; background: linear-gradient(145deg, #fff 8%, #fffafc 58%, #f6e5eb 100%); box-shadow: inset .2cqw .2cqw .3cqw rgba(255,255,255,.9), inset -.18cqw -.22cqw .4cqw rgba(125,51,85,.12); backface-visibility: hidden; }
+.marble-board .dice-cube-face.face-2,.marble-board .dice-cube-face.face-5 { background: linear-gradient(130deg, #fff9fb, #eed6e0); }
+.marble-board .dice-cube-face.face-3,.marble-board .dice-cube-face.face-4 { background: linear-gradient(160deg, #fff, #f7e5ec); }
+.marble-board .dice-cube-face i { display: block; border-radius: 50%; }
+.marble-board .dice-cube-face i.is-pip { background: var(--dice-pip); box-shadow: inset 0 .12cqw .16cqw rgba(0,0,0,.24), 0 .04cqw 0 rgba(255,255,255,.7); }
+.marble-board .dice-cube-face.face-1 { transform: translateZ(calc(var(--cube-size) / 2)); }
+.marble-board .dice-cube-face.face-2 { transform: rotateY(90deg) translateZ(calc(var(--cube-size) / 2)); }
+.marble-board .dice-cube-face.face-3 { transform: rotateX(90deg) translateZ(calc(var(--cube-size) / 2)); }
+.marble-board .dice-cube-face.face-4 { transform: rotateX(-90deg) translateZ(calc(var(--cube-size) / 2)); }
+.marble-board .dice-cube-face.face-5 { transform: rotateY(-90deg) translateZ(calc(var(--cube-size) / 2)); }
+.marble-board .dice-cube-face.face-6 { transform: rotateY(180deg) translateZ(calc(var(--cube-size) / 2)); }
+.marble-board .thrown-die-shadow { position: absolute; left: 12%; right: 12%; bottom: -13%; height: 20%; border-radius: 50%; background: rgba(63,28,51,.34); filter: blur(.3cqw); transform: scale(1); }
+.marble-board .dice-tray.is-throwing .thrown-die-flight { animation: marble-die-throw 1.55s cubic-bezier(.2,.67,.23,1) both; }
+.marble-board .dice-tray.is-throwing .dice-cube { animation: marble-die-tumble 1.55s linear both; }
+.marble-board .dice-tray.is-throwing .thrown-die-shadow { animation: marble-die-shadow 1.55s ease-out both; }
+.marble-board .dice-tray.is-throwing .thrown-die.is-right .thrown-die-flight,
+.marble-board .dice-tray.is-throwing .thrown-die.is-right .dice-cube,
+.marble-board .dice-tray.is-throwing .thrown-die.is-right .thrown-die-shadow { animation-delay: 60ms; }
+.marble-board .dice-tray.is-throwing .die-number { --launch-x: -9cqw; --arc-x: -4cqw; --impact-x: -1.3cqw; --rebound-x: -.8cqw; --roll-x: -.3cqw; animation: marble-die-throw 1.55s cubic-bezier(.2,.67,.23,1) both; }
+.marble-board .thrown-die.is-right { --launch-x: 9cqw; --arc-x: 4cqw; --impact-x: 1.3cqw; --rebound-x: .8cqw; --roll-x: .3cqw; --shadow-launch-x: 4cqw; --shadow-arc-x: 2cqw; }
+.marble-board .thrown-die.is-left { --launch-x: -9cqw; --arc-x: -4cqw; --impact-x: -1.3cqw; --rebound-x: -.8cqw; --roll-x: -.3cqw; --shadow-launch-x: -4cqw; --shadow-arc-x: -2cqw; }
+@keyframes marble-die-throw {
+  0% { opacity: 0; transform: translate3d(var(--launch-x), -11cqw, 0) scale(.55); }
+  10% { opacity: 1; }
+  37% { transform: translate3d(var(--arc-x), -7cqw, 0) scale(1.14); }
+  57% { transform: translate3d(var(--impact-x), 0, 0) scale(1.02,.82); }
+  70% { transform: translate3d(var(--rebound-x), -2.5cqw, 0) scale(.98,1.04); }
+  83% { transform: translate3d(var(--roll-x), 0, 0) scale(1.02,.93); }
+  92% { transform: translate3d(0, -.55cqw, 0) scale(1); }
+  100% { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+}
+@keyframes marble-die-tumble {
+  0% { transform: rotateX(calc(var(--settle-x) - 760deg)) rotateY(calc(var(--settle-y) + 680deg)) rotateZ(-28deg); }
+  37% { transform: rotateX(calc(var(--settle-x) - 480deg)) rotateY(calc(var(--settle-y) + 420deg)) rotateZ(17deg); }
+  57% { transform: rotateX(calc(var(--settle-x) - 225deg)) rotateY(calc(var(--settle-y) + 180deg)) rotateZ(-11deg); }
+  70% { transform: rotateX(calc(var(--settle-x) - 105deg)) rotateY(calc(var(--settle-y) + 80deg)) rotateZ(7deg); }
+  83% { transform: rotateX(calc(var(--settle-x) + 19deg)) rotateY(calc(var(--settle-y) - 13deg)) rotateZ(-3deg); }
+  92% { transform: rotateX(calc(var(--settle-x) - 6deg)) rotateY(calc(var(--settle-y) + 4deg)) rotateZ(1deg); }
+  100% { transform: rotateX(var(--settle-x)) rotateY(var(--settle-y)) rotateZ(0); }
+}
+@keyframes marble-die-shadow {
+  0% { opacity: 0; transform: translateX(var(--shadow-launch-x)) scale(.35); }
+  37% { opacity: .12; transform: translateX(var(--shadow-arc-x)) scale(.55); }
+  57% { opacity: .8; transform: translateX(0) scale(1.25); }
+  70% { opacity: .26; transform: scale(.7); }
+  83% { opacity: .65; transform: scale(1.1); }
+  100% { opacity: .48; transform: scale(1); }
+}
+.marble-board[data-board-theme="lime-clover"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #a5c54a; --dice-pip: #789523; }
+.marble-board[data-board-theme="pink-bunny"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #ee8cb5; --dice-pip: #d34f88; }
+.marble-board[data-board-theme="sky-soda"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #66c7e5; --dice-pip: #268eb8; }
+.marble-board[data-board-theme="lavender-dream"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #a98cd5; --dice-pip: #7958ad; }
+.marble-board[data-board-theme="midnight-pop"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #293e76; --dice-pip: #e84f96; }
+.marble-board[data-board-theme="peach-sorbet"] .dice-tray { --cube-size: 5.5cqw; --dice-edge: #ed9470; --dice-pip: #d96552; }
+.marble-board .dice-tray.is-many { --cube-size: 3.8cqw; }
+.marble-board .dice-tray.is-crowded { --cube-size: 2.3cqw; }
+@media (prefers-reduced-motion: reduce) {
+  .marble-board .dice-tray.is-throwing .thrown-die-flight,
+  .marble-board .dice-tray.is-throwing .dice-cube,
+  .marble-board .dice-tray.is-throwing .thrown-die-shadow,
+  .marble-board .dice-tray.is-throwing .die-number { animation: none; }
+}
 .marble-board .dice-idle { color: #8b6679; font-size: 20px; font-weight: 750; }
 .marble-board .dice-total { margin-top: 20px; color: #642945; font-size: 20px; font-weight: 900; }
 .marble-board .board-status { color: #9a7587; font-size: 17px; font-weight: 650; }

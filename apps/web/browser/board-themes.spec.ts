@@ -39,9 +39,11 @@ test("OBS updates a theme at the same game revision, keeps the camera space open
   state.session.revision = 1;
   state.session.currentCellId = "cell-04";
   state.latestCommand = { commandId: "synthetic-roll-one", sessionId: state.session.id, sessionEpoch: 1, presentationEpoch: 0, type: "roll_dice", afterRevision: 1, result: { dice: [3], distance: 3, direction: "forward", fromCellId: "cell-01", toCellId: "cell-04", path: ["cell-02", "cell-03", "cell-04"] } };
-  // Reveal is shorter than expect() polling intervals; observe it every animation frame.
+  await page.waitForFunction(() => document.querySelector(".dice-tray.is-throwing .dice-cube")?.getAnimations().some(animation => animation.playState === "running"), {}, { timeout: 7000 });
+  await expect(page.locator(".dice-cube-face")).toHaveCount(6);
   await page.waitForFunction(() => document.querySelector(".marble-board")?.getAttribute("data-presentation-phase") === "reveal", { }, { timeout: 7000 });
-  await expect(page.locator(".die")).toHaveCount(1);
+  await expect(page.locator(".thrown-die")).toHaveCount(1);
+  await expect(page.locator(".dice-tray")).toHaveAttribute("aria-label", "주사위 3");
   await expect(surface).toHaveAttribute("data-presentation-phase", "idle", { timeout: 10000 });
   await expect(page.locator(".center-widget")).toHaveCount(0);
   await expect(page.locator(".token-wrapper")).toHaveAttribute("data-cell-id", "cell-04");
@@ -53,10 +55,18 @@ test("OBS updates a theme at the same game revision, keeps the camera space open
   state.session.revision = 3;
   state.session.currentCellId = "cell-13";
   state.latestCommand = { commandId: "synthetic-island-two", sessionId: state.session.id, sessionEpoch: 1, presentationEpoch: 1, type: "roll_dice", afterRevision: 3, result: { dice: [2, 2], distance: 4, direction: "forward", fromCellId: "cell-09", toCellId: "cell-13", path: ["cell-10", "cell-11", "cell-12", "cell-13"] } };
-  // Reveal is shorter than expect() polling intervals; observe it every animation frame.
+  await page.waitForFunction(() => document.querySelectorAll(".dice-tray.is-throwing .dice-cube").length === 2, {}, { timeout: 7000 });
   await page.waitForFunction(() => document.querySelector(".marble-board")?.getAttribute("data-presentation-phase") === "reveal", { }, { timeout: 7000 });
-  await expect(page.locator(".die")).toHaveCount(2);
+  await expect(page.locator(".thrown-die")).toHaveCount(2);
+  await expect(page.locator(".dice-tray")).toHaveAttribute("aria-label", "주사위 2, 2");
   await expect(surface).toHaveAttribute("data-presentation-phase", "idle", { timeout: 10000 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  state.session.revision = 4;
+  state.session.currentCellId = "cell-14";
+  state.latestCommand = { commandId: "synthetic-reduced-roll", sessionId: state.session.id, sessionEpoch: 1, presentationEpoch: 1, type: "roll_dice", afterRevision: 4, result: { dice: [1], distance: 1, direction: "forward", fromCellId: "cell-13", toCellId: "cell-14", path: ["cell-14"] } };
+  await expect(page.locator(".token-wrapper")).toHaveAttribute("data-cell-id", "cell-14");
+  await expect(page.locator(".dice-tray .face-up-1")).toHaveCount(1);
+  await expect(page.locator(".dice-tray.is-throwing")).toHaveCount(0);
   await page.setViewportSize({ width: 1280, height: 720 });
   await expect.poll(async () => (await page.locator(".board-stage").boundingBox())?.width).toBe(1280);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(1280);

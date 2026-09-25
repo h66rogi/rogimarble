@@ -4,13 +4,17 @@ export const presentationMovementCommands = ['roll_dice','choose_destination','c
 export type PresentationMovementCommand = typeof presentationMovementCommands[number];
 export type RollPlayback = { readonly dice: readonly number[]; readonly cells: readonly string[]; readonly kind:'roll'|'travel' };
 export type RollTimelineEvent = { readonly at:number; readonly phase:'reveal'|'stepping'|'cell'|'landing'|'idle'; readonly cellId?:string };
+// The CSS throw runs for 1550ms, with at most 60ms stagger; reveal follows its last frame.
+export const DICE_THROW_DURATION_MS = 1650;
+const DICE_REVEAL_HOLD_MS = 520;
 
 export function buildRollTimeline(cells:readonly string[], reducedMotion=false):readonly RollTimelineEvent[]{
   if(reducedMotion)return[];
-  if(cells.length-1>24)return[{at:420,phase:'reveal'},{at:1400,phase:'landing'},{at:1960,phase:'idle'}];
-  const events:RollTimelineEvent[]=[{at:420,phase:'reveal'},{at:840,phase:'stepping'}];
-  cells.slice(1).forEach((cellId,index)=>events.push({at:840+(index+1)*600,phase:'cell',cellId}));
-  const landingAt=840+Math.max(1,cells.length-1)*600+600;
+  const steppingAt=DICE_THROW_DURATION_MS+DICE_REVEAL_HOLD_MS;
+  if(cells.length-1>24)return[{at:DICE_THROW_DURATION_MS,phase:'reveal'},{at:steppingAt+560,phase:'landing'},{at:steppingAt+1120,phase:'idle'}];
+  const events:RollTimelineEvent[]=[{at:DICE_THROW_DURATION_MS,phase:'reveal'},{at:steppingAt,phase:'stepping'}];
+  cells.slice(1).forEach((cellId,index)=>events.push({at:steppingAt+(index+1)*600,phase:'cell',cellId}));
+  const landingAt=steppingAt+Math.max(1,cells.length-1)*600+600;
   events.push({at:landingAt,phase:'landing'},{at:landingAt+560,phase:'idle'});
   return events;
 }
