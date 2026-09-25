@@ -39,8 +39,8 @@ interface ThemeCardProps {
 /**
  * 단일 테마 미리보기 카드.
  *
- * 썸네일 이미지가 아직 존재하지 않는 단계에서는(Phase 5.3에서 생성)
- * 이미지 로드 실패 시 테마 이름을 가진 fallback 그라데이션을 보여준다.
+ * 썸네일 이미지가 없거나 로드에 실패하면 테마 이름이 있는
+ * fallback 그라데이션을 보여준다.
  */
 export function ThemeCard({ theme, selected, onClick }: ThemeCardProps) {
   const [imageFailed, setImageFailed] = useState(false);

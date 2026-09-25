@@ -18,7 +18,7 @@ export interface SheetMusicViewerProps {
   rotation: number;
   /** 사용자 pinch / double-tap 으로 zoom 변경 시 외부 state 동기화. */
   onZoomChange?: (zoom: number) => void;
-  /** 다중 페이지 PDF 의 다음/이전 페이지 (Phase 2 에서 다중 슬롯도 통합 처리). */
+  /** 다중 페이지 PDF 의 다음/이전 페이지 (다중 슬롯도 통합 처리). */
   onPagePrev?: () => void;
   onPageNext?: () => void;
   canPagePrev?: boolean;

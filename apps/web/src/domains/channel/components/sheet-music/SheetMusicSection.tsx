@@ -39,7 +39,7 @@ const MAX_SIZE = 30 * 1024 * 1024;
 
 export interface SheetMusicSectionProps {
   /**
-   * 업로드/삭제 API 경로 파라미터. Round 2 새 endpoint 는 channel-scoped 이므로
+   * 업로드/삭제 API 경로 파라미터. endpoint는 channel-scoped이므로
    * SongFormV2, 리모콘, music-modal 모두에서 명시적으로 넘겨야 한다.
    *
    * mode === 'pending' (신규 곡 생성 흐름) 에서는 songId 가 아직 존재하지 않으므로
@@ -49,17 +49,17 @@ export interface SheetMusicSectionProps {
   channelIdentifier: string;
   songId: number;
   /**
-   * Phase 2 — 새 다중 슬롯 contract. sortOrder 오름차순으로 정렬된 array.
+   * 새 다중 슬롯 contract. sortOrder 오름차순으로 정렬된 array.
    * 호출자가 song detail 의 `sheetMusics` 필드를 그대로 전달.
    */
   initialSlots?: SheetMusicSlot[] | null;
   /**
-   * @deprecated Phase 2C 에서 제거. legacy 단일 contract — `initialSlots` 가
+   * @deprecated 단일 슬롯 호환 입력. `initialSlots`가
    * undefined 일 때만 fallback 으로 사용 (=> 첫 슬롯 1개 생성).
    */
   initialUrl?: string | null;
   /**
-   * @deprecated Phase 2C 에서 제거. legacy 단일 type.
+   * @deprecated 단일 슬롯 호환 타입.
    */
   initialType?: SheetMusicType | null;
   canManage: boolean;
@@ -100,7 +100,7 @@ export interface SheetMusicSectionProps {
    */
   compact?: boolean;
   /**
-   * P2: 다운로드 filename 정규화에 사용. 미지정 시 S3 key (nanoid) 가 그대로
+   * 다운로드 filename 정규화에 사용. 미지정 시 S3 key (nanoid) 가 그대로
    * 노출되어 사용자에게 무의미하고 보안상 표면도 늘어남. 호출자가 곡 제목을
    * 넘기면 `${songTitle}-악보.${ext}` 형태로 친화적인 이름으로 저장.
    */
@@ -108,8 +108,7 @@ export interface SheetMusicSectionProps {
 }
 
 // legacy 단일 url/type → 단일 슬롯 array 로 변환. id 가 없으면 placeholder
-// (0). Phase 2 신 contract 로 전환 후 id 기반 작업이 필요해지면 호출자가
-// initialSlots 를 직접 넘기도록 마이그레이션해야 한다.
+// (0). ID 기반 작업에는 호출자가 initialSlots를 직접 전달한다.
 function legacyToSlots(
   url: string | null | undefined,
   type: SheetMusicType | null | undefined,
@@ -143,7 +142,7 @@ export function SheetMusicSection({
   songTitle = null,
 }: SheetMusicSectionProps) {
   const flagOn = useFeatureFlag('songbookSheetMusic');
-  // Phase 2 — 다중 슬롯 state. initialSlots 가 있으면 우선, 없으면 legacy 단일
+  // 다중 슬롯 state. initialSlots 가 있으면 우선, 없으면 legacy 단일
   // 필드에서 변환. 빈 배열 = 슬롯 없음.
   const [slots, setSlots] = useState<SheetMusicSlot[]>(
     initialSlots && initialSlots.length > 0
@@ -158,12 +157,11 @@ export function SheetMusicSection({
   const [totalPages, setTotalPages] = useState<number | undefined>(undefined);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  // I4(문제2): 악보 삭제 confirm dialog open 상태.
+  // 악보 삭제 확인 대화상자의 표시 상태.
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  // Phase 2: 슬롯 "추가" 모드. true 면 viewer 대신 SheetMusicUploader 가 노출되어
+  // 슬롯 "추가" 모드. true 면 viewer 대신 SheetMusicUploader 가 노출되어
   // 새 슬롯을 곡에 추가한다. 백엔드 append endpoint 가 호출되며 곡당 캡 10장.
-  // 추가는 기존 슬롯에 영향 없으므로 confirm dialog 불필요 (Phase 1.5 의 교체
-  // 흐름과 다름).
+  // 추가는 기존 슬롯에 영향이 없으므로 삭제 확인 대화상자를 열지 않는다.
   const [isAddMode, setIsAddMode] = useState(false);
   const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
   const [pendingError, setPendingError] = useState<string | null>(null);
@@ -214,7 +212,7 @@ export function SheetMusicSection({
   // 부모의 initial 값은 stale 일 수 있다. 하지만 성공 시 onChange 가 parent 에서
   // invalidateQueries 를 돌리므로 곧 최신값으로 수렴한다. 현재 state 도 내부에서
   // 이미 최신이므로 시각적 플릭커 없음.
-  // Phase 2 hydrate — initialSlots / legacy 단일 필드 변경 시 slots 재동기화.
+  // initialSlots / legacy 단일 필드 변경 시 slots 재동기화.
   // currentIndex 도 0 으로 리셋 (다른 곡으로 전환되면 첫 슬롯부터).
   useEffect(() => {
     const next =
@@ -239,7 +237,7 @@ export function SheetMusicSection({
     [onChange],
   );
 
-  // Phase 2 Step 4 — swipe/키보드 nav 통합:
+  // swipe/키보드 nav 통합:
   //   현재 슬롯 안의 페이지 nav 가 우선. 페이지 끝에 도달하면 다중 슬롯 사이
   //   nav 로 자동 전환 (마지막 페이지에서 next → 다음 슬롯 첫 페이지).
   //   forScore 등 표준 악보 뷰어와 동일 — 책장 넘기듯 자연스럽게 다음 곡으로.
@@ -301,7 +299,7 @@ export function SheetMusicSection({
   }, [state.zoom, update]);
   // forScore UX 표준 — fit-width / fit-page 분리는 의미 모호. zoom 1.0 = 페이지
   // 전체 fit (object-contain) 단일 동작으로 통일. toolbar 의 두 버튼은 같은
-  // 동작으로 수렴 (button polish 는 Phase 2 정리).
+  // 동작으로 수렴한다.
   const onFitWidth = useCallback(() => {
     update({ zoom: 1, fitMode: 'page' });
     setAnnounce('맞춤');
@@ -341,7 +339,7 @@ export function SheetMusicSection({
       const file = e.dataTransfer.files?.[0];
       if (!file) return;
       e.preventDefault();
-      // Phase 2: 추가 모드 진입 — 사용자가 dropzone 에서 같은 파일을 다시
+      // 추가 모드 진입 — 사용자가 dropzone 에서 같은 파일을 다시
       // 선택하거나 다른 파일로 변경 가능. confirm 불필요 (추가는 기존 슬롯
       // 손실 없음).
       setIsAddMode(true);
@@ -431,7 +429,7 @@ export function SheetMusicSection({
     onToggleFullscreen,
   });
 
-  // Phase 2: 현재 슬롯 1개 삭제. 남은 슬롯의 sortOrder 는 그대로 유지 (gap 허용).
+  // 현재 슬롯 1개 삭제. 남은 슬롯의 sortOrder 는 그대로 유지 (gap 허용).
   // currentIndex 는 삭제된 위치 → 같은 자리의 다음 슬롯이 표시되도록 그대로 두되,
   // 마지막 슬롯이 삭제되면 인덱스를 한 칸 앞으로 당김.
   const handleDelete = useCallback(async () => {
@@ -469,7 +467,7 @@ export function SheetMusicSection({
     notifyChange,
   ]);
 
-  // Phase 2: 새 슬롯이 backend 에 추가된 후 호출. SheetMusicUploader 가
+  // 새 슬롯이 backend 에 추가된 후 호출. SheetMusicUploader 가
   // appendSongsChannelIdentifierSongIdSheetMusic 응답을 그대로 넘김.
   // 새 슬롯을 표시하도록 currentIndex 는 추가된 위치로 이동.
   const handleSlotAppended = useCallback(
@@ -485,7 +483,7 @@ export function SheetMusicSection({
     [notifyChange],
   );
 
-  // Phase 2: drag-reorder 가 호출. orderedIds 가 새 sortOrder 0..N-1.
+  // drag-reorder 가 호출. orderedIds 가 새 sortOrder 0..N-1.
   const handleReorder = useCallback(
     async (orderedIds: number[]) => {
       // optimistic — 즉시 로컬 재배열, 실패 시 서버 응답으로 복구
@@ -641,7 +639,7 @@ export function SheetMusicSection({
               />
             </div>
           ) : isAddMode && !readOnly ? (
-            // Phase 2: 추가 모드 — viewer 자리에 uploader 가 들어와 새 슬롯을 받는다.
+            // 추가 모드 — viewer 자리에 uploader 가 들어와 새 슬롯을 받는다.
             // 추가 성공 시 자동으로 viewer 로 복귀 (currentIndex = new slot 위치).
             <div className="p-3 space-y-2">
               <p className="text-xs text-muted-foreground">
@@ -705,7 +703,7 @@ export function SheetMusicSection({
                   />
                 </SectionErrorBoundary>
               </div>
-              {/* Phase 2: 다중 슬롯 (>1) 일 때 썸네일 strip — compact (라이브 콘솔)
+              {/* 다중 슬롯 (>1) 일 때 썸네일 strip — compact (라이브 콘솔)
                   외부 (모달/편집 폼) 에서만 노출. compact 는 cognitive load 절감 위해
                   footer 의 슬롯 indicator + ‹/› 만 사용. */}
               {!compact && slots.length > 1 && (
@@ -749,7 +747,7 @@ export function SheetMusicSection({
               {!readOnly && (
                 <>
                   <footer className="px-3 py-2 bg-muted/50 border-t flex justify-between items-center gap-2">
-                    {/* Phase 2: 슬롯 indicator + 슬롯 사이 nav. 다중 슬롯 (>1) 일 때만 노출. */}
+                    {/* 슬롯 indicator + 슬롯 사이 nav. 다중 슬롯 (>1) 일 때만 노출. */}
                     {slots.length > 1 ? (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <button
@@ -805,7 +803,7 @@ export function SheetMusicSection({
                       </button>
                     </div>
                   </footer>
-                  {/* I4(문제2): 삭제 confirm dialog. song 삭제와 일관되게 확인 단계 추가.
+                  {/* 악보 삭제 확인 대화상자. 곡 삭제와 같은 확인 흐름을 사용한다.
                       S3 파일도 함께 사라짐을 명시하여 사용자가 의식적으로 결정하도록. */}
                   <AlertDialog
                     open={isDeleteConfirmOpen}
@@ -899,8 +897,7 @@ function PendingSheetMusicSelector({
 }: PendingSheetMusicSelectorProps) {
   return (
     <SheetMusicDropzone
-      // 신규 곡 생성 폼은 1번에 1개만 보관 (Phase 2 신규 곡 다중 업로드는
-      // POST song 후 backend round-trip 필요해 별도 흐름. Phase 2 Step 4 검토).
+      // 신규 곡 생성 폼은 파일 하나를 보관하고 곡 저장 후 업로드한다.
       onFilesSelect={(files) => onSelect(files[0] ?? null)}
       ariaLabel="악보 파일 선택 (저장 시 업로드)"
     >

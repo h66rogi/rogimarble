@@ -759,7 +759,7 @@ export async function getSongArtistSuggestions(
 }
 
 // ---------------------------------------------------------------------------
-// Sheet Music API (channel-scoped endpoints, Round 2 migration)
+// Sheet Music API (channel-scoped endpoints)
 // ---------------------------------------------------------------------------
 
 export const SHEET_MUSIC_UPLOAD_TIMEOUT_MS = 120_000;
@@ -785,7 +785,7 @@ export interface SheetMusicUploadResponse {
  * channel content 권한 필요. 응답 URL/type 은 DB 에 이미 반영되어 있으므로
  * parent 에서는 별도 PATCH 없이 invalidateQueries 만 호출하면 된다.
  *
- * Round 4 M5 (Codex UX review):
+ * Upload behavior:
  * - per-request timeout 120초(2분) — 30MB 파일 + 느린 네트워크 대응. axios 기본
  *   apiClient timeout 10s 는 업로드에서 너무 짧아 실패했음.
  * - onProgress callback 연결 — axios onUploadProgress 를 퍼센트로 변환하여 UI
@@ -838,7 +838,7 @@ export async function postSongsChannelIdentifierSongIdSheetMusic(
  * DELETE /v1/songs/channel/{identifier}/{songId}/sheet-music
  *
  * 곡의 모든 악보 슬롯 삭제 (legacy 단일 contract 호환). channel content 권한 필요.
- * Phase 2C 에서 제거 예정 — Phase 2 신 contract 는 deleteSheetMusicSlotById 사용.
+ * Use deleteSheetMusicSlotById for an individual slot.
  */
 export async function deleteSongsChannelIdentifierSongIdSheetMusic(
   identifier: string,
@@ -852,7 +852,7 @@ export async function deleteSongsChannelIdentifierSongIdSheetMusic(
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// Phase 2 — multi-slot APIs
+// multi-slot APIs
 // ────────────────────────────────────────────────────────────────────────
 
 /**

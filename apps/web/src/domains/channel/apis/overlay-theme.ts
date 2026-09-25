@@ -36,7 +36,7 @@ export function isValidWidgetType(value: string): value is WidgetType {
 }
 
 /**
- * Phase 3 통합 테마 응답 — 채널 기본 + 위젯별 override.
+ * 통합 테마 응답 — 채널 기본 + 위젯별 override.
  *
  * - `default.themeId`: 채널 기본 테마 (catalog ID 중 하나)
  * - `default.options`: 채널 기본 옵션 커스텀
@@ -85,7 +85,7 @@ export function toUpdateBody(config: UnifiedThemeConfig): UpdateThemeConfigBody 
   };
 }
 
-// Theme catalog types — mirror backend Phase 1.1 (theme-manifest/types.ts)
+// Theme catalog types mirror the backend theme manifest.
 
 export interface ThemeFontSpec {
   family: string;
@@ -194,7 +194,7 @@ export interface ThemeCatalogDetailResponse {
 // API Functions
 
 /**
- * 채널의 통합 오버레이 테마 조회 (Phase 3 unified).
+ * 채널의 통합 오버레이 테마 조회.
  *
  * 저장된 값이 없으면 백엔드가 lazy-create하여 기본값(default.themeId=brutalist) 반환.
  */
@@ -209,7 +209,7 @@ export async function getUnifiedThemeConfig(
 }
 
 /**
- * 채널의 통합 오버레이 테마 배치 업데이트 (Phase 3 unified).
+ * 채널의 통합 오버레이 테마 배치 업데이트.
  *
  * PUT 의미: 채널 기본 + 위젯별 override를 한 번에 저장. Transaction atomic.
  * 저장 후 백엔드가 `overlay.theme-config.updated` WS 이벤트를 발행.

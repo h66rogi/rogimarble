@@ -29,7 +29,7 @@ function shouldRetryAuthError(failureCount: number, error: unknown): boolean {
 }
 
 /**
- * 채널의 통합 테마 설정 조회 훅 (Phase 3 unified).
+ * 채널의 통합 테마 설정 조회 훅.
  * 저장된 값이 없으면 백엔드가 lazy-create하여 기본값 반환.
  */
 export function useUnifiedThemeConfig(identifier: string, enabled = true) {
@@ -43,7 +43,7 @@ export function useUnifiedThemeConfig(identifier: string, enabled = true) {
 }
 
 /**
- * 채널의 통합 테마 설정 배치 업데이트 뮤테이션 훅 (Phase 3 unified).
+ * 채널의 통합 테마 설정 배치 업데이트 뮤테이션 훅.
  */
 export function useUpdateUnifiedThemeConfig(identifier: string) {
   const queryClient = useQueryClient();

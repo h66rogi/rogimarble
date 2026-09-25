@@ -39,7 +39,7 @@ import type {
 } from "@/domains/channel/types/serper";
 
 /**
- * Round 4 M3 (Codex security review):
+ * Cache song queries by role:
  *
  * 백엔드가 role-suffixed cache 로 매니저/viewer 응답을 분리한다
  * (manager 는 draft/hidden 포함, viewer 는 public only). 프론트 TanStack Query

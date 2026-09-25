@@ -1580,7 +1580,7 @@ function NowPlayingCard({
 }
 
 /**
- * Phase 8.1 Concern #1 fix:
+ * Resolve now-playing payload fields:
  * nowPlaying 페이로드(song-request select)에는 sheetMusicUrl/Type 이 포함되지 않으므로,
  * songId 가 있는 경우 매니저-shape 의 song detail 을 추가로 fetch 해서
  * SheetMusicSection 의 initial 상태로 hydrate 한다.

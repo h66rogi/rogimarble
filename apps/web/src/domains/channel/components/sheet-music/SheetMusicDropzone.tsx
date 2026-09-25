@@ -29,7 +29,7 @@ export interface SheetMusicDropzoneProps {
   ariaLabel: string;
   className?: string;
   /**
-   * Phase 2 — multiple 파일 선택 가능. 입력 다중 가능 (input multiple 속성).
+   * multiple 파일 선택 가능. 입력 다중 가능 (input multiple 속성).
    * default false (단일).
    */
   multiple?: boolean;

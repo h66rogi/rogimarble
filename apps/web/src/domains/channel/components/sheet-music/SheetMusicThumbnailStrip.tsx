@@ -19,14 +19,13 @@ import { cn } from '@/shared/lib/utils';
 import type { SheetMusicSlot } from '@/domains/channel/types/song';
 
 /**
- * Phase 2 Step 3 — 다중 슬롯 썸네일 strip.
+ * 다중 슬롯 썸네일 strip.
  *  - 가로 스크롤 strip (compact 모드 외부에서만 노출).
  *  - 클릭 → currentIndex 이동
  *  - drag-reorder (dnd-kit) → onReorder(orderedIds) 호출
  *  - 각 썸네일에 X 버튼 → onDeleteSlot(slotId) 호출
  *  - 이미지: <img> 미리보기 (referrerPolicy=no-referrer)
- *  - PDF: FileText 아이콘 + "PDF" 라벨 (다중 페이지 첫 페이지 썸네일은 비용 큼,
- *    Phase 2 step 4 검토)
+ *  - PDF: 첫 페이지 렌더링 대신 FileText 아이콘과 "PDF" 라벨 표시
  *  - MusicXML: Music 아이콘 + "MXL" 라벨
  */
 export interface SheetMusicThumbnailStripProps {

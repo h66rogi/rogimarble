@@ -210,7 +210,7 @@ export interface QueueSyncData {
 
 /**
  * Reactive projection of the converged playback snapshot for the READER cutover
- * (Phase 4). Populated ONLY when `snapshotReaderEnabled` is passed; otherwise it
+ * snapshot reader. Populated ONLY when `snapshotReaderEnabled` is passed; otherwise it
  * stays the stable `EMPTY_PLAYBACK_READER_VIEW` and never triggers a re-render,
  * so a reader-off overlay behaves exactly as today. Consumed by
  * `useSnapshotReader`, which also owns the staleness-fallback decision.
@@ -670,7 +670,7 @@ export function useOverlaySocket(widgetId: string | null, options: UseOverlaySoc
   }, [enabled, snapshotReaderEnabled]);
 
   useEffect(() => {
-    // Rogimarble gateway realtime is not implemented; polling is authoritative.
+    // Rogimarble reads server snapshots through polling; keep the inherited socket transport inactive.
     setConnectionStatus('disconnected');
     return;
     /* c8 ignore start -- preserved upstream socket implementation */

@@ -1,37 +1,11 @@
-# 프로젝트 작업 원칙
+# Rogimarble repository guidance
 
-- 먼저 `docs/final-design.md`와 `docs/source-import-policy.md`를 읽는다. 실행 작업/선행 조건은 `docs/implementation-plan.md`, 초기 조사 근거는 `docs/repository-review.md`다. 충돌하면 최종 설계를 따른다.
-- 관리 화면·게임 명령 작업은 `docs/operator-console.md`를 함께 읽는다. 후원 내역·보상 수량 조정·수동 주사위·방향/위치 제어는 첫 출시 필수다.
-- 보드 작업은 `docs/board-design.md`를 읽는다. 기준은 사용자 이미지의 9×6 외곽 26칸이며 `presets/streamer-board.json`에서 가져온다.
-- 화면 크기·칸 수·내용·동작을 분리한다. 칸 이름이나 배열 index로 기능/ID를 결정하지 않는다. type과 매개변수로 처리한다.
-- 보드의 미확정 동작은 초안으로 보존하되 게시/세션 시작에서 거부한다. 확정 의미는 적립 +1잔·전량 단일 미션 청산·다음 주사위 이동 거리 ×2이다. 무인도/여행의 차례 계약은 보드 설계를 따른다.
-- 후원은 **정확한 개수 일치**로 판정한다. 자동 배수 계산, 초과분/잔액 누적을 추가하지 않는다.
-- 연차는 별도 활성화와 개수별 `rollCount` 등록이 모두 필요하다.
-- 스트리머의 개수/규칙명/메시지/아이템/실드 정책/이동 입력 방식은 관리 가능한 데이터다.
-  후원 개수나 표시 이름에 따라 코드에서 특정 동작을 하드코딩하지 않는다.
-- 초기 7개 규칙은 `presets/streamer-initial.json`을 참고한다. 코어에서 import하지 않으며
-  이후 웹 콘솔에서 채널별 DB 설정으로 관리한다. 재시작 시 프리셋으로 설정을 덮어쓰지 않는다.
-- 미션별 실드 허용 여부를 설정한다. '무조건'이라는 이름으로 실드 정책을 결정하지 않는다.
-- 원하는 칸 이동은 운영자/후원자 채팅을 모두 지원하고, 요청당 한 번만 확정한다.
-- 첫 버전은 방송 전체의 공유 말 하나다. 후원자별 말을 자동 생성하지 않는다.
-- 서버가 주사위 결과와 상태를 확정한다. 브라우저는 결과를 표시한다.
-- Lottie를 기본 연출로 사용한다. 말의 보드 좌표 이동과 자산 자체 동작을 분리하고 Three.js는 선택적으로 쓴다.
-- 각 제품은 EC2 1대의 독립 Compose·PostgreSQL·Redis로 배포한다. 서버 사이는 인증된 내부 gRPC를 사용한다.
-- 애니메이션 완료 callback이나 OBS 연결 여부를 게임 결과 확정의 조건으로 삼지 않는다.
-- 수동 조작은 서버 명령·원장·outbox로 저장하고 operator 출처를 남긴다. 가짜 후원을 생성하지 않는다.
-- 방향은 다음 미확정 이동부터 적용한다. 즉시 위치 보정은 자동 이동 일시정지와 이전 위치 연출 무효화를 함께 처리한다.
-- 원본 레포들은 작업 레포 밖에 보관한다. private 원본 전체 및 그 Git 이력을 가져오지 않는다.
-- 원본 경로별 허용 목록으로 선별·수정한 파일만 반입한다. 전체 복사 후 커밋하고 삭제하는 방식은 금지한다.
-- 실제 운영 값, 사용자 데이터, 토큰, 비공개 배포 설정을 테스트나 문서에 넣지 않는다.
-- 현재 `npm test`는 외부 연결과 빌드가 없는 코어 테스트다. 참고 레포의 빌드/개발 서버를 실행하지 않는다.
-- 로컬 테스트 통과를 앱 빌드, 통합 동작, 실방송 검증의 성공으로 표현하지 않는다.
-- JSON 프리셋과 코어만 있는 상태를 웹 관리 화면/영속 저장/효과 실행까지 구현한 것으로 표현하지 않는다.
+Read `README.md` and the relevant contract documents under `docs/` before changing behavior. The authoritative behavior is the executable code and tests; update the matching public documentation when contracts change.
 
-## 콘솔 원본 틀 보존과 신규 UI 디자인 시스템 (필수)
-
-- 일반 콘솔은 `docs/console-design-system.md`와 `apps/web/components.json`을 따른다. 기존 meloming-front 리모컨의 틀은 그대로 보존한다. 상단 native 탭과 이동 밑줄을 Shadcn Tabs로 교체하거나 헤더·푸터·레이아웃을 획일화하지 않는다.
-- 새로 만드는 버튼·입력·선택·탭·체크박스·카드·알림은 Shadcn 공유 UI/조합을 쓴다. 신규 UI에서 native control, 직접 만든 클릭 div, 화면 전용 CSS, 고정 색상, inline chrome style, 자손 selector/important override를 금지한다. 기존 틀의 구현을 신규 UI의 예외 근거로 복제하지 않는다.
-- 공유 컴포넌트 외형은 variant/size로 고른다. 공유 UI에 전달하는 className은 배치용이다. 일반 설명 텍스트는 표준 typography 척도와 의미 토큰을 쓴다. 색상·글꼴·radius는 단일 전역 테마에서만 관리하며 기능별 덮어쓰기를 금지한다.
-- 보드 데이터 렌더링 예외는 `configuration/board-preview.tsx`의 승인된 좌표·자산·사용자 색상 속성에 한정한다. 일반 편집 폼까지 예외로 확장하지 않는다.
-- 기존 반입 UI는 `apps/web/scripts/console-legacy-baseline.json`의 경로·해시로 보존을 확인한다. 신규 제품 UI는 이 기준선에 추가하지 않는다. 기존 파일 수정은 원래 외형 보존 여부와 기준선 diff를 함께 검토한다.
-- `pnpm --filter @rogimarble/web lint:design`과 웹 test/typecheck/build를 통과해야 한다. 검사 실패를 무시하거나 기능 디렉터리를 통째로 제외하여 통과시키지 않는다.
+- Keep game results server authoritative. Browser animation callbacks and OBS connectivity never commit game state.
+- Match donation rules by exact registered count. Consecutive rolls require explicit activation and a separate count-to-rollCount rule.
+- Keep board cell IDs, path, display text and typed effects independent. Reject unresolved effects when publishing or starting a session.
+- Preserve published configuration versions and accepted request snapshots. Record manual changes as operator commands and ledger entries rather than synthetic donations.
+- Keep the collector in its own repository and communicate through authenticated gRPC. Do not copy secrets, private deployment state, user data or unrelated source history into this repository.
+- Preserve the existing console shell. Use shared Shadcn UI components for new controls and run `pnpm --filter @rogimarble/web lint:design` with web typecheck, tests and build for UI changes.
+- From this workspace, source `../.tools/use-node22.sh` before Node commands. The lockfile specifies pnpm 12.5.1.

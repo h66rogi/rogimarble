@@ -34,7 +34,7 @@ export function isValidLayoutType(value: string): value is LayoutType {
 
 // Layout metadata
 //
-// Only the 3 legacy layouts have static metadata here. The Phase 3 catalog
+// Only the 3 legacy layouts have static metadata here. The catalog
 // themes load their metadata (name, description, thumbnail, etc.) from the
 // theme registry, so this map is intentionally `Partial<...>` to avoid
 // requiring entries for them.

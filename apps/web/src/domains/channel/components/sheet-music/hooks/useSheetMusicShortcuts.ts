@@ -15,7 +15,7 @@ export interface SheetMusicShortcutHandlers {
 /**
  * Sheet-music global keyboard shortcuts.
  *
- * Round 4 Low (Codex review):
+ * Keyboard handling:
  * - 실제로 처리하는 키에서만 preventDefault 호출하여 페이지 스크롤/내장 단축키 충돌 방지
  *   (처리 안 하는 키는 브라우저 기본 동작 유지)
  * - INPUT/TEXTAREA/contenteditable focus 시 skip (기존 동작 유지)

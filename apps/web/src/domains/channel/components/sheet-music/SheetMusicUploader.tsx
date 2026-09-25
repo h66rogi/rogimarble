@@ -8,12 +8,12 @@ import { detectSheetMusicType } from "./utils/detectSheetMusicType";
 import { SheetMusicDropzone } from "./SheetMusicDropzone";
 
 export interface SheetMusicUploaderProps {
-  /** 업로드 대상 채널 식별자 (webPath). Round 2 새 endpoint 경로 파라미터. */
+  /** 업로드 대상 채널 식별자 (webPath). */
   channelIdentifier: string;
-  /** 업로드 대상 곡 ID. Round 2 새 endpoint 경로 파라미터. */
+  /** 업로드 대상 곡 ID. */
   songId: number;
   /**
-   * Phase 2: 슬롯 추가 성공 후 호출. 부모가 slots state 에 append 하고 currentIndex 이동.
+   * 슬롯 추가 성공 후 호출. 부모가 slots state 에 append 하고 currentIndex 이동.
    */
   onSlotAdded: (slot: SheetMusicSlot) => void;
   className?: string;
@@ -98,7 +98,7 @@ export function SheetMusicUploader({
   }
 
   /**
-   * Phase 2 Step 2 — multiple 파일을 순차 큐로 업로드. 한 파일 실패해도 나머지
+   * multiple 파일을 순차 큐로 업로드. 한 파일 실패해도 나머지
    * 시도. 끝나고 실패 목록은 error 메시지로 종합 안내.
    */
   async function handleFiles(files: File[]) {

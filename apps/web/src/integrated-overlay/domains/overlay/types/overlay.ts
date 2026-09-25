@@ -88,13 +88,12 @@ export interface OverlayData {
   themes?: Record<string, string>; // deprecated: use widgetConfigs
   widgetConfigs?: OverlayWidgetConfig[];
   /**
-   * Channel's unified theme id (Phase 1.4). When the channel hasn't migrated to
-   * the new theme system, the backend resolves this via lazy-create — see
-   * `DEFAULT_OVERLAY_THEME_ID` (currently "apple") on the backend.
+   * Channel's unified theme id. The backend supplies its default when no
+   * channel theme has been saved.
    */
   themeId?: string;
   /**
-   * Per-widget effective theme id (Phase 1.4). Keys are widget types
+   * Per-widget effective theme id. Keys are widget types
    * ('now-playing' | 'queue' | 'chatbox') and values are theme ids that may belong to
    * either the new theme registry or the legacy layout set.
    */

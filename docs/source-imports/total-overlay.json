@@ -244,7 +244,7 @@
       "targetPath": "apps/web/src/integrated-overlay/domains/overlay/hooks/use-overlay-socket.ts",
       "sourceSha256": "3482ce2047cd295cd98694c8e3c254b4222e6ff6526472be38130a514520c104",
       "importedSha256": "7cbd690dcabfcdbb671e0b6026751fcd9a3dce205dc427ce8c55f262d52e250c",
-      "adaptation": "Original Socket.IO implementation retained but disabled because Rogimarble gateway realtime is not implemented; polling is authoritative."
+      "adaptation": "Inherited Socket.IO transport remains inactive for this entry; server snapshot polling supplies state."
     },
     {
       "sourcePath": "domains/overlay/hooks/use-overlay.ts",

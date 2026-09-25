@@ -6,7 +6,7 @@ import type { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
  * MusicXML SVG 를 자연 크기로 그리는 dumb renderer. zoom / pan / fit 은 부모
  * SheetMusicCanvas 가 transform 으로 처리. OSMD 자체 zoom 은 1.0 고정.
  *
- * MusicXML 은 Phase 2 다중 슬롯 대상 외 — 자체 다중 마디 표현. 한 곡당 1 슬롯.
+ * MusicXML 은 다중 슬롯 대상이 아님 — 자체 다중 마디 표현. 한 곡당 1 슬롯.
  */
 export interface MusicXmlViewerProps {
   url: string;

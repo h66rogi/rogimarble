@@ -35,7 +35,7 @@ export type LayoutOptions =
 
 // Default options for each layout.
 //
-// Only the 3 legacy layouts have entries here. The Phase 3 catalog themes
+// Only the 3 legacy layouts have entries here. The catalog themes
 // (retro-pixel, glassmorphism, etc.) source their default options from the
 // theme registry instead.
 export const DEFAULT_LAYOUT_OPTIONS = {
@@ -67,7 +67,7 @@ export const DEFAULT_LAYOUT_OPTIONS = {
 /**
  * Type-safe lookup for legacy layout default options keyed by an arbitrary
  * layout id string. Returns an empty object for non-legacy layout ids
- * (the new Phase 3 catalog themes are loaded from the theme registry, not
+ * (the new catalog themes are loaded from the theme registry, not
  * from this constant). Use this from widget pages whose `layoutType` state
  * is the wider `LayoutType` union that may hold catalog theme ids.
  */
