@@ -377,7 +377,7 @@ test('configuration rejects stale revisions and read-only writes; OBS permits co
   const issued=await (await http.get('/v1/channels/test-channel/overlay-token')).json() as any;
   const readers=await Promise.all(Array.from({length:4},()=>fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${issued.token}`}})));
   assert.deepEqual(readers.map(x=>x.status),[200,200,200,200]);
-  const expectedEffectiveLayout={...document,widgets:liveBeforePublish.layout.widgets};
+  const expectedEffectiveLayout={...document,widgets:liveBeforePublish.layout.widgets,widgetStyles:liveBeforePublish.layout.widgetStyles};
   for(const reader of readers){const state=await reader.json() as any;assert.deepEqual(state.layout,expectedEffectiveLayout);assert.equal(state.latestCommand?.operatorId,undefined);}
   const legacyClient=new pg.Client({connectionString:databaseUrl});await legacyClient.connect();
   try {
