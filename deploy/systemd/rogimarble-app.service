@@ -12,6 +12,7 @@ ExecStart=/usr/local/lib/rogimarble/supervise.sh
 ExecStop=/usr/bin/docker compose --env-file /run/rogimarble/release.env -f /opt/rogimarble/app/deploy/compose.production.yaml stop --timeout 45 postgres redis edge
 Restart=always
 RestartSec=10
+SuccessExitStatus=130 143
 TimeoutStopSec=60
 NoNewPrivileges=true
 PrivateTmp=true

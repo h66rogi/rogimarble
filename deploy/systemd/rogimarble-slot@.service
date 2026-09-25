@@ -11,6 +11,7 @@ ExecStart=/usr/local/lib/rogimarble/supervise-slot.sh %i
 ExecStop=/usr/bin/docker compose --env-file /run/rogimarble/release-%i.env -f /opt/rogimarble/app/deploy/compose.production.yaml stop --timeout 45 api-%i web-%i
 Restart=always
 RestartSec=10
+SuccessExitStatus=130 143
 TimeoutStopSec=60
 NoNewPrivileges=true
 PrivateTmp=true
