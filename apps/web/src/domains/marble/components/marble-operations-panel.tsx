@@ -39,7 +39,6 @@ export function MarbleOperationsPanel({
 }) {
   const [state, setState] = useState<OperatorSnapshot | null>(null);
   const [startBoard, setStartBoard] = useState<RunnableBoardVersionDto | null>(null);
-  const [startBoardFallback, setStartBoardFallback] = useState(false);
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
   const boardInteraction = useRef<HTMLDivElement | null>(null);
   const reason = "방송 운영 조작";
@@ -121,7 +120,6 @@ export function MarbleOperationsPanel({
     ]);
     applySnapshot(snapshot, requestSequence);
     setStartBoard(preferredStartBoard(runnable, boardConfig?.published?.id ?? null));
-    setStartBoardFallback(Boolean(boardConfig?.published && !runnable.some((candidate) => candidate.id === boardConfig.published?.id)));
     if (!boardConfig) setError("게임판 설정을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.");
   };
 
@@ -160,8 +158,7 @@ export function MarbleOperationsPanel({
       validateBoardDefinition(state.boardDefinition);
       liveBoard = state.boardDefinition;
     } catch {
-      boardError =
-        "서버 보드가 유효하지 않아 마지막 안전 미리보기를 표시합니다.";
+      boardError = "게임판을 표시하지 못했습니다. 새로고침해 주세요.";
     }
   }
   let historyBoard = liveBoard;
@@ -323,7 +320,6 @@ export function MarbleOperationsPanel({
           state={state}
           board={liveBoard}
           startBoard={startBoard}
-          startBoardFallback={startBoardFallback}
           locked={locked}
           effectIdle={presentation.effectPhase === "idle"}
           reason={reason}

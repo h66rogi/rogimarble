@@ -196,12 +196,11 @@ test("home starts the one published board without a board picker", async ({ page
   await page.getByRole("tab", { name: "홈", exact: true }).click();
   const actions = page.getByRole("region", { name: "현재 할 수 있는 액션" });
   await expect(actions.getByText("게임판: 방송판 · 26칸")).toBeVisible();
-  await expect(actions.getByText(/현재 저장된 판에 실행할 수 없는 동작/)).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "게임 시작", exact: true })).toHaveCount(1);
   await expect(actions.getByRole("button", { name: "게임판 변경" })).toHaveCount(0);
 });
 
-test("home falls back to the latest runnable board when the saved version cannot run", async ({ page }) => {
+test("home offers one start action when the saved board cannot run", async ({ page }) => {
   await fixture(page, { runnableBoards: [
     { id: "previous-runnable", boardId: board.id, name: "기본 게임판", path: board.path, initialCellId: board.startCellId, previewOnly: false },
     { id: "preview-only", boardId: `${board.id}-safe-preview`, name: "미리보기", path: board.path, initialCellId: board.startCellId, previewOnly: true },
@@ -209,7 +208,7 @@ test("home falls back to the latest runnable board when the saved version cannot
   await page.getByRole("tab", { name: "홈", exact: true }).click();
   const actions = page.getByRole("region", { name: "현재 할 수 있는 액션" });
   await expect(actions.getByText("게임판: 기본 게임판 · 26칸")).toBeVisible();
-  await expect(actions.getByText(/현재 저장된 판에 실행할 수 없는 동작/)).toBeVisible();
+  await expect(actions.getByText(/현재 저장된 판에 실행할 수 없는 동작/)).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "게임 시작", exact: true })).toHaveCount(1);
   await expect(actions.getByText("시작할 수 있는 게임판이 없습니다.")).toHaveCount(0);
 });

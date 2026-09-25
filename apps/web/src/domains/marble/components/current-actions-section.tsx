@@ -14,7 +14,6 @@ export function CurrentActionsSection({
   state,
   board,
   startBoard,
-  startBoardFallback,
   locked,
   effectIdle,
   reason,
@@ -24,7 +23,6 @@ export function CurrentActionsSection({
   state: OperatorSnapshot | null;
   board: BoardDefinition;
   startBoard: RunnableBoardVersionDto | null;
-  startBoardFallback: boolean;
   locked: boolean;
   effectIdle: boolean;
   reason: string;
@@ -60,7 +58,6 @@ export function CurrentActionsSection({
         <div className="space-y-2">
           {startBoard ? <>
             <p className="text-sm text-muted-foreground">게임판: <span className="font-medium text-foreground">{startBoard.name}</span> · {startBoard.path.length}칸</p>
-            {startBoardFallback && <p className="text-sm text-muted-foreground">현재 저장된 판에 실행할 수 없는 동작이 있어 이전에 정상 실행된 판을 사용해요. 판 설정에서 수정한 뒤 저장할 수 있어요.</p>}
             <Button className="w-full" disabled={locked || !state.capabilities?.sessionLifecycle}
               onClick={() => void start(startBoard)}>게임 시작</Button>
           </> : <p className="text-sm text-muted-foreground">게임판을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.</p>}
