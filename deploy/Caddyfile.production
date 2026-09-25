@@ -1,5 +1,5 @@
 {
-	admin off
+	admin localhost:2019
 	{$ACME_EMAIL_DIRECTIVE}
 }
 
@@ -11,13 +11,13 @@
 		Referrer-Policy strict-origin-when-cross-origin
 	}
 	handle /socket.io/* {
-		reverse_proxy api:4000
+		reverse_proxy {$API_UPSTREAM}
 	}
 	handle_path /api/* {
-		reverse_proxy api:4000
+		reverse_proxy {$API_UPSTREAM}
 	}
 	handle {
-		reverse_proxy web:3000
+		reverse_proxy {$WEB_UPSTREAM}
 	}
 }
 
@@ -28,5 +28,5 @@
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
 	}
-	reverse_proxy api:4000
+	reverse_proxy {$API_UPSTREAM}
 }

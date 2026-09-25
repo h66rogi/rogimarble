@@ -15,21 +15,23 @@ import sys
 import time
 from typing import Any, Callable
 
-EXPECTED_SERVICES = {'postgres', 'redis', 'api', 'web', 'edge'}
+CORE_SERVICES = {'postgres', 'redis', 'edge'}
+SLOTS = ('blue', 'green')
+EXPECTED_SERVICES = CORE_SERVICES
 APP_IMAGE_KEYS = ("api", "web")
 APP_IMAGE_RETENTION = 3
 MINIMUM_DEPLOY_FREE_BYTES = 4 * 1024 * 1024 * 1024
 
-def containers_healthy(result):
+def containers_healthy(result, expected=EXPECTED_SERVICES):
     if not result['ok']:
         return False
     try:
         output = result['output']
         rows = json.loads(output) if output.lstrip().startswith('[') else [json.loads(line) for line in output.splitlines() if line.strip()]
         by_service = {row['Service']: row for row in rows}
-        return EXPECTED_SERVICES.issubset(by_service) and all(
+        return expected.issubset(by_service) and all(
             by_service[name].get('State') == 'running' and by_service[name].get('Health') == 'healthy'
-            for name in EXPECTED_SERVICES)
+            for name in expected)
     except (ValueError, KeyError, TypeError):
         return False
 
@@ -41,10 +43,10 @@ DATA_ROOT = Path("/srv/rogimarble")
 COMPOSE_PATH = Path("deploy/compose.production.yaml")
 IMAGE_KEYS = {"api", "web", "caddy", "postgres", "redis"}
 RUNTIME_FILES = {"deploy/Caddyfile.production", "deploy/postgres/init-roles.sh",
-                 "deploy/systemd/rogimarble-app.service", "deploy/systemd/rogimarble-secrets.service",
+                 "deploy/systemd/rogimarble-app.service", "deploy/systemd/rogimarble-slot@.service", "deploy/systemd/rogimarble-secrets.service",
                  "deploy/systemd/rogimarble-update.service", "deploy/systemd/rogimarble-update.timer",
                  "deploy/systemd/rogimarble-backup.service", "deploy/systemd/rogimarble-backup.timer",
-                 "tools/ops/release.py", "tools/ops/deploy.sh", "tools/ops/supervise.sh",
+                 "tools/ops/release.py", "tools/ops/deploy.sh", "tools/ops/supervise.sh", "tools/ops/supervise-slot.sh",
                  "tools/ops/prepare-secrets.sh", "tools/ops/install-host.sh", "tools/ops/fetch-release.py",
                  "tools/ops/production-status.py", "tools/ops/backup-postgres.sh", "tools/ops/fetch-runtime-secrets.py", "tools/ops/upload-backup.py", "tools/ops/load-registry-auth.py"}
 RUNTIME_FILES.add("tools/ops/prepare-collector-client.py")
@@ -141,8 +143,8 @@ def validate_manifest(path: Path, app_root: Path = APP_ROOT, expected_data_root:
     return manifest
 
 class Runner:
-    def run(self, argv: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(argv, check=check, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    def run(self, argv: list[str], *, check: bool = True, input: str | None = None) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(argv, check=check, text=True, input=input, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 def _checked_output(result: subprocess.CompletedProcess[str], action: str) -> str:
     if result.returncode != 0:
@@ -217,17 +219,41 @@ def source_identity(app_root:Path,runner:Runner)->str:
     marker=app_root/".release-source-sha"
     return marker.read_text(encoding="ascii").strip() if marker.is_file() else ""
 
+def active_slot(config_root: Path) -> str | None:
+    path = config_root / "active-slot"
+    if not path.exists():
+        return None
+    slot = path.read_text(encoding="ascii").strip()
+    if slot not in SLOTS:
+        raise ReleaseError("invalid active application slot")
+    return slot
+
+def candidate_slot(config_root: Path) -> str:
+    return "blue" if active_slot(config_root) == "green" else "green"
+
+def write_active_slot(config_root: Path, slot: str) -> None:
+    if slot not in SLOTS:
+        raise ReleaseError("invalid application slot")
+    temporary = config_root / f".active-slot.{os.getpid()}"
+    temporary.write_text(slot + "\n", encoding="ascii")
+    temporary.chmod(0o600)
+    temporary.replace(config_root / "active-slot")
+
 def check_secret(path: Path) -> None:
     info = path.lstat()
     if not stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode) or info.st_mode & 0o077 or info.st_size<1 or info.st_size>8192:
         raise ReleaseError(f"secret must be a regular 0600-style file: {path}")
 
-def release_env(manifest: dict[str, Any], app_root: Path, run_root: Path, name: str = "release.env") -> Path:
+def release_env(manifest: dict[str, Any], app_root: Path, run_root: Path, name: str = "release.env",
+                slot: str = "green") -> Path:
+    if slot not in SLOTS:
+        raise ReleaseError("invalid application slot")
     runtime, images = manifest["runtimeNonSecret"], manifest["images"]
     values = {
         "COMPOSE_PROJECT_NAME": runtime["composeProjectName"], "APP_ROOT": str(app_root),
         "DATA_ROOT": runtime["dataRoot"], "RUNTIME_SECRET_ROOT": str(run_root / "secrets"),
         "WEB_DOMAIN": runtime["webDomain"], "API_DOMAIN": runtime["apiDomain"], "ACME_EMAIL_DIRECTIVE": f"email {runtime['acmeEmail']}" if runtime["acmeEmail"] else "",
+        "API_UPSTREAM": f"api-{slot}:4000", "WEB_UPSTREAM": f"web-{slot}:3000",
         "POSTGRES_DB": runtime["postgresDb"], "POSTGRES_ADMIN_USER": runtime["postgresAdminUser"],
         "MIGRATION_DB_USER": runtime["migrationDbUser"], "APP_DB_USER": runtime["appDbUser"],
         "CHANNEL_ID": runtime["channelId"],
@@ -243,7 +269,7 @@ def release_env(manifest: dict[str, Any], app_root: Path, run_root: Path, name: 
     temp.replace(target)
     return target
 
-def prepare_runtime(manifest:dict[str,Any],app_root:Path,config_root:Path,run_root:Path,env_name:str)->Path:
+def prepare_runtime(manifest:dict[str,Any],app_root:Path,config_root:Path,run_root:Path,env_name:str,slot:str="green")->Path:
     runtime=manifest["runtimeNonSecret"];source_root=run_root/"source-secrets" if (run_root/"source-secrets").is_dir() else config_root/"secrets";target_root=run_root/"secrets"
     ownership={"postgres_admin_password":(runtime["postgresUid"],runtime["postgresGid"]),"postgres_migration_password":(runtime["postgresUid"],runtime["postgresGid"]),
       "postgres_app_password":(runtime["postgresUid"],runtime["postgresGid"]),"migration_database_url":(runtime["apiUid"],runtime["apiGid"]),
@@ -253,7 +279,7 @@ def prepare_runtime(manifest:dict[str,Any],app_root:Path,config_root:Path,run_ro
       source=source_root/name;check_secret(source);target=target_root/name;temporary=target_root/f".{name}.{os.getpid()}"
       temporary.write_bytes(source.read_bytes());temporary.chmod(0o400);os.chown(temporary,uid,gid);temporary.replace(target)
     subprocess.run([sys.executable,str(app_root/"tools/ops/prepare-collector-client.py"),"--source",str(config_root/"collector-client"),"--run-root",str(run_root),"--uid",str(runtime["apiUid"]),"--gid",str(runtime["apiGid"]),"--game-channel",runtime["channelId"]],check=True)
-    return release_env(manifest,app_root,run_root,env_name)
+    return release_env(manifest,app_root,run_root,env_name,slot)
 
 def preflight(manifest_path: Path, runner: Runner, app_root: Path, config_root:Path, run_root: Path, data_root: Path) -> tuple[dict[str, Any], Path]:
     manifest = validate_manifest(manifest_path, app_root, data_root)
@@ -272,19 +298,23 @@ def preflight(manifest_path: Path, runner: Runner, app_root: Path, config_root:P
             raise ReleaseError(f"required bind directory missing: {directory}")
     source_root=run_root/"source-secrets" if (run_root/"source-secrets").is_dir() else config_root/"secrets"
     for name in SECRET_FILES:check_secret(source_root/name)
-    env_file = release_env(manifest, app_root, run_root,"candidate-release.env")
+    slot = candidate_slot(config_root)
+    env_file = release_env(manifest, app_root, run_root,"candidate-release.env",slot)
     runner.run(["docker", "compose", "--env-file", str(env_file), "-f", str(app_root / COMPOSE_PATH), "config", "--quiet"])
     return manifest, env_file
 
 def installed_runtime_destinations(lib_root:Path,unit_root:Path)->dict[str,Path]:return {
     "tools/ops/release.py":lib_root/"release.py","tools/ops/supervise.sh":lib_root/"supervise.sh",
+    "tools/ops/supervise-slot.sh":lib_root/"supervise-slot.sh",
     "tools/ops/prepare-secrets.sh":lib_root/"prepare-secrets.sh","tools/ops/fetch-release.py":lib_root/"fetch-release.py",
     "tools/ops/prepare-collector-client.py":lib_root/"prepare-collector-client.py",
     "tools/ops/production-status.py":lib_root/"production-status.py","tools/ops/backup-postgres.sh":lib_root/"backup-postgres.sh",
     "tools/ops/fetch-runtime-secrets.py":lib_root/"fetch-runtime-secrets.py",
     "tools/ops/upload-backup.py":lib_root/"upload-backup.py",
     "tools/ops/load-registry-auth.py":lib_root/"load-registry-auth.py",
-    "deploy/systemd/rogimarble-app.service":unit_root/"rogimarble-app.service","deploy/systemd/rogimarble-secrets.service":unit_root/"rogimarble-secrets.service",
+    "deploy/systemd/rogimarble-app.service":unit_root/"rogimarble-app.service",
+    "deploy/systemd/rogimarble-slot@.service":unit_root/"rogimarble-slot@.service",
+    "deploy/systemd/rogimarble-secrets.service":unit_root/"rogimarble-secrets.service",
     "deploy/systemd/rogimarble-update.service":unit_root/"rogimarble-update.service","deploy/systemd/rogimarble-update.timer":unit_root/"rogimarble-update.timer",
     "deploy/systemd/rogimarble-backup.service":unit_root/"rogimarble-backup.service","deploy/systemd/rogimarble-backup.timer":unit_root/"rogimarble-backup.timer"}
 
@@ -301,7 +331,9 @@ def prepare_active(manifest_path:Path,runner:Runner=Runner(),*,app_root:Path=APP
     for directory in (data_root/"postgres",data_root/"redis",data_root/"caddy-data",data_root/"caddy-config"):
         if not directory.is_dir():raise ReleaseError(f"required bind directory missing: {directory}")
     if lib_root is not None and unit_root is not None:verify_installed_runtime(manifest,lib_root,unit_root)
-    return prepare_runtime(manifest,app_root,config_root,run_root,"release.env")
+    slot = active_slot(config_root) or "green"
+    prepare_runtime(manifest,app_root,config_root,run_root,f"release-{slot}.env",slot)
+    return release_env(manifest,app_root,run_root,"release.env",slot)
 
 def install_runtime_files(manifest:dict[str,Any],app_root:Path,lib_root:Path,unit_root:Path)->None:
     destinations=installed_runtime_destinations(lib_root,unit_root)
@@ -311,6 +343,21 @@ def install_runtime_files(manifest:dict[str,Any],app_root:Path,lib_root:Path,uni
         shutil.copyfile(source,temporary);temporary.chmod(0o755 if destination.suffix in (".py",".sh") else 0o644);temporary.replace(destination)
     verify_installed_runtime(manifest,lib_root,unit_root)
 
+def restore_prior_runtime_files(manifest: dict[str, Any], app_root: Path,
+                                lib_root: Path, unit_root: Path) -> None:
+    destinations = installed_runtime_destinations(lib_root, unit_root)
+    for relative in manifest["runtimeFiles"]:
+        destination = destinations.get(relative)
+        if destination is None:
+            raise ReleaseError(f"cannot restore prior runtime file: {relative}")
+        source = app_root / relative
+        if sha256(source) != manifest["runtimeFiles"][relative]:
+            raise ReleaseError(f"prior runtime file checksum mismatch: {relative}")
+        temporary = destination.with_name(f".{destination.name}.restore.{os.getpid()}")
+        shutil.copyfile(source, temporary)
+        temporary.chmod(0o755 if destination.suffix in (".py", ".sh") else 0o644)
+        temporary.replace(destination)
+
 def restore_collector_link(link:Path,previous_target:str|None)->None:
     temporary=link.with_name(f".{link.name}.rollback.{os.getpid()}")
     temporary.unlink(missing_ok=True)
@@ -319,6 +366,41 @@ def restore_collector_link(link:Path,previous_target:str|None)->None:
         return
     temporary.symlink_to(previous_target)
     temporary.replace(link)
+
+def reload_edge(slot: str, manifest: dict[str, Any], runner: Runner, app_root: Path, env_file: Path) -> None:
+    compose = ["docker", "compose", "--env-file", str(env_file), "-f", str(app_root / COMPOSE_PATH)]
+    edge_id = _checked_output(runner.run(compose + ["ps", "-q", "edge"], check=False), "edge lookup").strip()
+    if not edge_id:
+        raise ReleaseError("edge container is missing")
+    config = (app_root / "deploy/Caddyfile.production").read_text(encoding="utf-8")
+    for key, value in (("API_UPSTREAM", f"api-{slot}:4000"), ("WEB_UPSTREAM", f"web-{slot}:3000")):
+        placeholder = "{$" + key + "}"
+        if placeholder not in config:
+            raise ReleaseError(f"Caddy template is missing {placeholder}")
+        config = config.replace(placeholder, value)
+    runner.run(["docker", "exec", "-i", edge_id, "caddy", "reload",
+                "--config", "-", "--adapter", "caddyfile"], input=config)
+
+def smoke(manifest: dict[str, Any], runner: Runner, sleep: Callable[[float], None]) -> None:
+    for url in (f"https://{manifest['runtimeNonSecret']['webDomain']}/healthz",
+                f"https://{manifest['runtimeNonSecret']['apiDomain']}/ready"):
+        for attempt in range(30):
+            result = runner.run(["curl", "--fail", "--silent", "--show-error", "--max-time", "5", url], check=False)
+            if result.returncode == 0:
+                break
+            if attempt == 29:
+                raise ReleaseError(f"smoke check failed: {url}")
+            sleep(2)
+
+def wait_for_services(compose: list[str], runner: Runner, expected: set[str],
+                      sleep: Callable[[float], None]) -> None:
+    for attempt in range(60):
+        state = runner.run(compose + ["ps", "--format", "json"], check=False)
+        if containers_healthy({"ok": state.returncode == 0, "output": state.stdout}, expected):
+            return
+        if attempt == 59:
+            raise ReleaseError("container health did not settle after activation")
+        sleep(1)
 
 def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = APP_ROOT,
            config_root:Path=CONFIG_ROOT,run_root: Path = RUN_ROOT, data_root: Path = DATA_ROOT,
@@ -333,66 +415,132 @@ def deploy(manifest_path: Path, runner: Runner = Runner(), *, app_root: Path = A
         except BlockingIOError as exc:
             raise ReleaseError("another marble deployment holds the host lock") from exc
         manifest, env_file = preflight(manifest_path, runner, app_root,config_root,run_root, data_root)
+        old_slot = active_slot(config_root)
+        next_slot = candidate_slot(config_root)
+        old_manifest_path = config_root / "release.json"
+        old_manifest_bytes = old_manifest_path.read_bytes() if old_manifest_path.is_file() else None
+        old_manifest = json.loads(old_manifest_bytes) if old_manifest_bytes else None
+        old_root = active_link.resolve() if active_link is not None and active_link.is_symlink() else None
+        old_env_path = run_root / "release.env"
+        old_env_bytes = old_env_path.read_bytes() if old_env_path.is_file() else None
+        if old_manifest is not None and active_link is not None and (old_root is None or old_env_bytes is None):
+            raise ReleaseError("previous release checkout or runtime env is missing")
+        if old_slot:
+            if old_manifest is None:
+                raise ReleaseError("active slot has no manifest")
+            if any(manifest["images"][name] != old_manifest["images"][name]
+                   for name in ("caddy", "postgres", "redis")):
+                raise ReleaseError("online deployment cannot replace data or edge images")
+            if manifest["runtimeNonSecret"] != old_manifest["runtimeNonSecret"]:
+                raise ReleaseError("online deployment requires unchanged host runtime settings")
+            if runner.run(["systemctl", "is-active", "--quiet", "rogimarble-app.service"], check=False).returncode != 0:
+                raise ReleaseError("core supervisor is not active")
+            if runner.run(["systemctl", "is-active", "--quiet", f"rogimarble-slot@{old_slot}.service"], check=False).returncode != 0:
+                raise ReleaseError("active application slot is not supervised")
         reclaim_old_app_images(manifest, runner)
         capacity_check()
         collector_link=run_root/"collector-client"
         previous_collector_target=os.readlink(collector_link) if collector_link.is_symlink() else None
-        restore_previous = False
-        old_supervisor_stopped = False
+        route_switched = False
+        activated = False
+        candidate_started = False
+        old_stopped = False
+        compose = ["docker", "compose", "--env-file", str(env_file), "-f", str(app_root / COMPOSE_PATH)]
+        slot_services = [f"api-{next_slot}", f"web-{next_slot}"]
         try:
-            prepare_runtime(manifest,app_root,config_root,run_root,"candidate-release.env")
-            compose = ["docker", "compose", "--env-file", str(env_file), "-f", str(app_root / COMPOSE_PATH)]
+            prepare_runtime(manifest,app_root,config_root,run_root,"candidate-release.env",next_slot)
             registry=run_root/"docker-auth";shutil.rmtree(registry,ignore_errors=True)
             try:
                 runner.run(["python3",str(app_root/"tools/ops/load-registry-auth.py"),"--metadata",str(config_root/"registry.json"),"--output",str(registry)])
                 runner.run(["docker","--config",str(registry),"compose","--env-file",str(env_file),"-f",str(app_root/COMPOSE_PATH),"pull"])
             finally:shutil.rmtree(registry,ignore_errors=True)
-            # An attached old Compose supervisor must not race candidate storage recreation.
-            if (config_root / "release.json").is_file():
-                prior_state = runner.run(["systemctl", "is-active", "rogimarble-app.service"], check=False).stdout.strip()
-                restore_previous = prior_state in ("active", "activating", "reloading")
-                runner.run(["systemctl", "stop", "rogimarble-app.service"])
-                old_supervisor_stopped = True
-            runner.run(compose + ["up", "-d", "--no-build", "--wait", "postgres", "redis"])
+            if old_manifest is None:
+                runner.run(compose + ["up", "-d", "--no-build", "--wait", "postgres", "redis"])
             runner.run(compose + ["run", "--rm", "--no-deps", "migrate"])
+            if old_slot:
+                smoke(old_manifest, runner, sleep)
+            if runner.run(["systemctl", "is-active", "--quiet", f"rogimarble-slot@{next_slot}.service"], check=False).returncode == 0:
+                raise ReleaseError("candidate slot supervisor is unexpectedly active")
+            runner.run(compose + ["rm", "-sf", *slot_services])
+            runner.run(compose + ["up", "-d", "--no-deps", "--no-build", "--wait", *slot_services])
+            candidate_started = True
+            wait_for_services(compose, runner, set(slot_services), sleep)
+            if old_slot:
+                route_switched = True
+                reload_edge(next_slot, manifest, runner, app_root, env_file)
+                smoke(manifest, runner, sleep)
+            (run_root / f"release-{next_slot}.env").write_bytes(env_file.read_bytes())
+            (run_root / f"release-{next_slot}.env").chmod(0o600)
+            activated = True
+            install_runtime_files(manifest,app_root,lib_root,unit_root)
+            runner.run(["systemctl","daemon-reload"])
+            if active_link is not None:
+                temporary=active_link.with_name(f".{active_link.name}.{os.getpid()}")
+                temporary.symlink_to(app_root);temporary.replace(active_link)
+            manifest_temp=config_root/f"release.json.{os.getpid()}"
+            manifest_temp.write_bytes(manifest_path.read_bytes());manifest_temp.chmod(0o600);manifest_temp.replace(old_manifest_path)
+            (run_root/"candidate-release.env").replace(run_root/"release.env")
+            write_active_slot(config_root,next_slot)
+            if not old_slot:
+                runner.run(["systemctl", "restart", "rogimarble-app.service"])
+                runner.run(["systemctl", "enable", "rogimarble-app.service"])
+            runner.run(["systemctl", "start", f"rogimarble-slot@{next_slot}.service"])
+            runner.run(["systemctl", "enable", f"rogimarble-slot@{next_slot}.service"])
+            if runner.run(["systemctl", "is-active", "--quiet", f"rogimarble-slot@{next_slot}.service"], check=False).returncode != 0:
+                raise ReleaseError("candidate slot supervisor did not stay active")
+            smoke(manifest, runner, sleep)
+            active_compose = ["docker", "compose", "--env-file", str(run_root / "release.env"), "-f", str(app_root / COMPOSE_PATH)]
+            wait_for_services(active_compose, runner, CORE_SERVICES | set(slot_services), sleep)
+            if old_slot:
+                runner.run(["systemctl", "stop", f"rogimarble-slot@{old_slot}.service"])
+                old_stopped = True
+                runner.run(["systemctl", "disable", f"rogimarble-slot@{old_slot}.service"])
+            reclaim_old_app_images(manifest, runner)
+            deployed = config_root / "deployed-release.json"
+            receipt={"status":"deployed","deployedAt":time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime()),"releaseId":manifest["releaseId"],"sourceSha":manifest["sourceSha"],"images":manifest["images"],"slot":next_slot}
+            receipt_temp = config_root / f".deployed-release.{os.getpid()}.json"
+            receipt_temp.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+            receipt_temp.chmod(0o600)
+            receipt_temp.replace(deployed)
         except Exception:
+            if old_stopped:
+                runner.run(["systemctl", "enable", f"rogimarble-slot@{old_slot}.service"])
+                runner.run(["systemctl", "start", f"rogimarble-slot@{old_slot}.service"])
+            if old_slot and route_switched:
+                try:
+                    reload_edge(old_slot, old_manifest, runner, app_root, env_file)
+                except Exception as exc:
+                    raise ReleaseError(f"route rollback failed; old slot must be restored manually: {exc}") from exc
+            if old_slot and activated:
+                if old_root is not None and active_link is not None:
+                    temporary=active_link.with_name(f".{active_link.name}.rollback.{os.getpid()}")
+                    temporary.symlink_to(old_root);temporary.replace(active_link)
+                    restore_prior_runtime_files(old_manifest,old_root,lib_root,unit_root)
+                    runner.run(["systemctl","daemon-reload"])
+                if old_manifest_bytes is not None:
+                    old_manifest_path.write_bytes(old_manifest_bytes)
+                if old_env_bytes is not None:
+                    old_env_path.write_bytes(old_env_bytes)
+                    old_env_path.chmod(0o600)
+                write_active_slot(config_root,old_slot)
+            elif activated and old_manifest_bytes is not None:
+                if old_root is not None and active_link is not None:
+                    temporary=active_link.with_name(f".{active_link.name}.rollback.{os.getpid()}")
+                    temporary.symlink_to(old_root);temporary.replace(active_link)
+                    restore_prior_runtime_files(old_manifest,old_root,lib_root,unit_root)
+                    runner.run(["systemctl","daemon-reload"])
+                old_manifest_path.write_bytes(old_manifest_bytes)
+                if old_env_bytes is not None:
+                    old_env_path.write_bytes(old_env_bytes)
+                    old_env_path.chmod(0o600)
+                (config_root / "active-slot").unlink(missing_ok=True)
+                runner.run(["systemctl","restart","rogimarble-app.service"],check=False)
+            if candidate_started:
+                runner.run(["systemctl","stop",f"rogimarble-slot@{next_slot}.service"],check=False)
+                runner.run(["systemctl","disable",f"rogimarble-slot@{next_slot}.service"],check=False)
+                runner.run(compose + ["stop", "--timeout", "45", *slot_services],check=False)
             restore_collector_link(collector_link,previous_collector_target)
-            if restore_previous and old_supervisor_stopped:
-                runner.run(["systemctl", "start", "rogimarble-app.service"], check=False)
             raise
-        # Only after a successful forward migration may systemd replace the application set.
-        if active_link is not None:
-            temporary=active_link.with_name(f".{active_link.name}.{os.getpid()}")
-            temporary.symlink_to(app_root);temporary.replace(active_link)
-        install_runtime_files(manifest,app_root,lib_root,unit_root)
-        runner.run(["systemctl","daemon-reload"])
-        active_manifest=config_root/"release.json";manifest_temp=config_root/f"release.json.{os.getpid()}"
-        manifest_temp.write_bytes(manifest_path.read_bytes());manifest_temp.chmod(0o600);manifest_temp.replace(active_manifest)
-        (run_root/"candidate-release.env").replace(run_root/"release.env")
-        runner.run(["systemctl", "restart", "rogimarble-app.service"])
-        for url in (f"https://{manifest['runtimeNonSecret']['webDomain']}/healthz",
-                    f"https://{manifest['runtimeNonSecret']['apiDomain']}/ready"):
-            for attempt in range(30):
-                result = runner.run(["curl", "--fail", "--silent", "--show-error", "--max-time", "5", url], check=False)
-                if result.returncode == 0:
-                    break
-                if attempt == 29:
-                    raise ReleaseError(f"smoke check failed: {url}")
-                sleep(2)
-        for attempt in range(60):
-            state = runner.run(["docker", "compose", "--env-file", str(run_root / "release.env"), "-f", str(app_root / COMPOSE_PATH), "ps", "--format", "json"], check=False)
-            if containers_healthy({"ok": state.returncode == 0, "output": state.stdout}):
-                break
-            if attempt == 59:
-                raise ReleaseError("container health did not settle after activation")
-            sleep(1)
-        reclaim_old_app_images(manifest, runner)
-        deployed = config_root / "deployed-release.json"
-        receipt={"status":"deployed","deployedAt":time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime()),"releaseId":manifest["releaseId"],"sourceSha":manifest["sourceSha"],"images":manifest["images"]}
-        receipt_temp = config_root / f".deployed-release.{os.getpid()}.json"
-        receipt_temp.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8")
-        receipt_temp.chmod(0o600)
-        receipt_temp.replace(deployed)
 
 def main() -> int:
     parser = argparse.ArgumentParser()

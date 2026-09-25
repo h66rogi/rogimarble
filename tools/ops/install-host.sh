@@ -35,6 +35,7 @@ install -d -m 0755 /opt/rogimarble /opt/rogimarble/releases /etc/rogimarble /usr
 install -d -m 0700 /etc/rogimarble/secrets
 install -d -m 0750 /run/rogimarble
 install -m 0755 "$repo_dir/tools/ops/supervise.sh" /usr/local/lib/rogimarble/supervise.sh
+install -m 0755 "$repo_dir/tools/ops/supervise-slot.sh" /usr/local/lib/rogimarble/supervise-slot.sh
 install -m 0755 "$repo_dir/tools/ops/prepare-secrets.sh" /usr/local/lib/rogimarble/prepare-secrets.sh
 install -m 0755 "$repo_dir/tools/ops/prepare-collector-client.py" /usr/local/lib/rogimarble/prepare-collector-client.py
 install -m 0755 "$repo_dir/tools/ops/release.py" /usr/local/lib/rogimarble/release.py
@@ -46,6 +47,7 @@ install -m 0755 "$repo_dir/tools/ops/upload-backup.py" /usr/local/lib/rogimarble
 install -m 0755 "$repo_dir/tools/ops/load-registry-auth.py" /usr/local/lib/rogimarble/load-registry-auth.py
 install -m 0644 "$repo_dir/deploy/systemd/rogimarble-secrets.service" /etc/systemd/system/rogimarble-secrets.service
 install -m 0644 "$repo_dir/deploy/systemd/rogimarble-app.service" /etc/systemd/system/rogimarble-app.service
+install -m 0644 "$repo_dir/deploy/systemd/rogimarble-slot@.service" /etc/systemd/system/rogimarble-slot@.service
 install -m 0644 "$repo_dir/deploy/systemd/rogimarble-update.service" /etc/systemd/system/rogimarble-update.service
 install -m 0644 "$repo_dir/deploy/systemd/rogimarble-update.timer" /etc/systemd/system/rogimarble-update.timer
 install -m 0644 "$repo_dir/deploy/systemd/rogimarble-backup.service" /etc/systemd/system/rogimarble-backup.service

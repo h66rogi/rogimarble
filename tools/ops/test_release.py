@@ -20,11 +20,20 @@ class FakeRunner:
         self.uuid = uuid
         self.fail_migrate = fail_migrate
         self.commands: list[list[str]] = []
+        self.active_units = {"rogimarble-app.service"}
 
-    def run(self, argv: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
+    def run(self, argv: list[str], *, check: bool = True, input: str | None = None) -> subprocess.CompletedProcess[str]:
         self.commands.append(argv)
+        if argv[:3] == ["systemctl", "is-active", "--quiet"]:
+            return subprocess.CompletedProcess(argv, 0 if argv[-1] in self.active_units else 3, "", "")
+        if argv[:2] == ["systemctl", "start"]:
+            self.active_units.add(argv[-1])
+        if argv[:2] == ["systemctl", "stop"]:
+            self.active_units.discard(argv[-1])
+        if argv[-3:] == ["ps", "-q", "edge"]:
+            return subprocess.CompletedProcess(argv, 0, "edge-id\n", "")
         if argv[-3:] == ["ps", "--format", "json"]:
-            rows=[{"Service":name,"State":"running","Health":"healthy"} for name in ("postgres","redis","api","web","edge")]
+            rows=[{"Service":name,"State":"running","Health":"healthy"} for name in ("postgres","redis","edge","api-blue","web-blue","api-green","web-green")]
             return subprocess.CompletedProcess(argv,0,json.dumps(rows),"")
         if argv[0] == "findmnt":
             return subprocess.CompletedProcess(argv, 0, f"{argv[-1]} {self.uuid}\n", "")
@@ -42,10 +51,11 @@ class ReleaseTest(unittest.TestCase):
         (app / "deploy").mkdir(parents=True); (app / "packages/database/migrations").mkdir(parents=True)
         (app/".release-source-sha").write_text("b"*40+"\n",encoding="ascii")
         compose = app / "deploy/compose.production.yaml"; compose.write_text("services: {}\n", encoding="utf-8")
-        runtime_paths=("deploy/Caddyfile.production","deploy/postgres/init-roles.sh","deploy/systemd/rogimarble-app.service","deploy/systemd/rogimarble-secrets.service","deploy/systemd/rogimarble-update.service","deploy/systemd/rogimarble-update.timer","deploy/systemd/rogimarble-backup.service","deploy/systemd/rogimarble-backup.timer","tools/ops/release.py","tools/ops/deploy.sh","tools/ops/supervise.sh","tools/ops/prepare-secrets.sh","tools/ops/prepare-collector-client.py","tools/ops/install-host.sh","tools/ops/fetch-release.py","tools/ops/production-status.py","tools/ops/backup-postgres.sh","tools/ops/fetch-runtime-secrets.py","tools/ops/upload-backup.py","tools/ops/load-registry-auth.py")
+        runtime_paths=("deploy/Caddyfile.production","deploy/postgres/init-roles.sh","deploy/systemd/rogimarble-app.service","deploy/systemd/rogimarble-slot@.service","deploy/systemd/rogimarble-secrets.service","deploy/systemd/rogimarble-update.service","deploy/systemd/rogimarble-update.timer","deploy/systemd/rogimarble-backup.service","deploy/systemd/rogimarble-backup.timer","tools/ops/release.py","tools/ops/deploy.sh","tools/ops/supervise.sh","tools/ops/supervise-slot.sh","tools/ops/prepare-secrets.sh","tools/ops/prepare-collector-client.py","tools/ops/install-host.sh","tools/ops/fetch-release.py","tools/ops/production-status.py","tools/ops/backup-postgres.sh","tools/ops/fetch-runtime-secrets.py","tools/ops/upload-backup.py","tools/ops/load-registry-auth.py")
         for relative in runtime_paths:
             target=app/relative;target.parent.mkdir(parents=True,exist_ok=True)
             if relative=="tools/ops/prepare-collector-client.py":target.write_bytes((Path(__file__).parent/"prepare-collector-client.py").read_bytes())
+            elif relative=="deploy/Caddyfile.production":target.write_text("reverse_proxy {$API_UPSTREAM}\nreverse_proxy {$WEB_UPSTREAM}\n",encoding="utf-8")
             else:target.write_text(relative+"\n",encoding="utf-8")
         migration = app / "packages/database/migrations/001_test.sql"; migration.write_text("SELECT 1;\n", encoding="utf-8")
         for name in ("postgres", "redis", "caddy-data", "caddy-config"):
@@ -145,29 +155,23 @@ class ReleaseTest(unittest.TestCase):
         self.assertFalse(any(command[:2]==["systemctl","restart"] for command in runner.commands))
         self.assertFalse(any("down" in command or "-v" in command for command in runner.commands))
 
-    def test_existing_supervisor_is_stopped_before_storage_and_restored_on_failed_migration(self):
+    def test_failed_online_migration_leaves_active_slot_and_edge_running(self):
         temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
-        previous=b'{"sourceSha":"previous"}';(config/"release.json").write_bytes(previous)
-        previous_generation=run/"collector-client.previous";previous_generation.mkdir(parents=True)
-        (previous_generation/"collector.env").write_text("COLLECTOR_ENABLED=false\n",encoding="utf-8")
-        collector_link=run/"collector-client";collector_link.symlink_to(previous_generation.name)
-        class ActiveRunner(FakeRunner):
-            def run(self,argv,*,check=True):
-                if argv[:2]==["systemctl","is-active"]:
-                    self.commands.append(argv);return subprocess.CompletedProcess(argv,0,"activating\n","")
-                return super().run(argv,check=check)
-        runner=ActiveRunner(uuid,fail_migrate=True)
+        runner=FakeRunner(uuid)
+        deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None,capacity_check=lambda:None)
+        previous=(config/"release.json").read_bytes()
+        receipt=(config/"deployed-release.json").read_bytes()
+        collector_link=run/"collector-client"
+        previous_generation=os.readlink(collector_link)
+        runner.commands.clear()
+        runner.fail_migrate=True
         with self.assertRaises(subprocess.CalledProcessError):
             deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None,capacity_check=lambda:None)
-        commands=runner.commands
-        stop=commands.index(["systemctl","stop","rogimarble-app.service"])
-        storage=next(i for i,c in enumerate(commands) if "up" in c)
-        self.assertLess(stop,storage)
-        self.assertIn(["systemctl","start","rogimarble-app.service"],commands)
-        self.assertEqual(os.readlink(collector_link),previous_generation.name)
-        self.assertEqual((collector_link/"collector.env").read_text(),"COLLECTOR_ENABLED=false\n")
+        self.assertFalse(any(command[:2]==["systemctl","stop"] for command in runner.commands))
+        self.assertFalse(any(command[:2]==["systemctl","restart"] for command in runner.commands))
+        self.assertEqual(os.readlink(collector_link),previous_generation)
         self.assertEqual((config/"release.json").read_bytes(),previous)
-        self.assertFalse((config/"deployed-release.json").exists())
+        self.assertEqual((config/"deployed-release.json").read_bytes(),receipt)
 
     def test_success_order_is_pull_storage_migrate_supervisor_smoke(self):
         temporary, app, config, run, data, uuid, manifest_path = self.fixture();self.addCleanup(temporary.cleanup)
@@ -184,6 +188,52 @@ class ReleaseTest(unittest.TestCase):
         (run/"lib/supervise.sh").write_text("tampered\n")
         with self.assertRaisesRegex(ReleaseError,"installed runtime file checksum"):verify_installed_runtime(json.loads(manifest_path.read_text()),run/"lib",run/"units")
 
+    def test_online_release_switches_route_before_stopping_old_slot(self):
+        temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
+        runner=FakeRunner(uuid)
+        options=dict(app_root=app,config_root=config,run_root=run,data_root=data,
+                     lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None,capacity_check=lambda:None)
+        deploy(manifest_path,runner,**options)
+        runner.commands.clear()
+        deploy(manifest_path,runner,**options)
+        commands=runner.commands
+        route=next(index for index,command in enumerate(commands) if command[:4]==["docker","exec","-i","edge-id"])
+        stop=commands.index(["systemctl","stop","rogimarble-slot@green.service"])
+        self.assertLess(route,stop)
+        self.assertFalse(any(command in (["systemctl","restart","rogimarble-app.service"],
+                                         ["systemctl","stop","rogimarble-app.service"]) for command in commands))
+        self.assertEqual((config/"active-slot").read_text().strip(),"blue")
+        self.assertEqual(json.loads((config/"deployed-release.json").read_text())["slot"],"blue")
+
+    def test_failed_online_smoke_restores_old_route_and_receipt(self):
+        temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
+        options=dict(app_root=app,config_root=config,run_root=run,data_root=data,
+                     lib_root=run/"lib",unit_root=run/"units",sleep=lambda _:None,capacity_check=lambda:None)
+        runner=FakeRunner(uuid)
+        deploy(manifest_path,runner,**options)
+        receipt=(config/"deployed-release.json").read_bytes()
+        class FailingSmokeRunner(FakeRunner):
+            def __init__(self,uuid):
+                super().__init__(uuid)
+                self.active_units={"rogimarble-app.service","rogimarble-slot@green.service"}
+                self.route_inputs=[]
+            def run(self,argv,*,check=True,input=None):
+                if argv[:4]==["docker","exec","-i","edge-id"]:
+                    self.route_inputs.append(input)
+                if argv[0]=="curl" and len(self.route_inputs)==1:
+                    self.commands.append(argv)
+                    return subprocess.CompletedProcess(argv,1,"","failed")
+                return super().run(argv,check=check,input=input)
+        failed=FailingSmokeRunner(uuid)
+        with self.assertRaisesRegex(ReleaseError,"smoke check failed"):
+            deploy(manifest_path,failed,**options)
+        self.assertEqual(len(failed.route_inputs),2)
+        self.assertIn("api-blue:4000",failed.route_inputs[0])
+        self.assertIn("api-green:4000",failed.route_inputs[1])
+        self.assertEqual((config/"active-slot").read_text().strip(),"green")
+        self.assertEqual((config/"deployed-release.json").read_bytes(),receipt)
+        self.assertIn("rogimarble-slot@green.service",failed.active_units)
+
     def test_receipt_waits_until_container_starting_health_has_settled(self):
         temporary,app,config,run,data,uuid,manifest_path=self.fixture();self.addCleanup(temporary.cleanup)
         class StartingRunner(FakeRunner):
@@ -198,9 +248,9 @@ class ReleaseTest(unittest.TestCase):
         def wait(seconds):
             self.assertFalse((config/"deployed-release.json").exists());waits.append(seconds)
         deploy(manifest_path,runner,app_root=app,config_root=config,run_root=run,data_root=data,lib_root=run/"lib",unit_root=run/"units",sleep=wait,capacity_check=lambda:None)
-        self.assertEqual(waits,[1]);self.assertEqual(runner.probes,2)
+        self.assertEqual(waits,[1]);self.assertEqual(runner.probes,3)
         for command in runner.commands:
-            if command[-3:]==["ps","--format","json"]:self.assertEqual(command[command.index("--env-file")+1],str(run/"release.env"))
+            if command[-3:]==["ps","--format","json"]:self.assertIn(command[command.index("--env-file")+1],(str(run/"candidate-release.env"),str(run/"release.env")))
         self.assertTrue((config/"deployed-release.json").is_file())
 
     def test_reboot_restores_runtime_without_losing_successful_receipt(self):

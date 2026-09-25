@@ -25,7 +25,7 @@ def safe_extract(archive:Path,target:Path)->None:
             if path.is_absolute() or ".." in path.parts or member.issym() or member.islnk() or not(member.isdir() or member.isfile()):raise FetchError("unsafe release archive entry")
         bundle.extractall(target,filter="data")
 def can_skip(active, candidate, receipt, unit_ok:bool, health_ok:bool)->bool:
-    return bool(isinstance(active,dict) and isinstance(receipt,dict) and active.get("sourceSha")==candidate.get("sourceSha") and receipt.get("status")=="deployed" and receipt.get("sourceSha")==candidate.get("sourceSha") and receipt.get("releaseId")==candidate.get("releaseId") and receipt.get("images")==candidate.get("images") and unit_ok and health_ok)
+    return bool(isinstance(active,dict) and isinstance(receipt,dict) and receipt.get("slot") in ("blue","green") and active.get("sourceSha")==candidate.get("sourceSha") and receipt.get("status")=="deployed" and receipt.get("sourceSha")==candidate.get("sourceSha") and receipt.get("releaseId")==candidate.get("releaseId") and receipt.get("images")==candidate.get("images") and unit_ok and health_ok)
 def verified_deployer(app:Path,manifest_path:Path)->Path:
     """Run the source-bound candidate updater so its schema can evolve with the bundle."""
     manifest=read_json(manifest_path)
@@ -82,9 +82,12 @@ def main():
         app,manifest=stage(args.source,args.overlay,args.releases_root,args.run_root,active_value.get("sourceSha") if active_value else None)
         candidate=read_json(manifest);receipt_path=active.with_name("deployed-release.json");receipt=read_json(receipt_path) if receipt_path.is_file() else None
         if active_value and active_value.get("sourceSha")==candidate.get("sourceSha"):
+            slot_path=active.with_name("active-slot")
+            slot=slot_path.read_text(encoding="ascii").strip() if slot_path.is_file() else None
             unit=__import__('subprocess').run(["systemctl","is-active","--quiet","rogimarble-app.service"])
+            slot_unit=__import__('subprocess').run(["systemctl","is-active","--quiet",f"rogimarble-slot@{slot}.service"]) if slot in ("blue","green") else None
             health=__import__('subprocess').run(["curl","--fail","--silent","--show-error","--max-time","5","https://marble-api.rogi.chat/ready"],capture_output=True)
-            if can_skip(active_value,candidate,receipt,unit.returncode==0,health.returncode==0):return 0
+            if can_skip(active_value,candidate,receipt,unit.returncode==0 and slot_unit is not None and slot_unit.returncode==0 and isinstance(receipt,dict) and receipt.get("slot")==slot,health.returncode==0):return 0
         os.execv("/usr/bin/python3",["python3",str(verified_deployer(app,manifest)),"--manifest",str(manifest),"--app-root",str(app)])
     except (FetchError,OSError,ValueError,json.JSONDecodeError) as error:print(f"release fetch failed: {error}",file=__import__('sys').stderr);return 1
 if __name__=="__main__":raise SystemExit(main())

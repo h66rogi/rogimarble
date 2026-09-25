@@ -7,4 +7,4 @@ compose_file=$app_root/deploy/compose.production.yaml
 
 test -r "$env_file"
 exec docker compose --env-file "$env_file" -f "$compose_file" up \
-  --no-build --abort-on-container-failure postgres redis api web edge
+  --no-build --abort-on-container-failure postgres redis edge

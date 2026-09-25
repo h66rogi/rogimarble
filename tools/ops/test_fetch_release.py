@@ -42,7 +42,7 @@ class FetchReleaseTest(unittest.TestCase):
       with self.assertRaisesRegex(module.FetchError,"checksum"):module.verified_deployer(app,manifest)
 
   def test_failed_activation_never_skips_without_matching_receipt_and_health(self):
-    candidate={"sourceSha":"a"*40,"releaseId":"r1","images":{"api":"digest"}};active={"sourceSha":"a"*40};receipt={"status":"deployed","sourceSha":"a"*40,"releaseId":"r1","images":{"api":"digest"}}
+    candidate={"sourceSha":"a"*40,"releaseId":"r1","images":{"api":"digest"}};active={"sourceSha":"a"*40};receipt={"status":"deployed","sourceSha":"a"*40,"releaseId":"r1","images":{"api":"digest"},"slot":"green"}
     self.assertFalse(module.can_skip(active,candidate,None,True,True));self.assertFalse(module.can_skip(active,candidate,receipt,False,True));self.assertFalse(module.can_skip(active,candidate,receipt,True,False));self.assertTrue(module.can_skip(active,candidate,receipt,True,True))
 
 if __name__=="__main__":unittest.main()

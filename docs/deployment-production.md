@@ -112,6 +112,7 @@ shared 인증 응답의 `accountPartition`은 자동 권한이 아니다. 003 mi
     "deploy/Caddyfile.production": "64 lowercase hex",
     "deploy/postgres/init-roles.sh": "64 lowercase hex",
     "deploy/systemd/rogimarble-app.service": "64 lowercase hex",
+    "deploy/systemd/rogimarble-slot@.service": "64 lowercase hex",
     "deploy/systemd/rogimarble-secrets.service": "64 lowercase hex",
     "deploy/systemd/rogimarble-update.service": "64 lowercase hex",
     "deploy/systemd/rogimarble-update.timer": "64 lowercase hex",
@@ -120,13 +121,16 @@ shared 인증 응답의 `accountPartition`은 자동 권한이 아니다. 003 mi
     "tools/ops/release.py": "64 lowercase hex",
     "tools/ops/deploy.sh": "64 lowercase hex",
     "tools/ops/supervise.sh": "64 lowercase hex",
+    "tools/ops/supervise-slot.sh": "64 lowercase hex",
     "tools/ops/prepare-secrets.sh": "64 lowercase hex",
     "tools/ops/install-host.sh": "64 lowercase hex",
     "tools/ops/fetch-release.py": "64 lowercase hex",
     "tools/ops/production-status.py": "64 lowercase hex",
     "tools/ops/backup-postgres.sh": "64 lowercase hex",
     "tools/ops/fetch-runtime-secrets.py": "64 lowercase hex",
-    "tools/ops/upload-backup.py": "64 lowercase hex"
+    "tools/ops/upload-backup.py": "64 lowercase hex",
+    "tools/ops/load-registry-auth.py": "64 lowercase hex",
+    "tools/ops/prepare-collector-client.py": "64 lowercase hex"
   },
   "images": {
     "api": "registry/repository@sha256:64hex",
@@ -173,12 +177,16 @@ helper는 host flock 아래 manifest·checksum·mount·secret mode·Compose conf
 `/etc/rogimarble/registry.json`이 가리키는 전용 Secrets Manager 값 `{username,token}`을 instance role로 가져온다.
 root 0700 `/run/rogimarble/docker-auth`의 0600 Docker config는 digest pull 한 명령에만 `--config`로 전달하고 성공·실패
 모두 즉시 삭제한다. 사람의 PAT, 장기 login, 인증 실패 시 anonymous fallback은 허용하지 않는다.
-UID/GID는 선택한 immutable image에서 확인한 값이어야 한다. 활성 env를 바꾸지 않은 candidate env로
-PostgreSQL/Redis를 준비한 뒤 manifest로 검증한 host migration directory를 read-only mount하여 forward migration을
-일회성으로 실행한다. migration 성공 후 checksum이 검증된 helper와 systemd unit을 원자적으로 설치하고 설치본을
-다시 검증한다. 재부팅 secret 준비도 설치본 checksum을 확인한다. 그 뒤에만 candidate manifest와
-env를 활성화하고 `rogimarble-app.service`를 재시작한 다음 두 HTTPS 경로를 smoke test한다. 실패 시 `down -v`, volume prune,
-DB 초기화, down migration을 실행하지 않는다.
+UID/GID는 선택한 immutable image에서 확인한 값이어야 한다. 처음 슬롯 방식으로 전환할 때는
+기존 supervisor와 Caddy를 교체하므로 짧은 연결 중단을 예상하고 점검 시간을 잡는다.
+이후 앱 릴리스는 기존 data/edge supervisor와 활성 슬롯을 그대로 둔 채 candidate env로 forward migration을
+일회성 실행한다. 비활성 blue/green API·web 슬롯을 기동해 각각의 healthcheck가 통과하면
+Caddy admin API를 container loopback에서 호출해 새 upstream으로 설정을 reload한다.
+두 HTTPS 경로를 smoke test한 뒤에만 이전 슬롯을 중지하고 새 슬롯을 재부팅 자동 시작 대상으로 지정한다.
+전환 실패 시 이전 upstream으로 reload하고 candidate를 중지한다. 실패 시 `down -v`, volume prune,
+DB 초기화, down migration을 실행하지 않는다. 신규 migration은 이전 API도 계속 사용할 수 있는
+expand/contract 형태여야 한다. migration은 2초 lock timeout과 30초 statement timeout으로 실행한다.
+Caddy·PostgreSQL·Redis 이미지 또는 호스트 runtime 설정 변경은 일반 앱 무중단 경로에서 거부한다.
 
 배포 시작 전과 성공 판정 직전에는 Rogimarble의 `api`·`web` 저장소 이미지만 점검한다. 실행 중인 모든
 컨테이너 이미지와 저장소별 최신 3세대는 항상 보존하고, 그보다 오래된 미사용 앱 이미지만 제거한다. 다른 제품 이미지,
@@ -186,9 +194,11 @@ PostgreSQL·Redis·Caddy 이미지, volume, build cache는 이 정리 대상이 
 4 GiB 미만이면 registry 인증이나 pull을 시작하지 않고 필요한 용량과 현재 여유 공간을 오류로 남긴다. 이 선행 정리로
 이전 배포에서 남은 이미지가 새 pull을 막는 상황을 복구하고, 성공 후 정리로 다음 배포 전까지 누적량을 제한한다.
 
-systemd는 attached `docker compose up --abort-on-container-failure` 프로세스를 감독한다. container 하나가
-종료되면 Compose가 application set을 내리고 systemd가 순서와 secret 준비를 다시 거쳐 재시작한다.
-이는 detached `compose up` 성공만으로 장기 실행을 정상이라고 간주하지 않기 위한 계약이다.
+systemd는 data/edge와 활성 앱 슬롯을 별도 attached `docker compose up --abort-on-container-failure`
+프로세스로 감독한다. 앱 슬롯이 종료되어도 Caddy와 DB는 유지되고 해당 슬롯만 복구된다.
+`production-status.py`는 활성 슬롯의 unit·컨테이너·release receipt와 공개 API readiness를 함께 확인한다.
+기존 Socket.IO 연결은 슬롯 교체 때 재연결할 수 있으며, 방송 중 장기 연결이 중요한 시점에는
+클라이언트 재연결과 상태 재조회가 확인된 후 배포한다. 단일 EC2 장애는 이 설계의 보호 범위가 아니다.
 
 되돌리기는 schema 호환성이 확인된 이전 digest manifest로 같은 절차를 실행한다. migration은 자동으로
 되돌리지 않는다. migration 실패 또는 호환성 불명확 상태에서는 새 application set을 시작하지 않고 점검한다.

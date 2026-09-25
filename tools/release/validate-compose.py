@@ -61,6 +61,8 @@ def parsed_compose() -> dict:
             "APP_ROOT": "/opt/rogimarble/app",
             "WEB_DOMAIN": "marble.rogi.chat",
             "API_DOMAIN": "marble-api.rogi.chat",
+            "API_UPSTREAM": "api-green:4000",
+            "WEB_UPSTREAM": "web-green:3000",
         }
     )
     result = subprocess.run(

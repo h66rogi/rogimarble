@@ -1,5 +1,5 @@
 [Unit]
-Description=Rogimarble production Compose supervisor
+Description=Rogimarble production data and edge supervisor
 After=docker.service network-online.target rogimarble-secrets.service rogimarble-container-imds-guard.service
 Wants=network-online.target
 Requires=docker.service rogimarble-secrets.service rogimarble-container-imds-guard.service
@@ -9,7 +9,7 @@ ConditionPathExists=/run/rogimarble/release.env
 [Service]
 Type=simple
 ExecStart=/usr/local/lib/rogimarble/supervise.sh
-ExecStop=/usr/bin/docker compose --env-file /run/rogimarble/release.env -f /opt/rogimarble/app/deploy/compose.production.yaml stop --timeout 45
+ExecStop=/usr/bin/docker compose --env-file /run/rogimarble/release.env -f /opt/rogimarble/app/deploy/compose.production.yaml stop --timeout 45 postgres redis edge
 Restart=always
 RestartSec=10
 TimeoutStopSec=60

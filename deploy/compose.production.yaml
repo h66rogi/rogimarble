@@ -93,6 +93,7 @@ services:
     command: [node, --experimental-strip-types, packages/database/src/migrate.ts]
     environment:
       DATABASE_URL_FILE: /run/rogimarble-secrets/migration_database_url
+      PGOPTIONS: "-c lock_timeout=2s -c statement_timeout=30s"
     volumes:
       - type: bind
         source: ${RUNTIME_SECRET_ROOT}/migration_database_url
@@ -110,7 +111,7 @@ services:
     mem_limit: 512m
     cpus: 0.5
 
-  api:
+  api-blue: &api-slot
     <<: *runtime
     image: ${IMAGE_API:?digest required}
     user: ${API_UID:?required}:${API_GID:?required}
@@ -140,9 +141,6 @@ services:
         read_only: true
         bind: {create_host_path: false}
     expose: ["4000"]
-    depends_on:
-      postgres: {condition: service_healthy}
-      redis: {condition: service_healthy}
     networks: [edge, data]
     tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=33554432,mode=1777"]
     mem_limit: 384m
@@ -154,7 +152,10 @@ services:
       retries: 12
       start_period: 15s
 
-  web:
+  api-green:
+    <<: *api-slot
+
+  web-blue: &web-slot
     <<: *runtime
     image: ${IMAGE_WEB:?digest required}
     user: ${WEB_UID:?required}:${WEB_GID:?required}
@@ -175,6 +176,9 @@ services:
       retries: 12
       start_period: 15s
 
+  web-green:
+    <<: *web-slot
+
   edge:
     <<: *runtime
     image: ${IMAGE_CADDY:?digest required}
@@ -184,10 +188,9 @@ services:
       WEB_DOMAIN: ${WEB_DOMAIN:?required}
       API_DOMAIN: ${API_DOMAIN:?required}
       ACME_EMAIL_DIRECTIVE: ${ACME_EMAIL_DIRECTIVE-}
+      API_UPSTREAM: ${API_UPSTREAM:?required}
+      WEB_UPSTREAM: ${WEB_UPSTREAM:?required}
     ports: ["80:80", "443:443", "443:443/udp"]
-    depends_on:
-      api: {condition: service_healthy}
-      web: {condition: service_healthy}
     volumes:
       - type: bind
         source: ${APP_ROOT}/deploy/Caddyfile.production
@@ -206,7 +209,7 @@ services:
     networks: [edge]
     mem_limit: 128m
     cpus: 0.5
-    healthcheck: {test: [CMD, wget, --no-verbose, --tries=1, --spider, http://api:4000/health], interval: 10s, timeout: 3s, retries: 12}
+    healthcheck: {test: [CMD, wget, --no-verbose, --tries=1, --spider, http://127.0.0.1:2019/config/], interval: 10s, timeout: 3s, retries: 12}
 
 networks:
   edge: {internal: false}

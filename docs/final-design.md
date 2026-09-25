@@ -564,8 +564,11 @@ release manifest에는 source SHA, 서비스별 image digest, Compose hash, migr
 이미 진행 중인 migration을 새 CI 작업이 취소하지 않게 한다.
 필요한 서비스만 교체하고 다른 제품의 재시작은 요구하지 않는다.
 
-기본은 짧은 점검 시간이 있는 in-place 배포다. 방송 중 배포는 피하고 drain 후 진행한다.
-두 호스트 구성은 고가용성 구성이 아니므로 무중단을 약속하지 않는다.
+첫 기존 Compose supervisor에서 슬롯 방식으로 전환할 때는 Caddy와 데이터 서비스를 한 번 재시작하므로
+짧은 점검 시간을 잡는다. 이후 일반 앱 릴리스는 같은 호스트에서 비활성 blue/green API·web 슬롯을
+먼저 기동·검증하고 Caddy 설정을 reload한 뒤 이전 슬롯을 중지한다. Caddy·PostgreSQL·Redis
+이미지나 호스트 runtime 설정 변경은 이 경로에서 거부하고 별도 점검 배포로 처리한다.
+운영 호스트는 단일 EC2이므로 호스트·디스크·네트워크 장애에 대한 고가용성은 별도 과제다.
 schema는 expand/contract 방식으로 바꾸고, 실패 시 호환되는 이전 image digest로 앱을 되돌린다.
 DB down migration을 자동 실행하지 않는다. 깨진 migration/복구가 필요하면 점검 상태를 유지한다.
 배포 완료는 container digest·readiness·socket 재연결·내부 수집 RPC·백업 상태로 확인한다.
