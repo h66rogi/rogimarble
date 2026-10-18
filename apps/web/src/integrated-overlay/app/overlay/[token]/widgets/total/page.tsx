@@ -95,6 +95,10 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status,
   const presentation = useRollPresentation({sessionKey:session?`${session.id}:${session.sessionEpoch}`:null,presentationEpoch:session?.presentationEpoch??null,authoritativeCellId:session?.currentCellId??board.path[0],boardPath:board.path});
   const visibleDice = presentation.effectPhase==='idle' ? (presentation.dice.length?presentation.dice:playback?.dice) : presentation.dice;
   const currentMission = state?.missions.find((mission) => mission.status === 'pending') ?? null;
+  const inventorySummary = [
+    ...(state?.counters ?? []).map((counter) => `${counter.label} ${counter.value}${counter.unit}`),
+    ...(state?.inventory ?? []).map((item) => `${item.name} ${item.quantity}개`),
+  ].join(' · ') || '없음';
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -164,7 +168,7 @@ export default function TotalOverlayWidgetPage({ accepted, previewBoard, status,
           {(widget.id === 'menu' || widget.id === 'dice_price') && <BroadcastPanel kind={widget.id} layout={{ ...totalLayout, boardThemeId: themeId, fontId }} rules={state?.donationMenu ?? []} />}
           {widget.id === 'dice' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="이번 주사위" value={presentation.effectPhase==='anticipation'?'굴리는 중…':visibleDice?.join(' + ')||'대기 중'} />}
           {widget.id === 'current_mission' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="현재 미션" value={currentMission ? `${currentMission.message} × ${currentMission.quantity}` : '진행 중인 미션 없음'} />}
-          {widget.id === 'inventory' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="보유 아이템" value={state?.inventory.length ? state.inventory.map((item) => `${item.name} ${item.quantity}`).join(' · ') : '없음'} align="left" />}
+          {widget.id === 'inventory' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="보유 아이템" value={inventorySummary} align="left" />}
           {widget.id === 'direction' && <OverlayCard fontId={fontId} themeId={themeId} eyebrow="이동 방향" value={session?.direction === 'reverse' ? '역방향' : '정방향'} />}
           {widget.id === 'chatbox' && <RogimarbleChatbox themeId={themeId} fontId={resolveBoardFontId(fontId)} options={style} />}
         </div>;

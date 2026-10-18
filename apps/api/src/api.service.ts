@@ -355,7 +355,7 @@ async function inventoryState(db:Queryable,sessionId:string,channelId:string):Pr
   return result.rows.map(row=>({itemId:row.item_id,name:row.name,quantity:row.quantity,revision:Number(row.revision),updatedAt:new Date(row.updated_at).toISOString()}));
 }
 async function missionState(db:Queryable,sessionId:string):Promise<MissionDto[]>{const result=await db.query('SELECT * FROM missions WHERE session_id=$1 ORDER BY created_at,id',[sessionId]);return result.rows.map(missionDto);}
-async function counterState(db:Queryable,sessionId:string,board:BoardDefinition){
+export async function counterState(db:Queryable,sessionId:string,board:BoardDefinition){
   const rows=await db.query<any>(`SELECT c.counter_id,c.value,c.revision,COALESCE(sum(m.settlement_amount) FILTER (WHERE m.status='pending' AND m.settlement_on='mission_completion'),0) reserved
     FROM session_counters c LEFT JOIN missions m ON m.session_id=c.session_id AND m.settlement_counter_id=c.counter_id WHERE c.session_id=$1 GROUP BY c.counter_id,c.value,c.revision`,[sessionId]);
   const defs=new Map(board.counters.map(counter=>[counter.id,counter]));return rows.rows.map(row=>{const def=defs.get(row.counter_id);const reserved=Number(row.reserved);return{counterId:row.counter_id,label:def?.label??row.counter_id,unit:def?.unit??'',value:row.value,reserved,available:row.value-reserved,revision:Number(row.revision)}});

@@ -496,8 +496,19 @@ test('supported arrival effects persist counters, reservations, missions, modifi
   const http=client(await login()),created=await http.post('/v1/channels/test-channel/sessions',{commandId:randomUUID(),boardVersionId,initialCellId:board.startCellId,direction:'forward'});assert.equal(created.status,201);
   let state=await (await http.get('/v1/channels/test-channel/operator-state')).json() as any;const path=`/v1/channels/test-channel/sessions/${state.session.id}/commands`;
   const land=async(cellId:string)=>{state=await (await http.get('/v1/channels/test-channel/operator-state')).json();const response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'set_position',reason:'effect integration',payload:{cellId,pauseAutomaticMovement:true,triggerArrivalEffects:true}});assert.equal(response.status,201);return response.json() as Promise<any>;};
+  const overlayToken=await (await http.get('/v1/channels/test-channel/overlay-token')).json() as any;
+  const assertOverlayCounters=async()=>{
+    const response=await fetch(`http://127.0.0.1:${apiPort}/v1/overlay/state`,{headers:{authorization:`Bearer ${overlayToken.token}`}});
+    assert.equal(response.status,200);
+    const overlay=await response.json() as any;
+    assert.deepEqual(overlay.counters,state.counters);
+    const byItemId=(a:{itemId:string},b:{itemId:string})=>a.itemId.localeCompare(b.itemId);
+    assert.deepEqual(overlay.inventory.toSorted(byItemId),state.inventory.toSorted(byItemId));
+  };
+  await assertOverlayCounters();
   let response:Response;
   await land(board.cells[1].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,1);assert.equal(state.counters[0].available,1);
+  await assertOverlayCounters();
   await land(board.cells[2].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.missions.at(-1).message,'effect mission');assert.equal(state.missions.at(-1).durationSeconds,30);
   await land(board.cells[3].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.deepEqual(state.rollModifiers.map((x:any)=>[x.factor,x.usesRemaining]),[[2,1]]);
   const clearModifier={commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'clear_roll_modifier',reason:'operator correction',payload:{modifierId:state.rollModifiers[0].id}};
@@ -518,10 +529,12 @@ test('supported arrival effects persist counters, reservations, missions, modifi
   response=await http.post(path,clearLock);assert.equal(response.status,201);const lockAck=await response.json();response=await http.post(path,clearLock);assert.equal(response.status,201);assert.deepEqual(await response.json(),lockAck);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.movementLock,null);assert.equal((await http.post(path,{...clearLock,commandId:randomUUID(),expectedRevision:state.session.revision})).status,409);
   await land(board.cells[5].id);await land(board.cells[5].id);state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,0);assert.equal(state.counters[0].reserved,0);assert.equal(state.counters[0].available,0);const settlement=state.missions.find((x:any)=>x.message==='settle snapshot');assert.equal(settlement.quantity,1);
+  await assertOverlayCounters();
   response=await http.post(path,{commandId:randomUUID(),sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'adjust_counter',reason:'invalid correction',payload:{counterId:'drink-bank',quantity:-1,expectedCounterRevision:state.counters[0].revision}});assert.equal(response.status,422);
   const legacySourceCommandId=randomUUID();
   response=await http.post(path,{commandId:legacySourceCommandId,sessionEpoch:state.session.sessionEpoch,expectedRevision:state.session.revision,type:'adjust_counter',reason:'operator correction',payload:{counterId:'drink-bank',quantity:2,expectedCounterRevision:state.counters[0].revision}});assert.equal(response.status,201);
   state=await (await http.get('/v1/channels/test-channel/operator-state')).json();assert.equal(state.counters[0].value,2);assert.equal(state.counters[0].available,2);
+  await assertOverlayCounters();
   const legacyDb=new pg.Client({connectionString:databaseUrl});await legacyDb.connect();
   try{
     await legacyDb.query(`INSERT INTO missions(id,session_id,message,quantity,status,created_by_command_id,source_effect_index,settlement_counter_id,settlement_amount,settlement_on) VALUES($1,$2,'legacy reservation',1,'pending',$3,999,'drink-bank',1,'mission_completion')`,
